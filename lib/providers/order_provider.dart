@@ -11,3 +11,8 @@ final orderWithLinesProvider =
     StreamProvider.family<OrderWithLines?, int>((ref, orderId) {
   return ref.watch(databaseProvider).orderDao.watchOrderWithLines(orderId);
 });
+
+final orderSummariesForDateProvider =
+    StreamProvider.family<List<OrderDaySummary>, DateTime>((ref, date) {
+  return ref.watch(databaseProvider).orderDao.watchOrderSummariesForDate(date);
+});

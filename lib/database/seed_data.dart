@@ -68,6 +68,50 @@ Future<void> seedDatabase(AppDatabase db) async {
         ));
       }
     }
+
+    // Two test orders for today — one confirmed, one pending
+    final today = DateTime.now();
+    final todayStart = DateTime(today.year, today.month, today.day);
+
+    // Hotel Raj — confirmed, 3 products
+    final rajOrderId = await db.into(db.dailyOrders).insert(
+          DailyOrdersCompanion.insert(
+            shopId: shopIds[0],
+            orderDate: todayStart,
+            isConfirmed: const Value(true),
+          ),
+        );
+    for (final line in [
+      (productId: productIds[0], qty: 30, price: prices[0][0]), // Bun
+      (productId: productIds[1], qty: 15, price: prices[0][1]), // Veg Puff
+      (productId: productIds[2], qty: 10, price: prices[0][2]), // Egg Puff
+    ]) {
+      await db.into(db.orderLines).insert(OrderLinesCompanion.insert(
+            orderId: rajOrderId,
+            productId: line.productId,
+            qty: line.qty,
+            unitPrice: line.price,
+          ));
+    }
+
+    // Star Bakery — pending, 2 products
+    final starOrderId = await db.into(db.dailyOrders).insert(
+          DailyOrdersCompanion.insert(
+            shopId: shopIds[1],
+            orderDate: todayStart,
+          ),
+        );
+    for (final line in [
+      (productId: productIds[0], qty: 20, price: prices[1][0]), // Bun
+      (productId: productIds[3], qty: 3, price: prices[1][3]),  // Bread
+    ]) {
+      await db.into(db.orderLines).insert(OrderLinesCompanion.insert(
+            orderId: starOrderId,
+            productId: line.productId,
+            qty: line.qty,
+            unitPrice: line.price,
+          ));
+    }
   });
-  debugPrint('[BakeOrder] Seed complete — 5 shops, 6 products, prices and standing orders inserted.');
+  debugPrint('[BakeOrder] Seed complete — 5 shops, 6 products, prices, standing orders, and 2 test orders inserted.');
 }

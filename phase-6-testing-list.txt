@@ -1,0 +1,119 @@
+Phase 6 — Order Entry Screen
+
+T1 · Auto-fill on first open
+1. Home → tap Hotel Raj card (today's date, no order exists)  ✅
+2. Order Entry opens with a loading spinner, then product list appears ✅
+3. Verify: all products show their standing order qty pre-filled (non-zero for products that have a standing order, 0 for others) ✅
+4. Subheader shows today's date + "Regular Order" ✅
+
+T2 · Unpriced products are greyed out
+1. Go to Profile → Prices → select Hotel Raj → delete/blank one product's price → Save ✅
+2. Open that shop's order entry ✅
+3. Verify: the unpriced product row is visually greyed out, stepper buttons are disabled, "Price not set" label shown✅
+4. Verify: warning banner appears: "Prices not set for 1 product — billing will show ₹0" ✅
+
+T3 · Qty minimum is 0
+1. On any product at qty 0 → tap the − button  ✅
+2. Verify: qty stays at 0, does not go negative  ✅
+
+T4 · Auto-save (no explicit save button)
+1. Change qty on 2 products ✅
+2. Press back (leave the screen) — wait 1 second ✅
+3. Home → tap the same shop ✅
+4. Verify: your changed quantities are loaded, not the standing order defaults ✅
+
+T5 · Line totals and order total update in real-time
+1. Open Order Entry for Hotel Raj ✅
+2. Set Buns qty to 10 (price ₹8) → Verify: line label shows "₹8 / pc · ₹80" ✅
+3. Verify: bottom bar total reflects the running sum as you change qtys ✅
+
+T6 · Confirm Order — normal flow
+1. Set some qtys > 0 → tap "Confirm Order →" ✅
+2. Verify: no dialog appears (total qty > 0)
+3. Verify: button changes to "Confirmed ✓" (green tint, disabled) ✅
+4. Go Home → Verify: shop card shows green "Confirmed" chip ✅
+
+T7 · Confirm Order — all zeros dialog
+1. Open any shop's order entry → set all qtys to 0
+2. Tap "Confirm Order →"
+3. Verify: dialog "All quantities are 0 / Confirm?" appears ✅
+4. Tap Cancel → dialog closes, order stays unconfirmed ✅
+5. Tap "Confirm Order →" again → dialog → tap Confirm → button shows "Confirmed ✓" ✅
+
+T8 · Edit after confirm reverts to Pending
+1. From T6, tap any stepper while button shows "Confirmed ✓" ✅
+2. Verify: button reverts immediately to "Confirm Order →" ✅
+3. Go Home → Verify: shop card shows grey "Pending" chip ✅
+
+T9 · Load Standing Order — empty order
+1. Open Order Entry for a shop that has no order today (fresh)✅
+2. Clear all qtys to 0 manually✅
+3. Tap "Load Standing Order"✅
+4. Verify: NO confirm dialog appears (qtys were all 0) ✅
+5. Verify: qtys are reset to standing order defaults✅
+
+T10 · Load Standing Order — existing entries
+1. Open Order Entry with some non-zero qtys ✅
+2. Tap "Load Standing Order" ✅
+3. Verify: confirm dialog "Replace current entries..." appears ✅
+4. Tap Cancel → qtys unchanged ✅
+5. Tap "Load Standing Order" → Confirm → qtys reset to standing order defaults ✅
+
+T11 · Reload saves last state
+1. Enter unique qtys (e.g., Buns=7, Puffs=3) → wait 1 second✅
+2. Press back → reopen same shop's order✅
+3. Verify: exactly Buns=7, Puffs=3 loaded (not standing order defaults)✅
+
+---
+Phase 7 — Orders Tab (Daily Summary & Billing)
+
+T12 · Orders tab is independent from Home date
+1. On Home, navigate to yesterday using < arrow✅
+2. Switch to Orders tab✅
+3. Verify: Orders tab shows today's date (not yesterday's) — it has its own date state✅
+
+T13 · Only shops with orders appear
+1. Navigate to a date where 3 of 5 shops have orders✅
+2. Verify: exactly 3 rows appear, not all 5 ✅
+
+T14 · Confirmed + Pending both shown
+1. Confirm one shop's order, leave another Pending ✅
+2. Switch to Orders tab ✅
+3. Verify: both shops appear — one with green "Confirmed" chip, one with grey "Pending" ✅
+
+T15 · Accordion expand / collapse
+1. Tap a shop row → accordion expands showing Item / Qty / Price / Total columns ✅
+2. Tap again → collapses ✅
+3. Scroll the list → come back → Verify: expansion state is preserved (does not reset) ✅
+4. Tap a different shop row → Verify: previous one collapses, new one expands (only one open at a time) ✅
+
+T16 · Bill total uses price snapshot, not current price
+1. Hotel Raj has Buns × 10 at ₹8 (total ₹80). Confirm the order. ✅
+2. Go to Profile → Prices → change Buns price for Hotel Raj to ₹20 → Save  ✅
+3. Switch to Orders tab → expand Hotel Raj ✅
+4. Verify: Buns shows ₹8 (snapshot), Total = ₹80 — NOT ₹200 ✅
+
+T17 · Grand total footer
+1. On a date with 3 shops:  Hotel Raj ₹230, Star Bakery ₹190, Another ₹100  ✅
+2. Verify: footer shows "Grand Total: ₹520" and "3 shops" ✅
+
+T18 · Individual share — text format
+1. Hotel Raj: Buns × 30, Veg Puff × 10 (confirmed) ✅
+2. Tap the share icon on Hotel Raj's row ✅
+3. Verify: share sheet opens with text in format: ✅
+🧾 Bill — Hotel Raj
+Date: 30 Jun 2026
+
+Buns        ×   30  ₹240
+Veg Puff    ×   10  ₹ 80
+
+TOTAL: ₹320
+
+T19 · Share All — text format
+1. On a date with at least 2 shops with orders
+2. Tap "Share All" button in footer
+3. Verify: text starts with 🧾 Bills — DD Mon YYYY and lists all shops with totals + GRAND TOTAL row
+
+T20 · Empty state
+1. Navigate Orders tab to a date with no orders (e.g., next year) ✅
+2. Verify: receipt icon + "No orders for this date" message shown (no crash, no empty list) ✅

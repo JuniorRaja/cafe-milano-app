@@ -6,6 +6,13 @@ class OrderWithLines {
   const OrderWithLines({required this.order, required this.lines});
 }
 
+class OrderDaySummary {
+  final DailyOrder order;
+  final int itemCount; // distinct product line count
+  final double total;
+  const OrderDaySummary({required this.order, required this.itemCount, required this.total});
+}
+
 @DriftAccessor(tables: [DailyOrders, OrderLines])
 class OrderDao extends DatabaseAccessor<AppDatabase> with _$OrderDaoMixin {
   OrderDao(super.db);
@@ -48,9 +55,56 @@ class OrderDao extends DatabaseAccessor<AppDatabase> with _$OrderDaoMixin {
     });
   }
 
+  Future<void> replaceOrderLines(int orderId, List<OrderLinesCompanion> lines) {
+    return transaction(() async {
+      await (delete(orderLines)..where((l) => l.orderId.equals(orderId))).go();
+      for (final line in lines) {
+        if (line.qty.value > 0) {
+          await into(orderLines).insert(line.copyWith(orderId: Value(orderId)));
+        }
+      }
+    });
+  }
+
   Future<void> setConfirmed(int orderId, bool confirmed) =>
       (update(dailyOrders)..where((o) => o.id.equals(orderId)))
           .write(DailyOrdersCompanion(isConfirmed: Value(confirmed)));
+
+  Stream<List<OrderDaySummary>> watchOrderSummariesForDate(DateTime date) {
+    final dayStart = DateTime(date.year, date.month, date.day);
+    final query =
+        (select(dailyOrders)..where((o) => o.orderDate.equals(dayStart))).join([
+      leftOuterJoin(orderLines, orderLines.orderId.equalsExp(dailyOrders.id)),
+    ]);
+    return query.watch().map((rows) {
+      final Map<int, ({DailyOrder order, int items, double total})> acc = {};
+      for (final row in rows) {
+        final order = row.readTable(dailyOrders);
+        final line = row.readTableOrNull(orderLines);
+        final prev = acc[order.id];
+        if (prev == null) {
+          acc[order.id] = (
+            order: order,
+            items: line != null ? 1 : 0,
+            total: line != null ? line.qty * line.unitPrice : 0.0,
+          );
+        } else if (line != null) {
+          acc[order.id] = (
+            order: order,
+            items: prev.items + 1,
+            total: prev.total + line.qty * line.unitPrice,
+          );
+        }
+      }
+      return acc.values
+          .map((e) => OrderDaySummary(
+                order: e.order,
+                itemCount: e.items,
+                total: e.total,
+              ))
+          .toList();
+    });
+  }
 
   Future<DailyOrder> getOrCreateOrder(int shopId, DateTime date) {
     final dayStart = DateTime(date.year, date.month, date.day);

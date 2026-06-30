@@ -2,7 +2,7 @@
 
 > Generated: 2026-06-30  
 > Last updated: 2026-06-30  
-> Status: Phase 4 complete — Phase 5 next  
+> Status: Phase 7 complete — Phase 8 next  
 > Platform: Android (Flutter)  
 > Estimated timeline: ~3 weeks  
 > **App root: `E:\Works\pr-mob-app\CafeMilano\`**  
@@ -256,27 +256,27 @@ class OrderLines extends Table {
 
 ### Action Items
 
-- [ ] Date selector row: `<` prev day | `📅 DD Mon YYYY, Day` | `>` next day
+- [x] Date selector row: `<` prev day | `📅 DD Mon YYYY, Day` | `>` next day
   - Tapping the date label opens a date picker (no future date restriction)
   - `selectedDateProvider` drives the date
-- [ ] "Shops · N shops" section header (count of active shops)
-- [ ] `ShopOrderCard` widget — reads from `ordersForDateProvider(selectedDate)`:
+- [x] "Shops · N shops" section header (count of active shops)
+- [x] `ShopOrderCard` widget — reads from `ordersForDateProvider(selectedDate)`:
   - Circular product icon / shop photo placeholder (amber background)
   - Shop name (bold)
   - Area subtitle (grey)
   - Confirmed (green chip) / Pending (grey chip) badge
   - If order exists: "N items · ₹X,XXX" summary chips
   - If no order: "Tap to add order" hint text
-- [ ] Tap card → navigate to `/order/:shopId?date=YYYY-MM-DD`
-- [ ] No FAB on this screen
+- [x] Tap card → navigate to `/order/:shopId?date=YYYY-MM-DD`
+- [x] No FAB on this screen
 
 ### Success Criteria
 
-- [ ] All active shops listed regardless of whether an order exists for the date
-- [ ] Changing the date refreshes all cards reactively (no manual refresh)
-- [ ] Confirmed badge renders green; Pending renders grey
-- [ ] Order summary (items + total) visible on card without opening the order
-- [ ] Deactivated shops do not appear
+- [x] All active shops listed regardless of whether an order exists for the date
+- [x] Changing the date refreshes all cards reactively (no manual refresh)
+- [x] Confirmed badge renders green; Pending renders grey
+- [x] Order summary (items + total) visible on card without opening the order
+- [x] Deactivated shops do not appear
 
 ---
 
@@ -286,42 +286,42 @@ class OrderLines extends Table {
 
 ### Action Items
 
-- [ ] Route: `/order/:shopId?date=YYYY-MM-DD`
-- [ ] AppBar: back arrow | shop icon + shop name + area | "Load Standing Order" (orange text button)
-- [ ] Sub-header: "Order Date: DD Mon YYYY, Day · Regular Order" (static)
-- [ ] On screen open:
+- [x] Route: `/order/:shopId?date=YYYY-MM-DD`
+- [x] AppBar: back arrow | shop icon + shop name + area | "Load Standing Order" (orange text button)
+- [x] Sub-header: "Order Date: DD Mon YYYY, Day · Regular Order" (static)
+- [x] On screen open:
   - Call `getOrCreateOrder(shopId, date)` to get/create the `DailyOrder`
   - If order has existing lines → load those quantities
   - If order is new (no lines yet) → auto-fill from `watchStandingOrdersForShop` (qty = standing default, 0 if not set)
-- [ ] `ProductQtyRow` widget per active product with price set for this shop:
+- [x] `ProductQtyRow` widget per active product with price set for this shop:
   - Product photo thumbnail (or placeholder icon)
   - Product name
   - `₹price / unit · ₹lineTotal` (unit from `Products.unit`, lineTotal = qty × price)
   - `−` button | qty display | `+` button (min 0, 48dp tap targets)
-- [ ] Products with no price for this shop: shown greyed out with "Price not set" and qty stepper disabled
-- [ ] Bottom bar (sticky): "Order Total · N items" left | "Confirm Order →" button right
-- [ ] Auto-save: any stepper change triggers a debounced upsert (500ms) — no explicit save button
-- [ ] "Confirm Order" button:
+- [x] Products with no price for this shop: shown greyed out with "Price not set" and qty stepper disabled
+- [x] Bottom bar (sticky): "Order Total · N items" left | "Confirm Order →" button right
+- [x] Auto-save: any stepper change triggers a debounced upsert (500ms) — no explicit save button
+- [x] "Confirm Order" button:
   - If all qty = 0 → dialog: "All quantities are 0. Confirm anyway?" Yes/No
   - On confirm: set `isConfirmed = true`, snapshot `unitPrice` from `ShopPrices` into each `OrderLine`
-- [ ] "Load Standing Order" button:
+- [x] "Load Standing Order" button:
   - If order has any lines → dialog: "Replace current entries with standing order quantities? This cannot be undone." Confirm / Cancel
   - On confirm: overwrite all qtys with standing order defaults
-- [ ] Any edit after confirmation → set `isConfirmed = false` automatically
+- [x] Any edit after confirmation → set `isConfirmed = false` automatically
 
 ### Success Criteria
 
-- [ ] Standing order quantities auto-loaded on first open (no existing lines)
-- [ ] Re-opening a saved order loads last saved state
-- [ ] Qty stepper cannot go below 0
-- [ ] Line totals update in real-time as qty changes
-- [ ] Order total at bottom updates reactively
-- [ ] Zero-qty lines not saved to DB
-- [ ] Confirming an order sets `isConfirmed = true`
-- [ ] Editing after confirm auto-reverts to Pending
-- [ ] "Load Standing Order" confirm dialog shown; overwrite works correctly
-- [ ] Unpriced products are greyed out and non-interactive
-- [ ] Warning visible when any products have no price set: "Prices not set for N products — billing will show ₹0"
+- [x] Standing order quantities auto-loaded on first open (no existing lines)
+- [x] Re-opening a saved order loads last saved state
+- [x] Qty stepper cannot go below 0
+- [x] Line totals update in real-time as qty changes
+- [x] Order total at bottom updates reactively
+- [x] Zero-qty lines not saved to DB
+- [x] Confirming an order sets `isConfirmed = true`
+- [x] Editing after confirm auto-reverts to Pending
+- [x] "Load Standing Order" confirm dialog shown; overwrite works correctly
+- [x] Unpriced products are greyed out and non-interactive
+- [x] Warning visible when any products have no price set: "Prices not set for N products — billing will show ₹0"
 
 ---
 
@@ -332,18 +332,18 @@ class OrderLines extends Table {
 ### Action Items
 
 **Orders Tab — Daily Summary** (`/orders`)
-- [ ] Date selector (same component as Home, but can use its own local date state)
-- [ ] List of all shops with any order for the selected date
-- [ ] Each row: shop name + area | total (₹X,XXX) | Confirmed/Pending chip | share icon
-- [ ] Grand Total sticky footer
-- [ ] "Share All Bills" button (WhatsApp icon) — generates combined text block
-- [ ] Tap shop row → expand inline accordion (like UI-3) showing line items
+- [x] Date selector (same component as Home, but can use its own local date state)
+- [x] List of all shops with any order for the selected date
+- [x] Each row: shop name + area | total (₹X,XXX) | Confirmed/Pending chip | share icon
+- [x] Grand Total sticky footer
+- [x] "Share All Bills" button (WhatsApp icon) — generates combined text block
+- [x] Tap shop row → expand inline accordion (like UI-3) showing line items
 
 **Billing Detail (inline accordion)**
-- [ ] Expandable card: Item | Qty | Price | Total columns
-- [ ] Calculates from `OrderLines.unitPrice` (snapshot) — not current `ShopPrices`
-- [ ] "Total: ₹X,XXX" row at bottom of expanded card
-- [ ] Share icon per card → share individual bill text
+- [x] Expandable card: Item | Qty | Price | Total columns
+- [x] Calculates from `OrderLines.unitPrice` (snapshot) — not current `ShopPrices`
+- [x] "Total: ₹X,XXX" row at bottom of expanded card
+- [x] Share icon per card → share individual bill text
 
 **Share Text Formats**
 
@@ -370,12 +370,12 @@ GRAND TOTAL  : ₹420
 
 ### Success Criteria
 
-- [ ] All shops with any order (confirmed or pending) appear in the list
-- [ ] Bill total = sum of `qty × unitPrice` per `OrderLine` (snapshot, not current price)
-- [ ] Grand total correct across all shops
-- [ ] Accordion expand/collapse is smooth and does not reset on scroll
-- [ ] Individual share and share-all both produce readable plain text
-- [ ] Empty state shown if no orders exist for selected date
+- [x] All shops with any order (confirmed or pending) appear in the list
+- [x] Bill total = sum of `qty × unitPrice` per `OrderLine` (snapshot, not current price)
+- [x] Grand total correct across all shops
+- [x] Accordion expand/collapse is smooth and does not reset on scroll
+- [x] Individual share and share-all both produce readable plain text
+- [x] Empty state shown if no orders exist for selected date
 
 ---
 
@@ -560,3 +560,10 @@ class AppRoutes {
 ---
 
 *All work happens inside `CafeMilano/`.*
+
+---
+## Later
+
+- Once everything is done, let's explore HIVE DB to swap it over SQLITE
+- Shared Preferrence (Caching)
+- BLOC w CLEAN ARCH
