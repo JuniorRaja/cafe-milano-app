@@ -2,7 +2,7 @@
 
 > Generated: 2026-06-30  
 > Last updated: 2026-06-30  
-> Status: Phase 2 in progress  
+> Status: Phase 3 in progress  
 > Platform: Android (Flutter)  
 > Estimated timeline: ~3 weeks  
 > **App root: `E:\Works\pr-mob-app\CafeMilano\`**  
@@ -140,14 +140,14 @@ class OrderLines extends Table {
 
 ### Action Items
 
-- [ ] Create `lib/database/tables/` with one file per table (shops, products, shop_prices, standing_orders, daily_orders, order_lines)
-- [ ] Create `lib/database/app_database.dart` — `@DriftDatabase` class listing all tables
-- [ ] Run `flutter pub run build_runner build --delete-conflicting-outputs`
-- [ ] Implement `lib/database/seed_data.dart`:
+- [x] Create `lib/database/tables/` with one file per table (shops, products, shop_prices, standing_orders, daily_orders, order_lines)
+- [x] Create `lib/database/app_database.dart` — `@DriftDatabase` class listing all tables
+- [x] Run `flutter pub run build_runner build --delete-conflicting-outputs`
+- [x] Implement `lib/database/seed_data.dart`:
   - Check if DB is empty (count shops)
   - If empty: insert 5 shops (with area), 6 products (with unit), seed prices (₹5 buns ±1, ₹8 puffs ±1 per shop), seed standing orders per PRD §11
-- [ ] Register `AppDatabase` as a Riverpod `Provider` (singleton, lazy init)
-- [ ] Call seed on app startup in `main.dart`
+- [x] Register `AppDatabase` as a Riverpod `Provider` (singleton, lazy init)
+- [x] Call seed on app startup in `main.dart`
 
 ### Success Criteria
 
