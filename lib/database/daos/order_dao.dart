@@ -1,5 +1,16 @@
 part of '../app_database.dart';
 
+class KitchenRawLine {
+  final int shopId;
+  final int productId;
+  final int qty;
+  const KitchenRawLine({
+    required this.shopId,
+    required this.productId,
+    required this.qty,
+  });
+}
+
 class OrderWithLines {
   final DailyOrder order;
   final List<OrderLine> lines;
@@ -104,6 +115,25 @@ class OrderDao extends DatabaseAccessor<AppDatabase> with _$OrderDaoMixin {
               ))
           .toList();
     });
+  }
+
+  Stream<List<KitchenRawLine>> watchKitchenLinesForDate(DateTime date) {
+    final dayStart = DateTime(date.year, date.month, date.day);
+    final query =
+        (select(dailyOrders)..where((o) => o.orderDate.equals(dayStart))).join([
+      innerJoin(orderLines, orderLines.orderId.equalsExp(dailyOrders.id)),
+    ]);
+    return query.watch().map(
+          (rows) => rows
+              .map(
+                (r) => KitchenRawLine(
+                  shopId: r.readTable(dailyOrders).shopId,
+                  productId: r.readTable(orderLines).productId,
+                  qty: r.readTable(orderLines).qty,
+                ),
+              )
+              .toList(),
+        );
   }
 
   Future<DailyOrder> getOrCreateOrder(int shopId, DateTime date) {

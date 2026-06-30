@@ -148,7 +148,11 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
     await _save();
     if (!mounted) return;
     await ref.read(databaseProvider).orderDao.setConfirmed(_orderId!, true);
-    if (mounted) setState(() => _isConfirmed = true);
+    if (!mounted) return;
+    setState(() => _isConfirmed = true);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Order confirmed.'), duration: Duration(seconds: 2)),
+    );
   }
 
   Future<void> _loadStandingOrder() async {

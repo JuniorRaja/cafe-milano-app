@@ -76,7 +76,10 @@ class _StandingOrdersScreenState extends ConsumerState<StandingOrdersScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Standing Orders')),
-      body: shopsAsync.when(
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        behavior: HitTestBehavior.opaque,
+        child: shopsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (shops) {
@@ -181,6 +184,7 @@ class _StandingOrdersScreenState extends ConsumerState<StandingOrdersScreen> {
             ),
           );
         },
+        ),
       ),
     );
   }

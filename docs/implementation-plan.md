@@ -2,7 +2,7 @@
 
 > Generated: 2026-06-30  
 > Last updated: 2026-06-30  
-> Status: Phase 7 complete — Phase 8 next  
+> Status: Phase 9 complete — all phases done  
 > Platform: Android (Flutter)  
 > Estimated timeline: ~3 weeks  
 > **App root: `E:\Works\pr-mob-app\CafeMilano\`**  
@@ -385,25 +385,25 @@ GRAND TOTAL  : ₹420
 
 ### Action Items
 
-- [ ] Route: `/kitchen`
-- [ ] Date selector at top right (tap to open date picker, with `<` `>` arrows)
-- [ ] Segmented control: **By Item** | **By Shop**
+- [x] Route: `/kitchen`
+- [x] Date selector at top right (tap to open date picker, with `<` `>` arrows)
+- [x] Segmented control: **By Item** | **By Shop**
 
 **By Item tab**
-- [ ] Header row: "Item | Quantity (pcs)"
-- [ ] Aggregate `SUM(qty)` grouped by product across all orders for the date
-- [ ] Product icon (small) + product name + bold quantity
-- [ ] Sorted by quantity descending (highest first)
-- [ ] Hide products with total qty = 0
+- [x] Header row: "Item | Quantity (pcs)"
+- [x] Aggregate `SUM(qty)` grouped by product across all orders for the date
+- [x] Product icon (small) + product name + bold quantity
+- [x] Sorted by quantity descending (highest first)
+- [x] Hide products with total qty = 0
 
 **By Shop tab**
-- [ ] Group by shop; within each shop, list products with qty
-- [ ] Shop name as section header
-- [ ] Same zero-qty exclusion
+- [x] Group by shop; within each shop, list products with qty
+- [x] Shop name as section header
+- [x] Same zero-qty exclusion
 
 **Share (WhatsApp FAB)**
-- [ ] Green WhatsApp icon FAB bottom-right
-- [ ] Share text always contains both sections regardless of active tab:
+- [x] Green WhatsApp icon FAB bottom-right
+- [x] Share text always contains both sections regardless of active tab:
 
 ```
 🍞 Kitchen List — 01 Jul 2025
@@ -419,17 +419,17 @@ Star Bakery   : Buns×20, Veg Puff×15
 Total: 2 shops | 395 pieces
 ```
 
-- [ ] Use space-padded alignment (not tabs) for WhatsApp compatibility
+- [x] Use space-padded alignment (not tabs) for WhatsApp compatibility
 
 ### Success Criteria
 
-- [ ] By Item shows correct aggregate totals across all orders for the date
-- [ ] By Shop shows correct per-shop breakdown
-- [ ] Both views update reactively if an order is edited elsewhere
-- [ ] Zero-quantity products hidden from both views
-- [ ] Empty state shown if no orders exist for the date: "No orders for this date"
-- [ ] Share text is readable in WhatsApp (plain text, no markdown)
-- [ ] Switching between tabs does not reset the date
+- [x] By Item shows correct aggregate totals across all orders for the date
+- [x] By Shop shows correct per-shop breakdown
+- [x] Both views update reactively if an order is edited elsewhere
+- [x] Zero-quantity products hidden from both views
+- [x] Empty state shown if no orders exist for the date: "No orders for this date"
+- [x] Share text is readable in WhatsApp (plain text, no markdown)
+- [x] Switching between tabs does not reset the date
 
 ---
 

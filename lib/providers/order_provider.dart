@@ -16,3 +16,8 @@ final orderSummariesForDateProvider =
     StreamProvider.family<List<OrderDaySummary>, DateTime>((ref, date) {
   return ref.watch(databaseProvider).orderDao.watchOrderSummariesForDate(date);
 });
+
+final kitchenLinesForDateProvider =
+    StreamProvider.family<List<KitchenRawLine>, DateTime>((ref, date) {
+  return ref.watch(databaseProvider).orderDao.watchKitchenLinesForDate(date);
+});

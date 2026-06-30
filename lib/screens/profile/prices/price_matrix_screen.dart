@@ -80,7 +80,10 @@ class _PriceMatrixScreenState extends ConsumerState<PriceMatrixScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Prices')),
-      body: shopsAsync.when(
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        behavior: HitTestBehavior.opaque,
+        child: shopsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (shops) {
@@ -188,6 +191,7 @@ class _PriceMatrixScreenState extends ConsumerState<PriceMatrixScreen> {
             ),
           );
         },
+        ),
       ),
     );
   }

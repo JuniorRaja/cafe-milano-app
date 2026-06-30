@@ -210,6 +210,89 @@ void main() {
       final result = await db.orderDao.watchOrderWithLines(order.id).first;
       expect(result!.lines.first.unitPrice, 7.5);
     });
+
+    // ── watchKitchenLinesForDate ─────────────────────────────────────────────
+
+    group('watchKitchenLinesForDate', () {
+      test('returns empty list when no orders exist for date', () async {
+        final lines = await db.orderDao.watchKitchenLinesForDate(today).first;
+        expect(lines, isEmpty);
+      });
+
+      test('returns empty when order has no lines', () async {
+        // getOrCreate with no subsequent upsertOrderWithLines
+        await db.orderDao.getOrCreateOrder(shopId, today);
+        final lines = await db.orderDao.watchKitchenLinesForDate(today).first;
+        expect(lines, isEmpty);
+      });
+
+      test('returns correct shopId, productId and qty for a single line', () async {
+        final order = await db.orderDao.getOrCreateOrder(shopId, today);
+        await db.orderDao.upsertOrderWithLines(order, [
+          OrderLinesCompanion(
+            productId: Value(productId),
+            qty: const Value(30),
+            unitPrice: const Value(5.0),
+          ),
+        ]);
+        final lines = await db.orderDao.watchKitchenLinesForDate(today).first;
+        expect(lines.length, 1);
+        expect(lines.first.shopId, shopId);
+        expect(lines.first.productId, productId);
+        expect(lines.first.qty, 30);
+      });
+
+      test('excludes lines from orders on a different date', () async {
+        final yesterday = DateTime(2025, 6, 30);
+        final order = await db.orderDao.getOrCreateOrder(shopId, yesterday);
+        await db.orderDao.upsertOrderWithLines(order, [
+          OrderLinesCompanion(
+            productId: Value(productId),
+            qty: const Value(20),
+            unitPrice: const Value(5.0),
+          ),
+        ]);
+        final lines = await db.orderDao.watchKitchenLinesForDate(today).first;
+        expect(lines, isEmpty);
+      });
+
+      test('returns raw lines from multiple shops — caller aggregates', () async {
+        final shop2 = await db.shopDao.upsertShop(ShopsCompanion.insert(name: 'Shop 2'));
+        final puffId = await db.productDao.upsertProduct(ProductsCompanion.insert(name: 'Puff'));
+
+        final order1 = await db.orderDao.getOrCreateOrder(shopId, today);
+        final order2 = await db.orderDao.getOrCreateOrder(shop2, today);
+
+        await db.orderDao.upsertOrderWithLines(order1, [
+          OrderLinesCompanion(productId: Value(productId), qty: const Value(30), unitPrice: const Value(5.0)),
+          OrderLinesCompanion(productId: Value(puffId), qty: const Value(10), unitPrice: const Value(8.0)),
+        ]);
+        await db.orderDao.upsertOrderWithLines(order2, [
+          OrderLinesCompanion(productId: Value(productId), qty: const Value(20), unitPrice: const Value(5.0)),
+        ]);
+
+        final lines = await db.orderDao.watchKitchenLinesForDate(today).first;
+        expect(lines.length, 3);
+
+        // Caller is responsible for summing; raw values preserved per-shop
+        final bunLines = lines.where((l) => l.productId == productId).toList();
+        expect(bunLines.length, 2);
+        expect(bunLines.map((l) => l.qty).fold(0, (a, b) => a + b), 50);
+      });
+
+      test('never returns zero-qty lines (upsertOrderWithLines guards them)', () async {
+        final order = await db.orderDao.getOrCreateOrder(shopId, today);
+        await db.orderDao.upsertOrderWithLines(order, [
+          OrderLinesCompanion(
+            productId: Value(productId),
+            qty: const Value(0),
+            unitPrice: const Value(5.0),
+          ),
+        ]);
+        final lines = await db.orderDao.watchKitchenLinesForDate(today).first;
+        expect(lines, isEmpty);
+      });
+    });
   });
 
   // ─── PriceDao ─────────────────────────────────────────────────────────────
