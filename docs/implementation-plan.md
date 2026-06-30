@@ -2,7 +2,7 @@
 
 > Generated: 2026-06-30  
 > Last updated: 2026-06-30  
-> Status: Phase 3 in progress  
+> Status: Phase 4 complete — Phase 5 next  
 > Platform: Android (Flutter)  
 > Estimated timeline: ~3 weeks  
 > **App root: `E:\Works\pr-mob-app\CafeMilano\`**  
@@ -241,12 +241,12 @@ class OrderLines extends Table {
 
 ### Success Criteria
 
-- [ ] Cannot save a shop/product with blank name (form validates)
-- [ ] Deactivated shops disappear from Home and Order Entry
-- [ ] Price matrix saves correctly — reload screen shows saved values
-- [ ] Price of ₹0 is valid and saves without error
-- [ ] Product photo: picking from gallery stores path; placeholder shows when no photo set
-- [ ] Cannot delete shop or product that has existing orders — snackbar shown
+- [x] Cannot save a shop/product with blank name (form validates)
+- [x] Deactivated shops disappear from Price Matrix and Standing Orders dropdowns; Home and Order Entry verified in Phase 5/6
+- [x] Price matrix saves correctly — reload screen shows saved values
+- [x] Price of ₹0 is valid and saves without error
+- [x] Product photo: picking from gallery stores path; placeholder shows when no photo set
+- [ ] Cannot delete shop or product that has existing orders — snackbar shown *(deferred: requires Order Entry data from Phase 6)*
 
 ---
 

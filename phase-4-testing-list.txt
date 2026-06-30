@@ -1,0 +1,82 @@
+Phase 4 Manual Test Checklist
+
+Profile Hub
+
+- [X] Profile tab shows 4 tiles: Shops, Products, Prices, Standing Orders
+- [X] Each tile navigates to the correct screen
+- [X] Back navigation from each screen returns to Profile
+
+---
+Shop Management
+
+List screen
+- [X] All seeded shops appear (5 shops)
+- [X] Active shops appear at top, inactive dimmed at bottom
+- [X] Edit icon on each row opens the edit form pre-populated with that shop's data
+- [X] FAB (+) navigates to new shop form
+
+Active toggle
+- [X] Tapping the Active/Inactive chip toggles the shop immediately (no save needed)
+- [X] Toggling to Inactive dims the shop and moves it to the bottom
+- [X] Toggling back to Active restores it to the top
+
+New shop form
+- [X] Saving with blank name shows validation error "Name is required"
+- [X] Saving with a name (area + phone blank) succeeds and appears in the list
+- [X] Saving with name + area + phone saves all three fields correctly
+
+Edit shop form
+- [X] Editing a shop and saving reflects the change in the list
+- [ ] Delete button on a shop with existing orders shows snackbar "Deactivate instead"
+- [X] Delete button on a shop with NO orders shows confirm dialog → deletes and pops
+
+---
+Product Management
+
+List screen
+- [X] All seeded products appear (6 products)
+- [X] Active/Inactive chip toggle works same as shops
+- [X] Products with no photo show the bakery icon placeholder
+- [X] Edit icon navigates to pre-populated form
+
+New product form
+- [X] Saving with blank name shows "Name is required"
+- [X] Saving with name only succeeds
+- [X] Unit field saves and shows in the list subtitle
+- [X] Tapping the photo box or "Add Photo" opens the gallery picker
+- [X] Selected photo shows as thumbnail in the box
+- [X] Tapping the × on the thumbnail clears it
+- [X] "Change Photo" replaces the photo
+- [X] Saving with no photo stores null (placeholder shown in list)
+- [X] Saving with a photo stores the path (thumbnail shown in list)
+
+Delete product
+- [ ] Delete blocked with snackbar if product has any order lines
+- [ ] Delete with confirm dialog works for products with no lines
+
+---
+Price Matrix
+
+- [X] Screen opens with "Select a shop" placeholder
+- [X] Shop dropdown shows all active shops with area (e.g. "Hotel Raj · Anna Nagar")
+- [X] Selecting a shop loads all active products with price fields
+- [X] Seeded prices pre-fill the fields correctly
+- [X] Fields with no price set show empty (not 0)
+- [X] Entering ₹0 and saving → reloading the screen shows ₹0.00 (zero is valid)
+- [X] Entering a price and tapping "Save Changes" → reloading the shop shows saved values
+- [X] Switching to a different shop loads that shop's prices (previous shop's values don't bleed over)
+
+---
+Standing Orders
+
+- [X] Same dropdown UX as Price Matrix
+- [X] Products default to 0 if no standing order is set
+- [X] Seeded standing order quantities pre-fill correctly
+- [X] Changing quantities and saving → reloading shows saved values
+- [X] Switching shops loads the correct standing orders for the new shop
+
+---
+Cross-cutting
+
+- [X] Deactivating a shop in Shops list → it no longer appears in the Price Matrix and Standing Orders dropdowns
+- [X] Deactivating a product → it no longer appea
