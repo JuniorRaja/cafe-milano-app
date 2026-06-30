@@ -18,10 +18,19 @@ export 'tables/daily_orders.dart';
 export 'tables/order_lines.dart';
 
 part 'app_database.g.dart';
+part 'daos/shop_dao.dart';
+part 'daos/product_dao.dart';
+part 'daos/order_dao.dart';
+part 'daos/price_dao.dart';
 
-@DriftDatabase(tables: [Shops, Products, ShopPrices, StandingOrders, DailyOrders, OrderLines])
+@DriftDatabase(
+  tables: [Shops, Products, ShopPrices, StandingOrders, DailyOrders, OrderLines],
+  daos: [ShopDao, ProductDao, OrderDao, PriceDao],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
+
+  AppDatabase.forTesting(QueryExecutor e) : super(e);
 
   @override
   int get schemaVersion => 1;
