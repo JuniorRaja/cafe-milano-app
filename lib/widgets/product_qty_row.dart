@@ -110,7 +110,7 @@ class _StepperBtn extends StatelessWidget {
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: isActive ? kBrandCrimson : Colors.grey.withAlpha(40),
+          color: isActive ? kBrandBrown : Colors.grey.withAlpha(40),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(

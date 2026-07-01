@@ -12,7 +12,7 @@ class LetterAvatar extends StatelessWidget {
     final letter = name.isNotEmpty ? name[0].toUpperCase() : '?';
     return CircleAvatar(
       radius: radius,
-      backgroundColor: kBrandCrimson,
+      backgroundColor: kBrandBrown,
       child: Text(
         letter,
         style: TextStyle(

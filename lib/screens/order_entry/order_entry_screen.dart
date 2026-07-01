@@ -251,7 +251,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
           children: [
             const CircleAvatar(
               radius: 18,
-              backgroundColor: kBrandCrimson,
+              backgroundColor: kBrandBrown,
               child: Icon(Icons.storefront, color: Colors.white, size: 18),
             ),
             const SizedBox(width: 10),
@@ -283,7 +283,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
             onPressed: _loadStandingOrder,
             child: const Text(
               'Load Standing Order',
-              style: TextStyle(color: kBrandCrimson, fontSize: 13),
+              style: TextStyle(color: kBrandBrown, fontSize: 13),
             ),
           ),
         ],
@@ -403,7 +403,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
                 const Spacer(),
                 Text(
                   '$pricedCount items',
-                  style: const TextStyle(color: kBrandCrimson, fontSize: 13),
+                  style: const TextStyle(color: kBrandBrown, fontSize: 13),
                 ),
               ],
             ),
@@ -476,8 +476,8 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
                   ElevatedButton(
                     onPressed: _isConfirmed ? null : _confirmOrder,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: kBrandCrimson,
-                      foregroundColor: Colors.white,
+                      backgroundColor: kBrandGold,
+                      foregroundColor: Colors.black87,
                       disabledBackgroundColor: Colors.green.shade50,
                       disabledForegroundColor: Colors.green.shade700,
                       shape: RoundedRectangleBorder(

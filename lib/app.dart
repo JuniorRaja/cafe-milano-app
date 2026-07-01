@@ -14,9 +14,10 @@ import 'screens/profile/standing_orders/standing_orders_screen.dart';
 import 'screens/order_entry/order_entry_screen.dart';
 
 // Brand colors extracted from the Caffe Milano logo
-const kBrandCrimson = Color(0xFFB71C1C); // logo ring + inner circle
-const kBrandGold    = Color(0xFFFFC000); // logo background
-const kSurface      = Color(0xFFFFFBF5); // warm cream
+const kBrandGold   = Color(0xFFFFC000); // logo background — primary seed
+const kBrandBrown  = Color(0xFF4A2C2A); // espresso — active/selected states, icon & text accents
+const kBrandMaroon = Color(0xFFB71C1C); // logo ring + inner circle — reserved for brand-mark use, not seeded
+const kSurface     = Color(0xFFFFFBF5); // warm cream
 
 class AppRoutes {
   static const home          = '/';
@@ -130,21 +131,21 @@ class BakeOrderApp extends StatelessWidget {
         useMaterial3: true,
         textTheme: GoogleFonts.poppinsTextTheme(),
         colorScheme: ColorScheme.fromSeed(
-          seedColor: kBrandCrimson,
+          seedColor: kBrandGold,
           surface: kSurface,
         ),
         navigationBarTheme: NavigationBarThemeData(
           indicatorColor: Colors.transparent,
           iconTheme: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {
-              return const IconThemeData(color: kBrandCrimson);
+              return const IconThemeData(color: kBrandBrown);
             }
             return IconThemeData(color: Colors.grey.shade600);
           }),
           labelTextStyle: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {
               return GoogleFonts.poppins(
-                color: kBrandCrimson,
+                color: kBrandBrown,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               );
@@ -156,9 +157,9 @@ class BakeOrderApp extends StatelessWidget {
           }),
         ),
         tabBarTheme: const TabBarThemeData(
-          labelColor: kBrandCrimson,
+          labelColor: kBrandBrown,
           unselectedLabelColor: Colors.grey,
-          indicatorColor: kBrandCrimson,
+          indicatorColor: kBrandBrown,
           dividerColor: Colors.transparent,
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(

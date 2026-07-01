@@ -42,7 +42,7 @@ class ProfileScreen extends StatelessWidget {
                     radius: 24,
                     backgroundColor: Colors.white,
                     child: const Icon(Icons.bakery_dining,
-                        color: kBrandCrimson, size: 24),
+                        color: kBrandBrown, size: 24),
                   ),
                   const SizedBox(width: 14),
                   Column(
@@ -62,7 +62,7 @@ class ProfileScreen extends StatelessWidget {
                             TextSpan(
                               text: 'Order',
                               style: TextStyle(
-                                color: kBrandCrimson,
+                                color: kBrandBrown,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 20,
                               ),
@@ -156,10 +156,10 @@ class _SettingsTile extends StatelessWidget {
         width: 38,
         height: 38,
         decoration: BoxDecoration(
-          color: const Color(0xFFFFEBEE),
+          color: kBrandGold.withAlpha(40),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(icon, color: kBrandCrimson, size: 20),
+        child: Icon(icon, color: kBrandBrown, size: 20),
       ),
       title: Text(title,
           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),

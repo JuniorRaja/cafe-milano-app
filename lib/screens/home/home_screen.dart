@@ -49,7 +49,7 @@ class HomeScreen extends ConsumerWidget {
                       TextSpan(
                         text: 'Order',
                         style: TextStyle(
-                          color: kBrandCrimson,
+                          color: kBrandBrown,
                           fontWeight: FontWeight.bold,
                           fontSize: 17,
                         ),
@@ -79,7 +79,7 @@ class HomeScreen extends ConsumerWidget {
                   width: 8,
                   height: 8,
                   decoration: const BoxDecoration(
-                    color: kBrandCrimson,
+                    color: kBrandBrown,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -133,7 +133,7 @@ class HomeScreen extends ConsumerWidget {
                           Text(
                             '${shops.length} shops',
                             style: const TextStyle(
-                              color: kBrandCrimson,
+                              color: kBrandBrown,
                               fontSize: 13,
                             ),
                           ),

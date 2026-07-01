@@ -119,10 +119,10 @@ class _PriceMatrixScreenState extends ConsumerState<PriceMatrixScreen> {
         actions: [
           TextButton.icon(
             onPressed: () => _showAboutDialog(context),
-            icon: const Icon(Icons.info_outline, color: kBrandCrimson),
+            icon: const Icon(Icons.info_outline, color: kBrandBrown),
             label: const Text(
               'About',
-              style: TextStyle(color: kBrandCrimson),
+              style: TextStyle(color: kBrandBrown),
             ),
           ),
         ],

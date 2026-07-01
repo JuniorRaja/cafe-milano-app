@@ -286,10 +286,10 @@ class _ByItemView extends StatelessWidget {
               final unit = product?.unit;
               return ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: kBrandCrimson.withAlpha(30),
+                  backgroundColor: kBrandBrown.withAlpha(30),
                   child: const Icon(
                     Icons.bakery_dining,
-                    color: kBrandCrimson,
+                    color: kBrandBrown,
                     size: 20,
                   ),
                 ),
@@ -402,7 +402,7 @@ class _ByShopView extends StatelessWidget {
                       '${item.total} pcs',
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
-                        color: kBrandCrimson,
+                        color: kBrandBrown,
                       ),
                     ),
                   ],

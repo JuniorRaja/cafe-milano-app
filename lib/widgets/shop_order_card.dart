@@ -131,14 +131,14 @@ class _BrandChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFEBEE),
+        color: kBrandGold.withAlpha(40),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: kBrandCrimson.withAlpha(80), width: 0.5),
+        border: Border.all(color: kBrandBrown.withAlpha(80), width: 0.5),
       ),
       child: Text(
         label,
         style: const TextStyle(
-          color: kBrandCrimson,
+          color: kBrandBrown,
           fontSize: 12,
           fontWeight: FontWeight.w600,
         ),

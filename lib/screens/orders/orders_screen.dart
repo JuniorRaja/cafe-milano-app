@@ -136,7 +136,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Card(
-                    color: kBrandCrimson,
+                    color: kBrandBrown,
                     elevation: 6,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
@@ -312,7 +312,7 @@ class _OrderCard extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 18,
-                    backgroundColor: kBrandCrimson,
+                    backgroundColor: kBrandBrown,
                     child: Text(
                       index.toString(),
                       style: const TextStyle(
@@ -504,7 +504,7 @@ class _BillingDetail extends ConsumerWidget {
                     const Text(
                       'Total',
                       style: TextStyle(
-                        color: kBrandCrimson,
+                        color: kBrandBrown,
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
                       ),
@@ -513,7 +513,7 @@ class _BillingDetail extends ConsumerWidget {
                     Text(
                       '₹${NumberFormat('#,##0').format(total)}',
                       style: const TextStyle(
-                        color: kBrandCrimson,
+                        color: kBrandBrown,
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
                       ),
