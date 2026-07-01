@@ -129,12 +129,18 @@ class BakeOrderApp extends StatelessWidget {
       title: 'BakeOrder',
       theme: ThemeData(
         useMaterial3: true,
+        visualDensity: VisualDensity.compact,
         textTheme: GoogleFonts.poppinsTextTheme(),
         colorScheme: ColorScheme.fromSeed(
           seedColor: kBrandGold,
           surface: kSurface,
         ),
+        listTileTheme: const ListTileThemeData(
+          dense: true,
+          visualDensity: VisualDensity.compact,
+        ),
         navigationBarTheme: NavigationBarThemeData(
+          height: 64,
           indicatorColor: Colors.transparent,
           iconTheme: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {

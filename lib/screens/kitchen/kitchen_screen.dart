@@ -8,6 +8,7 @@ import '../../database/app_database.dart';
 import '../../providers/order_provider.dart';
 import '../../providers/shop_provider.dart';
 import '../../providers/product_provider.dart';
+import '../../widgets/staggered_fade_in.dart';
 
 class KitchenScreen extends ConsumerStatefulWidget {
   const KitchenScreen({super.key});
@@ -284,22 +285,25 @@ class _ByItemView extends StatelessWidget {
               final entry = sorted[i];
               final product = productMap[entry.key];
               final unit = product?.unit;
-              return ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: kBrandBrown.withAlpha(30),
-                  child: const Icon(
-                    Icons.bakery_dining,
-                    color: kBrandBrown,
-                    size: 20,
+              return StaggeredFadeIn(
+                index: i,
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: kBrandBrown.withAlpha(30),
+                    child: const Icon(
+                      Icons.bakery_dining,
+                      color: kBrandBrown,
+                      size: 20,
+                    ),
                   ),
-                ),
-                title: Text(product?.name ?? 'Product #${entry.key}'),
-                subtitle: unit != null ? Text('per $unit') : null,
-                trailing: Text(
-                  entry.value.toString(),
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+                  title: Text(product?.name ?? 'Product #${entry.key}'),
+                  subtitle: unit != null ? Text('per $unit') : null,
+                  trailing: Text(
+                    entry.value.toString(),
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               );

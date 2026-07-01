@@ -8,6 +8,7 @@ import '../../database/app_database.dart';
 import '../../providers/order_provider.dart';
 import '../../providers/shop_provider.dart';
 import '../../providers/product_provider.dart';
+import '../../widgets/staggered_fade_in.dart';
 
 class OrdersScreen extends ConsumerStatefulWidget {
   const OrdersScreen({super.key});
@@ -115,18 +116,21 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                     final s = summaries[i];
                     final shop = shopMap[s.order.shopId];
                     final isExpanded = _expandedOrderId == s.order.id;
-                    return _OrderCard(
+                    return StaggeredFadeIn(
                       key: ValueKey(s.order.id),
-                      summary: s,
-                      shop: shop,
-                      index: i + 1,
-                      productMap: productMap,
-                      isExpanded: isExpanded,
-                      onToggle: () => setState(() {
-                        _expandedOrderId =
-                            isExpanded ? null : s.order.id;
-                      }),
-                      onShare: () => _shareOne(s, shop, productMap),
+                      index: i,
+                      child: _OrderCard(
+                        summary: s,
+                        shop: shop,
+                        index: i + 1,
+                        productMap: productMap,
+                        isExpanded: isExpanded,
+                        onToggle: () => setState(() {
+                          _expandedOrderId =
+                              isExpanded ? null : s.order.id;
+                        }),
+                        onShare: () => _shareOne(s, shop, productMap),
+                      ),
                     );
                   },
                 ),
@@ -273,7 +277,6 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
 
 class _OrderCard extends StatelessWidget {
   const _OrderCard({
-    super.key,
     required this.summary,
     required this.shop,
     required this.index,
@@ -367,9 +370,17 @@ class _OrderCard extends StatelessWidget {
               ),
             ),
           ),
-          if (isExpanded)
-            _BillingDetail(
-                orderId: summary.order.id, productMap: productMap),
+          AnimatedSize(
+            duration: MediaQuery.of(context).disableAnimations
+                ? Duration.zero
+                : const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: isExpanded
+                ? _BillingDetail(
+                    orderId: summary.order.id, productMap: productMap)
+                : const SizedBox(width: double.infinity),
+          ),
         ],
       ),
     );

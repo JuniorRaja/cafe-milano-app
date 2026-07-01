@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../app.dart';
 import '../database/app_database.dart';
@@ -94,29 +95,48 @@ class ProductQtyRow extends StatelessWidget {
   }
 }
 
-class _StepperBtn extends StatelessWidget {
+class _StepperBtn extends StatefulWidget {
   const _StepperBtn({required this.icon, this.onPressed});
 
   final IconData icon;
   final VoidCallback? onPressed;
 
   @override
+  State<_StepperBtn> createState() => _StepperBtnState();
+}
+
+class _StepperBtnState extends State<_StepperBtn> {
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
-    final isActive = onPressed != null;
+    final isActive = widget.onPressed != null;
+    final reduceMotion = MediaQuery.of(context).disableAnimations;
     return InkWell(
       borderRadius: BorderRadius.circular(8),
-      onTap: onPressed,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: isActive ? kBrandBrown : Colors.grey.withAlpha(40),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(
-          icon,
-          size: 18,
-          color: isActive ? Colors.white : Colors.grey,
+      onTap: isActive
+          ? () {
+              HapticFeedback.lightImpact();
+              widget.onPressed!();
+            }
+          : null,
+      onHighlightChanged:
+          isActive ? (v) => setState(() => _pressed = v) : null,
+      child: AnimatedScale(
+        scale: _pressed ? 0.88 : 1.0,
+        duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 100),
+        child: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: isActive ? kBrandBrown : Colors.grey.withAlpha(40),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            widget.icon,
+            size: 18,
+            color: isActive ? Colors.white : Colors.grey,
+          ),
         ),
       ),
     );

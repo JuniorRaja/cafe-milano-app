@@ -9,6 +9,7 @@ import '../../providers/shop_provider.dart';
 import '../../providers/order_provider.dart';
 import '../../widgets/date_selector.dart';
 import '../../widgets/shop_order_card.dart';
+import '../../widgets/staggered_fade_in.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -145,11 +146,14 @@ class HomeScreen extends ConsumerWidget {
                         itemCount: shops.length,
                         itemBuilder: (context, index) {
                           final shop = shops[index];
-                          return ShopOrderCard(
-                            shop: shop,
-                            summary: summaryMap[shop.id],
-                            onTap: () => context
-                                .push('/order/${shop.id}?date=$dateStr'),
+                          return StaggeredFadeIn(
+                            index: index,
+                            child: ShopOrderCard(
+                              shop: shop,
+                              summary: summaryMap[shop.id],
+                              onTap: () => context
+                                  .push('/order/${shop.id}?date=$dateStr'),
+                            ),
                           );
                         },
                       ),

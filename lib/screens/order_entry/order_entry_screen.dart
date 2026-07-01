@@ -161,9 +161,28 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
     if (!mounted) return;
     setState(() => _isConfirmed = true);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('Order confirmed.'),
-          duration: Duration(seconds: 2)),
+      SnackBar(
+        backgroundColor: kBrandBrown,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        duration: const Duration(seconds: 2),
+        content: Row(
+          children: [
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: 1),
+              duration: MediaQuery.of(context).disableAnimations
+                  ? Duration.zero
+                  : const Duration(milliseconds: 350),
+              curve: Curves.elasticOut,
+              builder: (context, value, child) =>
+                  Transform.scale(scale: value, child: child),
+              child: const Icon(Icons.check_circle, color: Colors.white),
+            ),
+            const SizedBox(width: 10),
+            const Text('Order confirmed'),
+          ],
+        ),
+      ),
     );
   }
 
