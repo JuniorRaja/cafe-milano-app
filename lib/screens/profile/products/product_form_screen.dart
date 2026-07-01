@@ -109,7 +109,22 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.productId == null ? 'New Product' : 'Edit Product'),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.productId == null ? 'New Product' : 'Edit Product',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text(
+              'Fill in the product details',
+              style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade500,
+                  fontWeight: FontWeight.normal),
+            ),
+          ],
+        ),
         actions: [
           if (widget.productId != null)
             IconButton(

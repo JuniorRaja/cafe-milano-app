@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app.dart';
 import '../../../providers/product_provider.dart';
 import '../../../providers/database_provider.dart';
+import '../../../widgets/letter_avatar.dart';
 
 class ProductListScreen extends ConsumerWidget {
   const ProductListScreen({super.key});
@@ -14,7 +15,24 @@ class ProductListScreen extends ConsumerWidget {
     final productsAsync = ref.watch(allProductsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Products')),
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Products',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text(
+              'Manage bakery product catalog',
+              style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade500,
+                  fontWeight: FontWeight.normal),
+            ),
+          ],
+        ),
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push(AppRoutes.productNew),
         child: const Icon(Icons.add),
@@ -48,12 +66,11 @@ class ProductListScreen extends ConsumerWidget {
                             width: 40,
                             height: 40,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => const CircleAvatar(
-                              child: Icon(Icons.bakery_dining),
-                            ),
+                            errorBuilder: (_, __, ___) =>
+                                LetterAvatar(name: product.name, radius: 20),
                           ),
                         )
-                      : const CircleAvatar(child: Icon(Icons.bakery_dining)),
+                      : LetterAvatar(name: product.name, radius: 20),
                   title: Text(
                     product.name,
                     style: const TextStyle(fontWeight: FontWeight.w600),

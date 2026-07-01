@@ -75,7 +75,24 @@ class _StandingOrdersScreenState extends ConsumerState<StandingOrdersScreen> {
     final productsAsync = ref.watch(activeProductsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Standing Orders')),
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Standing Orders',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text(
+              'Default quantities per shop',
+              style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade500,
+                  fontWeight: FontWeight.normal),
+            ),
+          ],
+        ),
+      ),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         behavior: HitTestBehavior.opaque,

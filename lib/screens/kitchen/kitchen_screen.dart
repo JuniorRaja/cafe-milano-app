@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../app.dart';
 import '../../database/app_database.dart';
 import '../../providers/order_provider.dart';
 import '../../providers/shop_provider.dart';
@@ -34,6 +35,18 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
     super.dispose();
   }
 
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null && mounted) {
+      setState(() => _date = picked);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final linesAsync = ref.watch(kitchenLinesForDateProvider(_date));
@@ -48,7 +61,32 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Kitchen'),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Kitchen Production',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text(
+              'Production plan for the day',
+              style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade500,
+                  fontWeight: FontWeight.normal),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton.icon(
+            onPressed: _pickDate,
+            icon: const Icon(Icons.calendar_today, size: 14),
+            label: Text(
+              DateFormat('dd MMM yyyy').format(_date),
+              style: const TextStyle(fontSize: 13),
+            ),
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -69,36 +107,25 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
             : null,
         orElse: () => null,
       ),
-      body: Column(
-        children: [
-          _DateRow(
-            date: _date,
-            onChanged: (d) => setState(() => _date = d),
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: linesAsync.when(
-              data: (lines) {
-                if (lines.isEmpty) {
-                  return const _EmptyState();
-                }
-                return TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _ByItemView(lines: lines, productMap: productMap),
-                    _ByShopView(
-                      lines: lines,
-                      shopMap: shopMap,
-                      productMap: productMap,
-                    ),
-                  ],
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
-            ),
-          ),
-        ],
+      body: linesAsync.when(
+        data: (lines) {
+          if (lines.isEmpty) {
+            return const _EmptyState();
+          }
+          return TabBarView(
+            controller: _tabController,
+            children: [
+              _ByItemView(lines: lines, productMap: productMap),
+              _ByShopView(
+                lines: lines,
+                shopMap: shopMap,
+                productMap: productMap,
+              ),
+            ],
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text('Error: $e')),
       ),
     );
   }
@@ -113,7 +140,6 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
     buf.writeln('🍞 Kitchen List — $dateLabel');
     buf.writeln();
 
-    // Aggregate item totals
     final Map<int, int> itemTotals = {};
     for (final l in lines) {
       itemTotals[l.productId] = (itemTotals[l.productId] ?? 0) + l.qty;
@@ -139,7 +165,6 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
 
     buf.writeln();
 
-    // Shop-wise breakdown — preserve insertion order (order of first appearance)
     final Map<int, Map<int, int>> shopProducts = {};
     final List<int> shopOrder = [];
     for (final l in lines) {
@@ -177,52 +202,6 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
     );
 
     Share.share(buf.toString().trim());
-  }
-}
-
-// ---------------------------------------------------------------------------
-
-class _DateRow extends StatelessWidget {
-  const _DateRow({required this.date, required this.onChanged});
-
-  final DateTime date;
-  final void Function(DateTime) onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final label = DateFormat('dd MMM yyyy, EEE').format(date);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left),
-            onPressed: () => onChanged(date.subtract(const Duration(days: 1))),
-          ),
-          TextButton.icon(
-            icon: const Icon(Icons.calendar_today, size: 16),
-            label: Text(
-              label,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-            ),
-            onPressed: () async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: date,
-                firstDate: DateTime(2020),
-                lastDate: DateTime(2100),
-              );
-              if (picked != null && context.mounted) onChanged(picked);
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right),
-            onPressed: () => onChanged(date.add(const Duration(days: 1))),
-          ),
-        ],
-      ),
-    );
   }
 }
 
@@ -307,11 +286,10 @@ class _ByItemView extends StatelessWidget {
               final unit = product?.unit;
               return ListTile(
                 leading: CircleAvatar(
-                  backgroundColor:
-                      const Color(0xFFF57C00).withAlpha(30),
+                  backgroundColor: kBrandCrimson.withAlpha(30),
                   child: const Icon(
                     Icons.bakery_dining,
-                    color: Color(0xFFF57C00),
+                    color: kBrandCrimson,
                     size: 20,
                   ),
                 ),
@@ -320,7 +298,7 @@ class _ByItemView extends StatelessWidget {
                 trailing: Text(
                   entry.value.toString(),
                   style: const TextStyle(
-                    fontSize: 22,
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -348,7 +326,6 @@ class _ByShopView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Group lines by shop, preserve first-seen order
     final Map<int, Map<int, int>> shopProducts = {};
     final List<int> shopOrder = [];
     for (final l in lines) {
@@ -360,7 +337,6 @@ class _ByShopView extends StatelessWidget {
           (shopProducts[l.shopId]![l.productId] ?? 0) + l.qty;
     }
 
-    // Flatten into a mixed list of headers + product rows
     final List<_ShopViewItem> items = [];
     for (final shopId in shopOrder) {
       final productEntries = shopProducts[shopId]!
@@ -426,7 +402,7 @@ class _ByShopView extends StatelessWidget {
                       '${item.total} pcs',
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFFF57C00),
+                        color: kBrandCrimson,
                       ),
                     ),
                   ],

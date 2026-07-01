@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import '../../app.dart';
 import '../../database/app_database.dart';
 import '../../providers/database_provider.dart';
 import '../../widgets/product_qty_row.dart';
@@ -26,7 +28,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
   List<Product> _products = [];
   Map<int, double> _priceMap = {};
   Map<int, int> _qtys = {};
-  Map<int, double> _snapshotPrices = {}; // unitPrices from loaded lines (for removed-price products)
+  Map<int, double> _snapshotPrices = {};
 
   Shop? _shop;
   bool _loading = true;
@@ -65,7 +67,9 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
     final sos = results[2] as List<StandingOrder>;
     final owl = results[3] as OrderWithLines?;
 
-    final priceMap = <int, double>{for (final p in prices) p.productId: p.price};
+    final priceMap = <int, double>{
+      for (final p in prices) p.productId: p.price
+    };
     final soMap = <int, int>{for (final s in sos) s.productId: s.defaultQty};
 
     final Map<int, int> qtys;
@@ -74,7 +78,9 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
     if (owl != null && owl.lines.isNotEmpty) {
       qtys = {for (final l in owl.lines) l.productId: l.qty};
       snapshotPrices = {for (final l in owl.lines) l.productId: l.unitPrice};
-      for (final p in prods) qtys.putIfAbsent(p.id, () => 0);
+      for (final p in prods) {
+        qtys.putIfAbsent(p.id, () => 0);
+      }
     } else {
       qtys = {for (final p in prods) p.id: soMap[p.id] ?? 0};
       snapshotPrices = {};
@@ -116,10 +122,14 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
         .map((p) => OrderLinesCompanion(
               productId: Value(p.id),
               qty: Value(_qtys[p.id] ?? 0),
-              unitPrice: Value(_priceMap[p.id] ?? _snapshotPrices[p.id] ?? 0.0),
+              unitPrice:
+                  Value(_priceMap[p.id] ?? _snapshotPrices[p.id] ?? 0.0),
             ))
         .toList();
-    await ref.read(databaseProvider).orderDao.replaceOrderLines(_orderId!, lines);
+    await ref
+        .read(databaseProvider)
+        .orderDao
+        .replaceOrderLines(_orderId!, lines);
   }
 
   Future<void> _confirmOrder() async {
@@ -151,7 +161,9 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
     if (!mounted) return;
     setState(() => _isConfirmed = true);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Order confirmed.'), duration: Duration(seconds: 2)),
+      const SnackBar(
+          content: Text('Order confirmed.'),
+          duration: Duration(seconds: 2)),
     );
   }
 
@@ -180,7 +192,8 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
       if (ok != true || !mounted) return;
     }
     final db = ref.read(databaseProvider);
-    final sos = await db.priceDao.watchStandingOrdersForShop(widget.shopId).first;
+    final sos =
+        await db.priceDao.watchStandingOrdersForShop(widget.shopId).first;
     if (!mounted) return;
     final soMap = {for (final s in sos) s.productId: s.defaultQty};
     setState(() {
@@ -200,15 +213,21 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
   Widget build(BuildContext context) {
     if (_loading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Order Entry')),
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.go('/'),
+          ),
+          title: const Text('Order Entry'),
+        ),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     final dateLabel = DateFormat('dd MMM yyyy, EEE').format(_date);
-    final unpricedCount = _products
-        .where((p) => !_priceMap.containsKey(p.id))
-        .length;
+    final unpricedCount =
+        _products.where((p) => !_priceMap.containsKey(p.id)).length;
+    final pricedCount = _products.length - unpricedCount;
 
     int totalItems = 0;
     double totalAmount = 0;
@@ -223,12 +242,16 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/'),
+        ),
         titleSpacing: 0,
         title: Row(
           children: [
             const CircleAvatar(
               radius: 18,
-              backgroundColor: Color(0xFFF57C00),
+              backgroundColor: kBrandCrimson,
               child: Icon(Icons.storefront, color: Colors.white, size: 18),
             ),
             const SizedBox(width: 10),
@@ -239,13 +262,15 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
                 children: [
                   Text(
                     _shop?.name ?? 'Shop',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
                     overflow: TextOverflow.ellipsis,
                   ),
                   if (_shop?.area != null)
                     Text(
                       _shop!.area!,
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
+                      style: const TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.normal),
                       overflow: TextOverflow.ellipsis,
                     ),
                 ],
@@ -258,21 +283,88 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
             onPressed: _loadStandingOrder,
             child: const Text(
               'Load Standing Order',
-              style: TextStyle(color: Color(0xFFF57C00), fontSize: 13),
+              style: TextStyle(color: kBrandCrimson, fontSize: 13),
             ),
           ),
         ],
       ),
       body: Column(
         children: [
-          // Sub-header
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            color: const Color(0xFFFFF8E1),
-            child: Text(
-              'Order Date: $dateLabel  ·  Regular Order',
-              style: const TextStyle(fontSize: 13, color: Colors.brown),
+          // Two-column info card — icon on left spanning both rows
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+            child: Card(
+              color: Colors.white,
+              margin: EdgeInsets.zero,
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: IntrinsicHeight(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Icon(Icons.calendar_today,
+                                size: 22,
+                                color: Colors.grey.shade400),
+                            const SizedBox(width: 10),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Order Date',
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey.shade500),
+                                ),
+                                Text(
+                                  dateLabel,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const VerticalDivider(width: 1),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 12),
+                          child: Row(
+                            children: [
+                              Icon(Icons.receipt_outlined,
+                                  size: 22,
+                                  color: Colors.grey.shade400),
+                              const SizedBox(width: 10),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Order Type',
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey.shade500),
+                                  ),
+                                  const Text(
+                                    'Regular Order',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
           // Warning banner
@@ -283,26 +375,50 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
               color: Colors.orange.shade50,
               child: Row(
                 children: [
-                  const Icon(Icons.warning_amber_rounded, size: 16, color: Colors.orange),
+                  const Icon(Icons.warning_amber_rounded,
+                      size: 16, color: Colors.orange),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Prices not set for $unpricedCount product${unpricedCount > 1 ? 's' : ''} — billing will show ₹0',
-                      style: const TextStyle(fontSize: 12, color: Colors.deepOrange),
+                      style: const TextStyle(
+                          fontSize: 12, color: Colors.deepOrange),
                     ),
                   ),
                 ],
               ),
             ),
+          // Products section header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+            child: Row(
+              children: [
+                Text(
+                  'Products',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const Spacer(),
+                Text(
+                  '$pricedCount items',
+                  style: const TextStyle(color: kBrandCrimson, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
           // Product list
           Expanded(
             child: _products.isEmpty
                 ? const Center(
-                    child: Text('No active products', style: TextStyle(color: Colors.grey)),
+                    child: Text('No active products',
+                        style: TextStyle(color: Colors.grey)),
                   )
                 : ListView.separated(
                     itemCount: _products.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1, indent: 16),
+                    separatorBuilder: (_, __) =>
+                        const Divider(height: 1, indent: 16),
                     itemBuilder: (context, i) {
                       final product = _products[i];
                       final price = _priceMap[product.id];
@@ -312,10 +428,12 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
                         price: price,
                         qty: qty,
                         onDecrement: price != null
-                            ? () => _setQty(product.id, (qty - 1).clamp(0, 9999))
+                            ? () => _setQty(
+                                product.id, (qty - 1).clamp(0, 9999))
                             : null,
-                        onIncrement:
-                            price != null ? () => _setQty(product.id, qty + 1) : null,
+                        onIncrement: price != null
+                            ? () => _setQty(product.id, qty + 1)
+                            : null,
                       );
                     },
                   ),
@@ -323,7 +441,8 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
           // Bottom bar
           SafeArea(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: Colors.white,
                 boxShadow: [
@@ -343,11 +462,13 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
                       children: [
                         Text(
                           '₹${NumberFormat('#,##0.##').format(totalAmount)}',
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                         Text(
                           'Order Total · $totalItems items',
-                          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.grey[600]),
                         ),
                       ],
                     ),
@@ -355,13 +476,18 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
                   ElevatedButton(
                     onPressed: _isConfirmed ? null : _confirmOrder,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF57C00),
+                      backgroundColor: kBrandCrimson,
                       foregroundColor: Colors.white,
                       disabledBackgroundColor: Colors.green.shade50,
                       disabledForegroundColor: Colors.green.shade700,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
                     ),
-                    child: Text(_isConfirmed ? 'Confirmed ✓' : 'Confirm Order →'),
+                    child:
+                        Text(_isConfirmed ? 'Confirmed ✓' : 'Confirm Order →'),
                   ),
                 ],
               ),

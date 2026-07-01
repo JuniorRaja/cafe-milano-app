@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/orders/orders_screen.dart';
 import 'screens/kitchen/kitchen_screen.dart';
@@ -12,19 +13,24 @@ import 'screens/profile/prices/price_matrix_screen.dart';
 import 'screens/profile/standing_orders/standing_orders_screen.dart';
 import 'screens/order_entry/order_entry_screen.dart';
 
+// Brand colors extracted from the Caffe Milano logo
+const kBrandCrimson = Color(0xFFB71C1C); // logo ring + inner circle
+const kBrandGold    = Color(0xFFFFC000); // logo background
+const kSurface      = Color(0xFFFFFBF5); // warm cream
+
 class AppRoutes {
-  static const home = '/';
-  static const orders = '/orders';
-  static const kitchen = '/kitchen';
-  static const profile = '/profile';
-  static const orderEntry = '/order/:shopId';
-  static const shops = '/profile/shops';
-  static const shopNew = '/profile/shops/new';
-  static const shopEdit = '/profile/shops/:id/edit';
-  static const products = '/profile/products';
-  static const productNew = '/profile/products/new';
-  static const productEdit = '/profile/products/:id/edit';
-  static const prices = '/profile/prices';
+  static const home          = '/';
+  static const orders        = '/orders';
+  static const kitchen       = '/kitchen';
+  static const profile       = '/profile';
+  static const orderEntry    = '/order/:shopId';
+  static const shops         = '/profile/shops';
+  static const shopNew       = '/profile/shops/new';
+  static const shopEdit      = '/profile/shops/:id/edit';
+  static const products      = '/profile/products';
+  static const productNew    = '/profile/products/new';
+  static const productEdit   = '/profile/products/:id/edit';
+  static const prices        = '/profile/prices';
   static const standingOrders = '/profile/standing-orders';
 }
 
@@ -122,15 +128,64 @@ class BakeOrderApp extends StatelessWidget {
       title: 'BakeOrder',
       theme: ThemeData(
         useMaterial3: true,
+        textTheme: GoogleFonts.poppinsTextTheme(),
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFF57C00),
-          surface: const Color(0xFFFFFBF5),
+          seedColor: kBrandCrimson,
+          surface: kSurface,
+        ),
+        navigationBarTheme: NavigationBarThemeData(
+          indicatorColor: Colors.transparent,
+          iconTheme: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return const IconThemeData(color: kBrandCrimson);
+            }
+            return IconThemeData(color: Colors.grey.shade600);
+          }),
+          labelTextStyle: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return GoogleFonts.poppins(
+                color: kBrandCrimson,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              );
+            }
+            return GoogleFonts.poppins(
+              color: Colors.grey.shade600,
+              fontSize: 11,
+            );
+          }),
+        ),
+        tabBarTheme: const TabBarThemeData(
+          labelColor: kBrandCrimson,
+          unselectedLabelColor: Colors.grey,
+          indicatorColor: kBrandCrimson,
+          dividerColor: Colors.transparent,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8)),
+          ),
         ),
       ),
       routerConfig: _router,
     );
   }
 }
+
+const _topLevelPaths = {'/', '/orders', '/kitchen', '/profile'};
 
 class _ScaffoldWithNavBar extends StatelessWidget {
   const _ScaffoldWithNavBar({required this.navigationShell});
@@ -139,37 +194,42 @@ class _ScaffoldWithNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final location = GoRouterState.of(context).uri.path;
+    final showNavBar = _topLevelPaths.contains(location);
+
     return Scaffold(
       body: navigationShell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: navigationShell.currentIndex,
-        onDestinationSelected: (index) => navigationShell.goBranch(
-          index,
-          initialLocation: index == navigationShell.currentIndex,
-        ),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long),
-            label: 'Orders',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.restaurant_outlined),
-            selectedIcon: Icon(Icons.restaurant),
-            label: 'Kitchen',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
-      ),
+      bottomNavigationBar: showNavBar
+          ? NavigationBar(
+              selectedIndex: navigationShell.currentIndex,
+              onDestinationSelected: (index) => navigationShell.goBranch(
+                index,
+                initialLocation: index == navigationShell.currentIndex,
+              ),
+              destinations: const [
+                NavigationDestination(
+                  icon: Icon(Icons.home_outlined),
+                  selectedIcon: Icon(Icons.home),
+                  label: 'Home',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.receipt_long_outlined),
+                  selectedIcon: Icon(Icons.receipt_long),
+                  label: 'Orders',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.restaurant_outlined),
+                  selectedIcon: Icon(Icons.restaurant),
+                  label: 'Kitchen',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.person_outline),
+                  selectedIcon: Icon(Icons.person),
+                  label: 'Profile',
+                ),
+              ],
+            )
+          : null,
     );
   }
 }

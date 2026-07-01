@@ -1,8 +1,8 @@
 # BakeOrder — Implementation Plan
 
 > Generated: 2026-06-30  
-> Last updated: 2026-06-30  
-> Status: Phase 9 complete — all phases done  
+> Last updated: 2026-07-01  
+> Status: Phase 9 complete — Phase 10 (UI Design Alignment) in progress  
 > Platform: Android (Flutter)  
 > Estimated timeline: ~3 weeks  
 > **App root: `E:\Works\pr-mob-app\CafeMilano\`**  
@@ -562,6 +562,312 @@ class AppRoutes {
 *All work happens inside `CafeMilano/`.*
 
 ---
+
+## Phase 10 — UI Design Alignment
+
+**Goal:** Make every screen match the reference designs (docs/UI 1–5) and close all visual gaps observed from the live device. Where the reference is ambiguous or impractical, a better default is specified below.
+
+> Observed state captured via ADB screenshot on 2026-07-01. All gaps below are confirmed against the live build.
+
+---
+
+### 10.1 App-Wide Fixes
+
+These apply to every screen and should be implemented first as shared infrastructure.
+
+**A. Screen title + subtitle pattern**
+
+Every inner screen in the reference has a two-line AppBar: a bold title and a smaller grey subtitle. Create a reusable helper or extract a shared `_appBarTitle(title, subtitle)` widget:
+
+```dart
+Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    Text(title, style: Theme.of(context).textTheme.titleLarge),
+    Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+  ],
+)
+```
+
+Apply this to: **Orders screen**, **Kitchen screen**, **Prices screen**, **Order Entry screen**.
+
+**B. Card background color**
+
+All `Card` / `Container` widgets that serve as list cards currently render with a warm cream tint inherited from the surface color. Set `color: Colors.white` explicitly on all list cards so they stand out against the `#FFFBF5` scaffold background.
+
+**C. Date selector — bordered arrow containers**
+
+The reference shows the `<` and `>` nav arrows inside small square bordered containers (like `OutlinedButton` with no label). The current implementation uses plain `IconButton`s with no border.
+
+In `lib/widgets/date_selector.dart`, wrap each arrow `IconButton` in a `Container` with:
+```dart
+decoration: BoxDecoration(
+  border: Border.all(color: Colors.grey.shade300),
+  borderRadius: BorderRadius.circular(8),
+)
+```
+
+This applies to Home screen. Orders and Kitchen screens use a different date selector pattern (see 10.3 and 10.4).
+
+---
+
+### 10.2 Home Screen (`lib/screens/home/home_screen.dart`)
+
+**A. App bar — logo, two-tone branding, subtitle, notification bell**
+
+Current: plain `AppBar(title: Text("BakeOrder"))`.
+
+Replace with a custom app bar body:
+- Left: `Row` — orange `CircleAvatar` containing `Icon(Icons.bakery_dining)` as the logo, followed by a `Column` of:
+  - `RichText` with two `TextSpan`s: "Bake" in `Colors.black87 bold` and "Order" in `Color(0xFFF57C00) bold`
+  - Subtitle: `"Manage orders from all shops"` in `grey, fontSize 12`
+- Right: `IconButton(icon: Icon(Icons.notifications_outlined))` with an orange `Badge` dot overlay (static for now — no notification logic needed)
+
+**B. Section header — "Shops" + count**
+
+Current: `"Shops · N shops"` in a single small grey text.
+
+Replace with a `Padding` + `Row`:
+```
+Row(
+  children: [
+    Text("Shops", style: titleMedium bold),
+    Spacer(),
+    Text("$count shops", style: TextStyle(color: Color(0xFFF57C00))),
+  ],
+)
+```
+
+**C. `ShopOrderCard` — layout overhaul**
+
+Current card layout (top to bottom): icon | name + area | badges inline at bottom.
+
+Target card layout:
+```
+Row(top):  [Avatar]  [Column: name + area + location pin]  [Spacer]  [Status badge]
+Row(bottom, left-aligned): [Items chip]  [Price chip]
+```
+
+Specific changes:
+1. **Avatar:** Replace the generic storefront icon with a `CircleAvatar` showing the first letter of the shop name (e.g. "N" for NAMMA CAFE). Background: `Color(0xFFF57C00)`, text: white bold. This is more practical than the reference's hand-drawn illustrations since each shop won't have a unique icon asset.
+2. **Location:** Prepend a `Icon(Icons.location_on_outlined, size: 14, color: Colors.grey)` before the area text.
+3. **Status badge position:** Move from the bottom badge row to the **top-right** of the card using a `Row` in the card header: `[name+area Column] [Spacer] [StatusChip]`.
+4. **Items + price badges:** Split the current single `"0 items · ₹0"` chip into **two separate chips** side by side: `"N items"` and `"₹X,XXX"`, both with orange border and light orange fill.
+5. **Card color:** Set `color: Colors.white` (not tinted).
+
+**D. FAB — add order shortcut**
+
+Current: no FAB (locked decision in Phase 5 said no FAB).
+
+The reference clearly shows an orange FAB `+`. Re-evaluate this decision: the FAB should be present as a shortcut to quickly start an order. Behavior: tapping FAB navigates to the first pending shop for the current date, or if all are confirmed, opens a shop picker.
+
+Add `floatingActionButton: FloatingActionButton(...)` to the Home scaffold.
+
+> **Note for discussion:** If the FAB's destination is ambiguous (which shop does it open?), a simpler option is to make it a no-op that shows a `SnackBar("Tap a shop card to enter an order")` until the intent is clarified.
+
+---
+
+### 10.3 Orders Screen (`lib/screens/orders/orders_screen.dart` — Daily Billing)
+
+**A. Screen title and subtitle**
+
+- Title: `"Daily Billing"` (not "Orders")
+- Subtitle: `"Summary of all shop bills"`
+- Date selector: move out of the body into the AppBar **actions** area — a compact `[📅 DD MMM ▾]` tappable label that opens a date picker. Remove the full-width date row from the body entirely.
+
+**B. Shop entry rows — numbered circles**
+
+Current: flat `Text` rows for each shop.
+
+Replace with a card-per-shop layout matching UI-3:
+- Left: `CircleAvatar` with shop number (1, 2, 3…), orange background, white bold number
+- Center: shop name (bold) + area (grey)
+- Right: total amount (bold) + share icon + expand chevron
+
+The expand/collapse accordion is already implemented — just update the visual shell around it.
+
+**C. Expanded billing table**
+
+Current status: unknown (no orders in seed data to test). Verify the expanded state shows:
+- Header row: `Item | Qty | Price | Total` — with a light orange `#FFF3E0` background fill
+- Line rows: regular weight, no background
+- Footer row: `"Total"` in orange on left, total amount in orange bold on right
+
+**D. Grand Total footer bar**
+
+Current: outlined `"Share All"` button in a plain row.
+
+Replace with a full-width solid orange `Container`:
+```
+Container(
+  color: Color(0xFFF57C00),
+  child: Row(
+    children: [
+      Column(["Grand Total", "₹X,XXX"]),   // white text
+      Spacer(),
+      OutlinedButton("Share All Bills"),     // white border, white text
+    ],
+  ),
+)
+```
+
+---
+
+### 10.4 Kitchen Screen (`lib/screens/kitchen/kitchen_screen.dart`)
+
+**A. Screen title and subtitle**
+
+- Title: `"Kitchen Production"` (not "Kitchen")
+- Subtitle: `"Production plan for the day"`
+
+**B. Date selector — inline with AppBar**
+
+Current: full-width date row below the tab bar.
+
+Move to AppBar actions area: compact `[📅 DD MMM YYYY ▾]` tappable widget (same pattern as Orders screen above). Remove the body date row.
+
+**C. By Item list — quantity styling**
+
+When orders exist, verify the quantity numbers render in `bold, fontSize 24` (large, prominent) right-aligned — as shown in UI-4. If they currently render in normal body text size, update the `ProductionRow` widget's quantity `Text` style.
+
+---
+
+### 10.5 Order Entry Screen (`lib/screens/order_entry/order_entry_screen.dart`)
+
+**A. Order info — two-column card**
+
+Current: single line `"Order Date: DD Mon YYYY, Day · Regular Order"`.
+
+Replace with a `Card` or rounded `Container` with two equal columns separated by a vertical divider:
+
+```
+┌────────────────────────┬────────────────────────┐
+│ 📅 Order Date          │ 📋 Order Type          │
+│ 01 Jul 2026, Wed       │ Regular Order          │
+└────────────────────────┴────────────────────────┘
+```
+
+Use `Row` → two `Expanded` children, each a `Column` with a small icon + label in grey and the value in black bold. The vertical separator is a `VerticalDivider`.
+
+**B. "Products" section header**
+
+Add above the product list:
+```
+Row(
+  children: [
+    Text("Products", style: titleMedium bold),
+    Spacer(),
+    Text("$count items", style: TextStyle(color: Color(0xFFF57C00))),
+  ],
+)
+```
+Count = number of products that have a price set for this shop (i.e. active/non-greyed items).
+
+**C. Product avatar — letter fallback**
+
+Current: generic croissant SVG icon for all products without a photo.
+
+Replace with: if `product.photoPath` is null or empty, show a `CircleAvatar` with the first letter of the product name (e.g. "B" for Bread), orange background, white text. This is more informative than an identical icon for every product.
+
+**D. Quantity stepper button shape**
+
+Current: circular `IconButton` for `−` and `+`.
+
+Change to rounded square: `Container` with `width: 36, height: 36`, `BorderRadius.circular(8)`, orange fill for active items, grey fill for disabled (price not set). This matches the reference style more closely.
+
+---
+
+### 10.6 Prices Screen (`lib/screens/profile/prices/price_matrix_screen.dart`)
+
+**A. Screen title and subtitle**
+- Title: `"Price Matrix"` (not "Prices")
+- Subtitle: `"Manage product prices for shop"`
+
+**B. "About" action button**
+
+Add to AppBar actions:
+```dart
+TextButton.icon(
+  icon: Icon(Icons.info_outline, color: Color(0xFFF57C00)),
+  label: Text("About", style: TextStyle(color: Color(0xFFF57C00))),
+  onPressed: () => _showAboutDialog(context),
+)
+```
+
+The dialog content can explain what the Price Matrix is (one sentence). Keep the dialog minimal.
+
+**C. Product icon in price list**
+
+When shop is selected and product rows render, replace any generic icon with the same letter-avatar pattern (10.5 C). If a product has a photo, show the photo thumbnail.
+
+---
+
+### 10.7 Profile Screen (`lib/screens/profile/profile_screen.dart`)
+
+The reference designs do not include a Profile screen mockup, so no structural changes are required. Minor polish:
+- Add a top `Padding` / header section with a greeting or app version info (optional, low priority)
+- Ensure the 4 list tiles (Shops, Products, Prices, Standing Orders) have consistent icon styling matching the amber theme
+
+---
+
+### 10.8 Shared Widget — Letter Avatar
+
+Extract a reusable `LetterAvatar` widget to `lib/widgets/letter_avatar.dart`:
+
+```dart
+// Shows a CircleAvatar with the first letter of [name].
+// Falls back gracefully if name is empty.
+// Used on: Home shop cards, Order Entry products, Price Matrix products, Products list.
+class LetterAvatar extends StatelessWidget {
+  final String name;
+  final double radius;
+  LetterAvatar({required this.name, this.radius = 24});
+  ...
+}
+```
+
+This widget is used in place of the generic icon in all 4 locations listed above.
+
+---
+
+### Action Items
+
+- [x] **10.1A** — Create `_appBarTitle(title, subtitle)` helper, apply to Orders, Kitchen, Prices, Order Entry screens
+- [x] **10.1B** — Set `color: Colors.white` on all list cards
+- [x] **10.1C** — Add bordered containers to `DateSelector` arrow buttons
+- [x] **10.2A** — Rebuild Home app bar: logo, two-tone "BakeOrder", subtitle, bell icon
+- [x] **10.2B** — Replace section header with `Shops` bold + `N shops` orange count
+- [x] **10.2C** — Rebuild `ShopOrderCard`: letter avatar, location pin, status badge top-right, split item/price chips, white card
+- [x] **10.2D** — Add FAB to Home screen (shows snackbar: "Tap a shop card to enter an order")
+- [x] **10.3A** — Rename Orders screen title to "Daily Billing", add subtitle, move date to AppBar actions
+- [x] **10.3B** — Add numbered orange circles to shop entries in Orders screen
+- [x] **10.3C** — Expanded billing table: light orange header (#FFF3E0), "Total" footer in orange
+- [x] **10.3D** — Replace Grand Total footer with solid orange bar + white "Share All Bills" button
+- [x] **10.4A** — Rename Kitchen screen title to "Kitchen Production", add subtitle
+- [x] **10.4B** — Move Kitchen date selector to AppBar actions
+- [x] **10.4C** — Production list quantity text updated to fontSize 24, bold
+- [x] **10.5A** — Replace Order Entry info line with two-column card (date + order type)
+- [x] **10.5B** — Add "Products" section header with priced item count
+- [x] **10.5C** — Replace generic product icon with letter-avatar fallback
+- [x] **10.5D** — Change stepper buttons from circles to rounded squares (36×36, orange fill)
+- [x] **10.6A** — Rename Prices screen to "Price Matrix", add subtitle
+- [x] **10.6B** — Add "About" action button to Price Matrix AppBar
+- [x] **10.6C** — Apply letter-avatar to price list product rows
+- [x] **10.8**  — Extract `LetterAvatar` widget (`lib/widgets/letter_avatar.dart`)
+
+### Success Criteria
+
+- [ ] Home screen matches UI-1: two-tone logo header, pill section header, card layout with status top-right, split badges
+- [ ] Order Entry matches UI-5: two-column info card, Products header, letter avatars, square steppers
+- [ ] Daily Billing matches UI-3: numbered shop circles, solid orange footer, inline date in AppBar
+- [ ] Kitchen matches UI-4: correct title/subtitle, date in AppBar actions, bold quantities
+- [ ] Price Matrix matches UI-2: correct title, About button, letter avatars in list
+- [ ] No screen has a tinted card background — all cards are white
+- [ ] `LetterAvatar` renders correctly for single-character names, long names, and empty strings
+- [ ] All changes are purely visual — no data layer or routing changes
+
+---
+
 ## Later
 
 - Once everything is done, let's explore HIVE DB to swap it over SQLITE

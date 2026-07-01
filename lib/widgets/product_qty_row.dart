@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../app.dart';
 import '../database/app_database.dart';
+import 'letter_avatar.dart';
 
 class ProductQtyRow extends StatelessWidget {
   const ProductQtyRow({
@@ -34,19 +36,20 @@ class ProductQtyRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: SizedBox(
-                width: 48,
-                height: 48,
-                child: product.photoPath != null
-                    ? Image.file(
+            SizedBox(
+              width: 48,
+              height: 48,
+              child: product.photoPath != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.file(
                         File(product.photoPath!),
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _placeholder(),
-                      )
-                    : _placeholder(),
-              ),
+                        errorBuilder: (_, __, ___) =>
+                            LetterAvatar(name: product.name),
+                      ),
+                    )
+                  : LetterAvatar(name: product.name),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -55,7 +58,8 @@ class ProductQtyRow extends StatelessWidget {
                 children: [
                   Text(
                     product.name,
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 15),
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -72,11 +76,12 @@ class ProductQtyRow extends StatelessWidget {
               children: [
                 _StepperBtn(icon: Icons.remove, onPressed: onDecrement),
                 SizedBox(
-                  width: 36,
+                  width: 40,
                   child: Text(
                     qty.toString(),
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                 ),
                 _StepperBtn(icon: Icons.add, onPressed: onIncrement),
@@ -87,11 +92,6 @@ class ProductQtyRow extends StatelessWidget {
       ),
     );
   }
-
-  Widget _placeholder() => Container(
-        color: const Color(0xFFFFF3E0),
-        child: const Icon(Icons.bakery_dining, color: Color(0xFFF57C00), size: 28),
-      );
 }
 
 class _StepperBtn extends StatelessWidget {
@@ -102,18 +102,21 @@ class _StepperBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 44,
-      height: 44,
-      child: IconButton(
-        padding: EdgeInsets.zero,
-        icon: Icon(icon, size: 20),
-        onPressed: onPressed,
-        style: IconButton.styleFrom(
-          backgroundColor: onPressed != null
-              ? const Color(0xFFF57C00).withAlpha(25)
-              : Colors.grey.withAlpha(20),
-          shape: const CircleBorder(),
+    final isActive = onPressed != null;
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: onPressed,
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: isActive ? kBrandCrimson : Colors.grey.withAlpha(40),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          icon,
+          size: 18,
+          color: isActive ? Colors.white : Colors.grey,
         ),
       ),
     );

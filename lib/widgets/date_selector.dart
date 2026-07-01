@@ -12,15 +12,16 @@ class DateSelector extends ConsumerWidget {
     final label = DateFormat('dd MMM yyyy, EEE').format(date);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left),
+          _ArrowBtn(
+            icon: Icons.chevron_left,
             onPressed: () => ref.read(selectedDateProvider.notifier).state =
                 date.subtract(const Duration(days: 1)),
           ),
+          const SizedBox(width: 8),
           TextButton.icon(
             icon: const Icon(Icons.calendar_today, size: 16),
             label: Text(
@@ -39,12 +40,37 @@ class DateSelector extends ConsumerWidget {
               }
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right),
+          const SizedBox(width: 8),
+          _ArrowBtn(
+            icon: Icons.chevron_right,
             onPressed: () => ref.read(selectedDateProvider.notifier).state =
                 date.add(const Duration(days: 1)),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ArrowBtn extends StatelessWidget {
+  const _ArrowBtn({required this.icon, required this.onPressed});
+
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onPressed,
+        child: Icon(icon, size: 20, color: Colors.grey.shade700),
       ),
     );
   }

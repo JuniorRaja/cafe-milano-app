@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app.dart';
 import '../../../providers/shop_provider.dart';
 import '../../../providers/database_provider.dart';
+import '../../../widgets/letter_avatar.dart';
 
 class ShopListScreen extends ConsumerWidget {
   const ShopListScreen({super.key});
@@ -13,7 +14,24 @@ class ShopListScreen extends ConsumerWidget {
     final shopsAsync = ref.watch(allShopsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Shops')),
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Shops',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text(
+              'Add and manage your shops',
+              style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade500,
+                  fontWeight: FontWeight.normal),
+            ),
+          ],
+        ),
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push(AppRoutes.shopNew),
         child: const Icon(Icons.add),
@@ -39,16 +57,7 @@ class ShopListScreen extends ConsumerWidget {
               return Opacity(
                 opacity: isActive ? 1.0 : 0.45,
                 child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                    child: Text(
-                      shop.name.isNotEmpty ? shop.name[0].toUpperCase() : '?',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                  leading: LetterAvatar(name: shop.name, radius: 20),
                   title: Text(shop.name, style: const TextStyle(fontWeight: FontWeight.w600)),
                   subtitle: shop.area != null ? Text(shop.area!) : null,
                   trailing: Row(
