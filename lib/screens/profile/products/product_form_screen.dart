@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -28,10 +29,17 @@ const _kUnitOptions = [
 ];
 const _kOtherUnit = 'Other';
 
+String _formatPrice(double value) {
+  return value == value.roundToDouble()
+      ? value.toStringAsFixed(0)
+      : value.toStringAsFixed(2);
+}
+
 class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _unitCtrl = TextEditingController();
+  final _priceCtrl = TextEditingController();
   String? _selectedUnit;
   String? _photoPath;
   bool _loading = true;
@@ -50,6 +58,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       if (product != null && mounted) {
         _nameCtrl.text = product.name;
         _photoPath = product.photoPath;
+        if (product.price != null) {
+          _priceCtrl.text = _formatPrice(product.price!);
+        }
         final unit = product.unit;
         if (unit != null && unit.isNotEmpty) {
           if (_kUnitOptions.contains(unit)) {
@@ -75,11 +86,13 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     final unit = _selectedUnit == _kOtherUnit
         ? _unitCtrl.text.trim()
         : _selectedUnit;
+    final priceText = _priceCtrl.text.trim();
     final companion = ProductsCompanion(
       id: widget.productId != null ? Value(widget.productId!) : const Value.absent(),
       name: Value(_nameCtrl.text.trim()),
       unit: Value(unit == null || unit.isEmpty ? null : unit),
       photoPath: Value(_photoPath),
+      price: Value(priceText.isEmpty ? null : double.parse(priceText)),
     );
     await ref.read(databaseProvider).productDao.upsertProduct(companion);
     if (mounted) context.pop();
@@ -126,6 +139,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   void dispose() {
     _nameCtrl.dispose();
     _unitCtrl.dispose();
+    _priceCtrl.dispose();
     super.dispose();
   }
 
@@ -226,6 +240,30 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                     textCapitalization: TextCapitalization.words,
                     validator: (v) =>
                         (v == null || v.trim().isEmpty) ? 'Name is required' : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _priceCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Price',
+                      hintText: 'Default price (optional)',
+                      prefixText: '₹ ',
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d*\.?\d{0,2}')),
+                    ],
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) return null;
+                      final parsed = double.tryParse(v.trim());
+                      if (parsed == null || parsed < 0) {
+                        return 'Enter a valid price';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(

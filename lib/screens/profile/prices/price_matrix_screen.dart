@@ -81,7 +81,12 @@ class _PriceMatrixScreenState extends ConsumerState<PriceMatrixScreen> {
     if (_selectedShopId == null) return;
     final dao = ref.read(databaseProvider).priceDao;
     for (final entry in _controllers.entries) {
-      final price = double.tryParse(entry.value.text.trim());
+      final text = entry.value.text.trim();
+      if (text.isEmpty) {
+        await dao.deletePrice(_selectedShopId!, entry.key);
+        continue;
+      }
+      final price = double.tryParse(text);
       if (price != null) {
         await dao.upsertPrice(ShopPricesCompanion(
           shopId: Value(_selectedShopId!),

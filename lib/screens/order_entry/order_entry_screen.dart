@@ -122,8 +122,10 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
         .map((p) => OrderLinesCompanion(
               productId: Value(p.id),
               qty: Value(_qtys[p.id] ?? 0),
-              unitPrice:
-                  Value(_priceMap[p.id] ?? _snapshotPrices[p.id] ?? 0.0),
+              unitPrice: Value(_priceMap[p.id] ??
+                  p.price ??
+                  _snapshotPrices[p.id] ??
+                  0.0),
             ))
         .toList();
     await ref
@@ -245,14 +247,14 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
 
     final dateLabel = DateFormat('dd MMM yyyy, EEE').format(_date);
     final unpricedCount =
-        _products.where((p) => !_priceMap.containsKey(p.id)).length;
+        _products.where((p) => (_priceMap[p.id] ?? p.price) == null).length;
     final pricedCount = _products.length - unpricedCount;
 
     int totalItems = 0;
     double totalAmount = 0;
     for (final p in _products) {
       final qty = _qtys[p.id] ?? 0;
-      final price = _priceMap[p.id];
+      final price = _priceMap[p.id] ?? p.price;
       if (qty > 0 && price != null) {
         totalItems += qty;
         totalAmount += qty * price;
@@ -440,7 +442,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
                         const Divider(height: 1, indent: 16),
                     itemBuilder: (context, i) {
                       final product = _products[i];
-                      final price = _priceMap[product.id];
+                      final price = _priceMap[product.id] ?? product.price;
                       final qty = _qtys[product.id] ?? 0;
                       return ProductQtyRow(
                         product: product,

@@ -332,6 +332,19 @@ void main() {
       expect(price!.price, 7.0);
     });
 
+    test('deletePrice removes an existing override', () async {
+      await db.priceDao.upsertPrice(
+        ShopPricesCompanion.insert(shopId: shopId, productId: productId, price: 5.0),
+      );
+      await db.priceDao.deletePrice(shopId, productId);
+      expect(await db.priceDao.getPrice(shopId, productId), isNull);
+    });
+
+    test('deletePrice is a no-op when nothing is set', () async {
+      await db.priceDao.deletePrice(shopId, productId);
+      expect(await db.priceDao.getPrice(shopId, productId), isNull);
+    });
+
     test('watchPricesForShop scopes to the given shop only', () async {
       final otherShop = await db.shopDao.upsertShop(ShopsCompanion.insert(name: 'Other'));
       await db.priceDao.upsertPrice(

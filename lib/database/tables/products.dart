@@ -6,4 +6,5 @@ class Products extends Table {
   TextColumn get unit => text().nullable()();
   TextColumn get photoPath => text().nullable()();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  RealColumn get price => real().nullable()();
 }

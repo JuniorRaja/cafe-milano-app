@@ -11,56 +11,56 @@ Future<void> seedDatabase(AppDatabase db) async {
   debugPrint('[MilanoOrders] Seeding database...');
 
   await db.transaction(() async {
-    // 5 shops
+    // 2 shops
     final shopIds = <int>[];
     for (final companion in [
       ShopsCompanion.insert(name: 'Hotel Raj', area: const Value('Anna Nagar, Chennai')),
       ShopsCompanion.insert(name: 'Star Bakery', area: const Value('T Nagar, Chennai')),
-      ShopsCompanion.insert(name: 'New Moon Hotel', area: const Value('Adyar, Chennai')),
-      ShopsCompanion.insert(name: 'Sri Murugan Bakery', area: const Value('Velachery, Chennai')),
-      ShopsCompanion.insert(name: 'Annapoorna Stores', area: const Value('Mylapore, Chennai')),
     ]) {
       shopIds.add(await db.into(db.shops).insert(companion));
     }
 
-    // 6 products
+    // 6 products, each with a default price [bun, vegPuff, eggPuff, bread, cakeRusk, sweetBun]
+    final defaultPrices = [5.0, 8.0, 9.0, 25.0, 5.0, 7.0];
     final productIds = <int>[];
-    for (final companion in [
-      ProductsCompanion.insert(name: 'Bun', unit: const Value('pc')),
-      ProductsCompanion.insert(name: 'Veg Puff', unit: const Value('pc')),
-      ProductsCompanion.insert(name: 'Egg Puff', unit: const Value('pc')),
-      ProductsCompanion.insert(name: 'Bread', unit: const Value('loaf')),
-      ProductsCompanion.insert(name: 'Cake Rusk', unit: const Value('pc')),
-      ProductsCompanion.insert(name: 'Sweet Bun', unit: const Value('pc')),
-    ]) {
-      productIds.add(await db.into(db.products).insert(companion));
+    for (var i = 0; i < 6; i++) {
+      final name = ['Bun', 'Veg Puff', 'Egg Puff', 'Bread', 'Cake Rusk', 'Sweet Bun'][i];
+      final unit = i == 3 ? 'loaf' : 'pc';
+      productIds.add(await db.into(db.products).insert(ProductsCompanion.insert(
+            name: name,
+            unit: Value(unit),
+            price: Value(defaultPrices[i]),
+          )));
     }
 
-    // Prices per shop × product [bun, vegPuff, eggPuff, bread, cakeRusk, sweetBun]
-    final prices = [
-      [5.0, 8.0, 9.0, 25.0, 5.0, 7.0], // Hotel Raj
-      [4.0, 7.0, 8.0, 25.0, 5.0, 6.0], // Star Bakery
-      [5.0, 8.0, 9.0, 26.0, 5.0, 7.0], // New Moon Hotel
-      [6.0, 9.0, 10.0, 25.0, 6.0, 8.0], // Sri Murugan Bakery
-      [5.0, 8.0, 9.0, 24.0, 5.0, 7.0], // Annapoorna Stores
-    ];
+    // Shop-specific price overrides.
+    // Hotel Raj explicitly sets a shop price for every product (matching the defaults).
+    // Star Bakery only overrides Bun and Bread — the other products fall back to the product default price.
+    final starOverrides = {0: 4.0, 3: 25.0};
+
+    for (var j = 0; j < productIds.length; j++) {
+      await db.into(db.shopPrices).insert(ShopPricesCompanion.insert(
+            shopId: shopIds[0],
+            productId: productIds[j],
+            price: defaultPrices[j],
+          ));
+    }
+    for (final entry in starOverrides.entries) {
+      await db.into(db.shopPrices).insert(ShopPricesCompanion.insert(
+            shopId: shopIds[1],
+            productId: productIds[entry.key],
+            price: entry.value,
+          ));
+    }
 
     // Standing order quantities per shop × product
     final standing = [
       [30, 15, 10, 5, 20, 10], // Hotel Raj
       [20, 10, 8, 3, 15, 8], // Star Bakery
-      [25, 12, 10, 4, 18, 8], // New Moon Hotel
-      [40, 20, 15, 6, 25, 12], // Sri Murugan Bakery
-      [35, 18, 12, 5, 22, 10], // Annapoorna Stores
     ];
 
     for (var i = 0; i < shopIds.length; i++) {
       for (var j = 0; j < productIds.length; j++) {
-        await db.into(db.shopPrices).insert(ShopPricesCompanion.insert(
-          shopId: shopIds[i],
-          productId: productIds[j],
-          price: prices[i][j],
-        ));
         await db.into(db.standingOrders).insert(StandingOrdersCompanion.insert(
           shopId: shopIds[i],
           productId: productIds[j],
@@ -82,9 +82,9 @@ Future<void> seedDatabase(AppDatabase db) async {
           ),
         );
     for (final line in [
-      (productId: productIds[0], qty: 30, price: prices[0][0]), // Bun
-      (productId: productIds[1], qty: 15, price: prices[0][1]), // Veg Puff
-      (productId: productIds[2], qty: 10, price: prices[0][2]), // Egg Puff
+      (productId: productIds[0], qty: 30, price: defaultPrices[0]), // Bun
+      (productId: productIds[1], qty: 15, price: defaultPrices[1]), // Veg Puff
+      (productId: productIds[2], qty: 10, price: defaultPrices[2]), // Egg Puff
     ]) {
       await db.into(db.orderLines).insert(OrderLinesCompanion.insert(
             orderId: rajOrderId,
@@ -102,8 +102,8 @@ Future<void> seedDatabase(AppDatabase db) async {
           ),
         );
     for (final line in [
-      (productId: productIds[0], qty: 20, price: prices[1][0]), // Bun
-      (productId: productIds[3], qty: 3, price: prices[1][3]),  // Bread
+      (productId: productIds[0], qty: 20, price: starOverrides[0]!), // Bun
+      (productId: productIds[3], qty: 3, price: starOverrides[3]!),  // Bread
     ]) {
       await db.into(db.orderLines).insert(OrderLinesCompanion.insert(
             orderId: starOrderId,
@@ -113,5 +113,5 @@ Future<void> seedDatabase(AppDatabase db) async {
           ));
     }
   });
-  debugPrint('[MilanoOrders] Seed complete — 5 shops, 6 products, prices, standing orders, and 2 test orders inserted.');
+  debugPrint('[MilanoOrders] Seed complete — 2 shops, 6 products, prices, standing orders, and 2 test orders inserted.');
 }

@@ -10,6 +10,13 @@ class PriceDao extends DatabaseAccessor<AppDatabase> with _$PriceDaoMixin {
   Future<void> upsertPrice(ShopPricesCompanion companion) =>
       into(shopPrices).insertOnConflictUpdate(companion);
 
+  Future<void> deletePrice(int shopId, int productId) =>
+      (delete(shopPrices)
+            ..where(
+              (p) => p.shopId.equals(shopId) & p.productId.equals(productId),
+            ))
+          .go();
+
   Future<ShopPrice?> getPrice(int shopId, int productId) =>
       (select(shopPrices)
             ..where(
