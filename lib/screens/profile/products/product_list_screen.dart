@@ -51,7 +51,7 @@ class ProductListScreen extends ConsumerWidget {
 
           return ListView.separated(
             itemCount: all.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
+            separatorBuilder: (_, _) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final product = all[index];
               final isActive = product.isActive;
@@ -66,7 +66,7 @@ class ProductListScreen extends ConsumerWidget {
                             width: 40,
                             height: 40,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
+                            errorBuilder: (_, _, _) =>
                                 LetterAvatar(name: product.name, radius: 20),
                           ),
                         )

@@ -52,17 +52,17 @@ class ProfileScreen extends StatelessWidget {
                         text: const TextSpan(
                           children: [
                             TextSpan(
-                              text: 'Bake',
+                              text: 'Milano',
                               style: TextStyle(
-                                color: Colors.black87,
+                                color: kBrandBrown,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 20,
                               ),
                             ),
                             TextSpan(
-                              text: 'Order',
+                              text: ' Orders',
                               style: TextStyle(
-                                color: kBrandBrown,
+                                color: Colors.black87,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 20,
                               ),
@@ -71,7 +71,7 @@ class ProfileScreen extends StatelessWidget {
                         ),
                       ),
                       const Text(
-                        'Daily Bakery Order Manager',
+                        'Daily Order Manager',
                         style: TextStyle(
                             color: Colors.black54, fontSize: 12),
                       ),

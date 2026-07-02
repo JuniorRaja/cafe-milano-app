@@ -30,7 +30,7 @@ part 'daos/price_dao.dart';
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
-  AppDatabase.forTesting(QueryExecutor e) : super(e);
+  AppDatabase.forTesting(super.e);
 
   @override
   int get schemaVersion => 1;
@@ -39,7 +39,7 @@ class AppDatabase extends _$AppDatabase {
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final dbFolder = await getApplicationDocumentsDirectory();
-    final file = File(p.join(dbFolder.path, 'bakeorder.db'));
+    final file = File(p.join(dbFolder.path, 'milano_orders.db'));
     return NativeDatabase.createInBackground(file);
   });
 }

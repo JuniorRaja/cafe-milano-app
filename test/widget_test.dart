@@ -1,9 +1,9 @@
-import 'package:cafe_milano/database/app_database.dart';
-import 'package:cafe_milano/providers/order_provider.dart';
-import 'package:cafe_milano/providers/product_provider.dart';
-import 'package:cafe_milano/providers/shop_provider.dart';
-import 'package:cafe_milano/screens/home/home_screen.dart';
-import 'package:cafe_milano/screens/kitchen/kitchen_screen.dart';
+import 'package:milano_orders/database/app_database.dart';
+import 'package:milano_orders/providers/order_provider.dart';
+import 'package:milano_orders/providers/product_provider.dart';
+import 'package:milano_orders/providers/shop_provider.dart';
+import 'package:milano_orders/screens/home/home_screen.dart';
+import 'package:milano_orders/screens/kitchen/kitchen_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -52,10 +52,10 @@ void main() {
         routerConfig: GoRouter(
           initialLocation: '/',
           routes: [
-            GoRoute(path: '/', builder: (_, __) => const HomeScreen()),
+            GoRoute(path: '/', builder: (_, _) => const HomeScreen()),
             GoRoute(
               path: '/order/:shopId',
-              builder: (_, __) => const Scaffold(body: Text('Order Entry')),
+              builder: (_, _) => const Scaffold(body: Text('Order Entry')),
             ),
           ],
         ),

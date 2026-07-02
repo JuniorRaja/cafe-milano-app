@@ -1,6 +1,6 @@
 {
-    "name": "cafe_milano",
-    "short_name": "cafe_milano",
+    "name": "Milano Orders",
+    "short_name": "Milano",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

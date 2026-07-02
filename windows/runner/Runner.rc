@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.cafemilano" "\0"
-            VALUE "FileDescription", "cafe_milano" "\0"
+            VALUE "FileDescription", "Milano Orders" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "cafe_milano" "\0"
+            VALUE "InternalName", "milano_orders" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.cafemilano. All rights reserved." "\0"
-            VALUE "OriginalFilename", "cafe_milano.exe" "\0"
-            VALUE "ProductName", "cafe_milano" "\0"
+            VALUE "OriginalFilename", "milano_orders.exe" "\0"
+            VALUE "ProductName", "Milano Orders" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

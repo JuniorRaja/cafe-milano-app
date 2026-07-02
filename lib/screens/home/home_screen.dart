@@ -40,17 +40,17 @@ class HomeScreen extends ConsumerWidget {
                   text: const TextSpan(
                     children: [
                       TextSpan(
-                        text: 'Bake',
+                        text: 'Milano',
                         style: TextStyle(
-                          color: Colors.black87,
+                          color: kBrandGold,
                           fontWeight: FontWeight.bold,
                           fontSize: 17,
                         ),
                       ),
                       TextSpan(
-                        text: 'Order',
+                        text: ' Orders',
                         style: TextStyle(
-                          color: kBrandBrown,
+                          color: Colors.black87,
                           fontWeight: FontWeight.bold,
                           fontSize: 17,
                         ),

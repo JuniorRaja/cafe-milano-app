@@ -436,7 +436,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
                   )
                 : ListView.separated(
                     itemCount: _products.length,
-                    separatorBuilder: (_, __) =>
+                    separatorBuilder: (_, _) =>
                         const Divider(height: 1, indent: 16),
                     itemBuilder: (context, i) {
                       final product = _products[i];

@@ -46,7 +46,7 @@ class ProductQtyRow extends StatelessWidget {
                       child: Image.file(
                         File(product.photoPath!),
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
+                        errorBuilder: (_, _, _) =>
                             LetterAvatar(name: product.name),
                       ),
                     )

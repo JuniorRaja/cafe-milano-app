@@ -120,13 +120,13 @@ final _router = GoRouter(
   ],
 );
 
-class BakeOrderApp extends StatelessWidget {
-  const BakeOrderApp({super.key});
+class MilanoOrdersApp extends StatelessWidget {
+  const MilanoOrdersApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'BakeOrder',
+      title: 'Milano Orders',
       theme: ThemeData(
         useMaterial3: true,
         visualDensity: VisualDensity.compact,

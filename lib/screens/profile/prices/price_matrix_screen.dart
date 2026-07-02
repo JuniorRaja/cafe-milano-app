@@ -22,7 +22,9 @@ class _PriceMatrixScreenState extends ConsumerState<PriceMatrixScreen> {
 
   @override
   void dispose() {
-    for (final c in _controllers.values) c.dispose();
+    for (final c in _controllers.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -49,7 +51,9 @@ class _PriceMatrixScreenState extends ConsumerState<PriceMatrixScreen> {
       _selectedShopId = shopId;
       _loadingPrices = true;
     });
-    for (final c in _controllers.values) c.dispose();
+    for (final c in _controllers.values) {
+      c.dispose();
+    }
     _controllers = {};
 
     final prices = await ref
@@ -151,7 +155,7 @@ class _PriceMatrixScreenState extends ConsumerState<PriceMatrixScreen> {
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: DropdownButtonFormField<int>(
-                      value: selectedShop?.id,
+                      initialValue: selectedShop?.id,
                       decoration: const InputDecoration(
                         labelText: 'Select Shop',
                         border: OutlineInputBorder(),
@@ -194,7 +198,7 @@ class _PriceMatrixScreenState extends ConsumerState<PriceMatrixScreen> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 16),
                               itemCount: products.length,
-                              separatorBuilder: (_, __) =>
+                              separatorBuilder: (_, _) =>
                                   const Divider(height: 1),
                               itemBuilder: (context, index) {
                                 final product = products[index];

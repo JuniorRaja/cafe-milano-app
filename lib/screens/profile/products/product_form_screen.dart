@@ -158,7 +158,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                                     child: Image.file(
                                       File(_photoPath!),
                                       fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) =>
+                                      errorBuilder: (_, _, _) =>
                                           const Icon(Icons.broken_image, size: 40),
                                     ),
                                   )

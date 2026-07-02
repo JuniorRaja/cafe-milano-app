@@ -20,7 +20,9 @@ class _StandingOrdersScreenState extends ConsumerState<StandingOrdersScreen> {
 
   @override
   void dispose() {
-    for (final c in _controllers.values) c.dispose();
+    for (final c in _controllers.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -29,7 +31,9 @@ class _StandingOrdersScreenState extends ConsumerState<StandingOrdersScreen> {
       _selectedShopId = shopId;
       _loadingOrders = true;
     });
-    for (final c in _controllers.values) c.dispose();
+    for (final c in _controllers.values) {
+      c.dispose();
+    }
     _controllers = {};
 
     final orders = await ref
@@ -114,7 +118,7 @@ class _StandingOrdersScreenState extends ConsumerState<StandingOrdersScreen> {
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: DropdownButtonFormField<int>(
-                    value: selectedShop?.id,
+                    initialValue: selectedShop?.id,
                     decoration: const InputDecoration(
                       labelText: 'Select Shop',
                       border: OutlineInputBorder(),
@@ -148,7 +152,7 @@ class _StandingOrdersScreenState extends ConsumerState<StandingOrdersScreen> {
                           child: ListView.separated(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             itemCount: products.length,
-                            separatorBuilder: (_, __) => const Divider(height: 1),
+                            separatorBuilder: (_, _) => const Divider(height: 1),
                             itemBuilder: (context, index) {
                               final product = products[index];
                               final ctrl = _controllers[product.id];

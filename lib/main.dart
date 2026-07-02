@@ -8,5 +8,5 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final container = ProviderContainer();
   await seedDatabase(container.read(databaseProvider));
-  runApp(UncontrolledProviderScope(container: container, child: const BakeOrderApp()));
+  runApp(UncontrolledProviderScope(container: container, child: const MilanoOrdersApp()));
 }

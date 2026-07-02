@@ -5,10 +5,10 @@ import 'app_database.dart';
 Future<void> seedDatabase(AppDatabase db) async {
   final existing = await db.select(db.shops).get();
   if (existing.isNotEmpty) {
-    debugPrint('[BakeOrder] DB already seeded (${existing.length} shops). Skipping.');
+    debugPrint('[MilanoOrders] DB already seeded (${existing.length} shops). Skipping.');
     return;
   }
-  debugPrint('[BakeOrder] Seeding database...');
+  debugPrint('[MilanoOrders] Seeding database...');
 
   await db.transaction(() async {
     // 5 shops
@@ -113,5 +113,5 @@ Future<void> seedDatabase(AppDatabase db) async {
           ));
     }
   });
-  debugPrint('[BakeOrder] Seed complete — 5 shops, 6 products, prices, standing orders, and 2 test orders inserted.');
+  debugPrint('[MilanoOrders] Seed complete — 5 shops, 6 products, prices, standing orders, and 2 test orders inserted.');
 }

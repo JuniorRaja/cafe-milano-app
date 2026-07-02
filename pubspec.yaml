@@ -1,5 +1,5 @@
-name: cafe_milano
-description: "BakeOrder — Daily bakery order management"
+name: milano_orders
+description: "Milano Orders — Daily bakery order management"
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -38,5 +38,5 @@ flutter_launcher_icons:
   ios: true
   image_path: "mobile-app-logo-trasnsp.png"
   min_sdk_android: 21
-  adaptive_icon_background: "#FFC000"
+  adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "mobile-app-logo-trasnsp.png"
