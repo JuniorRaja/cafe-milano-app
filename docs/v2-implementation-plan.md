@@ -58,19 +58,19 @@ Decisions confirmed with the user:
 - [x] Confirming updates the order line exactly as the existing steppers do.
 - [x] Canceling leaves the quantity unchanged.
 
-## Phase 3 — Two-Way Pricing (Default Price + Shop Override)
+## Phase 3 — Two-Way Pricing (Default Price + Shop Override) ✅ Done
 
 **Action items:**
-- [ ] `lib/database/tables/products.dart`: add `RealColumn get price => real().nullable()()`.
-- [ ] `lib/database/app_database.dart`: bump `schemaVersion` to `2`, add a `MigrationStrategy` with `onUpgrade` that does `m.addColumn(products, products.price)` for the 1→2 step.
-- [ ] `lib/screens/profile/products/product_form_screen.dart`: add a "Price" numeric `TextFormField`, load/save it via `ProductsCompanion.price`.
-- [ ] `lib/screens/order_entry/order_entry_screen.dart`: change price resolution from `_priceMap[p.id]` to `_priceMap[p.id] ?? product.price`, so shop-specific price wins when set, otherwise the product's default price is used; "Price not set" / disabled steppers remain only for products with neither.
-- [ ] `lib/database/seed_data.dart`: add sample default prices to seeded products for consistent demo data (small, optional touch-up).
+- [x] `lib/database/tables/products.dart`: add `RealColumn get price => real().nullable()()`.
+- [x] `lib/database/app_database.dart`: bump `schemaVersion` to `2`, add a `MigrationStrategy` with `onUpgrade` that does `m.addColumn(products, products.price)` for the 1→2 step.
+- [x] `lib/screens/profile/products/product_form_screen.dart`: add a "Price" numeric `TextFormField`, load/save it via `ProductsCompanion.price`.
+- [x] `lib/screens/order_entry/order_entry_screen.dart`: change price resolution from `_priceMap[p.id]` to `_priceMap[p.id] ?? product.price`, so shop-specific price wins when set, otherwise the product's default price is used; "Price not set" / disabled steppers remain only for products with neither.
+- [x] `lib/database/seed_data.dart`: add sample default prices to seeded products for consistent demo data. Also trimmed the seed down to 2 shops (Hotel Raj, Star Bakery); Hotel Raj overrides every product's price, Star Bakery only overrides Bun and Bread so the rest demonstrate the default-price fallback.
 
 **Success criteria:**
-- [ ] A product with only a default price is orderable (priced) in every shop.
-- [ ] Setting a shop-specific price in Price Matrix overrides the default for that shop only.
-- [ ] Upgrading an existing install (schema v1 → v2) preserves all existing shops/orders/prices with no data loss.
+- [x] A product with only a default price is orderable (priced) in every shop.
+- [x] Setting a shop-specific price in Price Matrix overrides the default for that shop only.
+- [x] Upgrading an existing install (schema v1 → v2) preserves all existing shops/orders/prices with no data loss.
 
 ## Phase 4 — Unit Dropdown ✅ Done
 
