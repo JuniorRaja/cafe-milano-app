@@ -3,6 +3,7 @@ name: Release APK
 on:
   push:
     branches: [master]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -27,11 +28,14 @@ jobs:
           fi
           TAG="v${CURRENT_VERSION//+/-}"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          if [ "$CURRENT_VERSION" = "$PREVIOUS_VERSION" ]; then
-            echo "Version unchanged ($CURRENT_VERSION) - skipping release."
-            echo "should_release=false" >> "$GITHUB_OUTPUT"
-          elif git rev-parse "$TAG" >/dev/null 2>&1; then
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
             echo "Tag $TAG already exists - skipping release."
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manually triggered - building $CURRENT_VERSION regardless of version change."
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          elif [ "$CURRENT_VERSION" = "$PREVIOUS_VERSION" ]; then
+            echo "Version unchanged ($CURRENT_VERSION) - skipping release."
             echo "should_release=false" >> "$GITHUB_OUTPUT"
           else
             echo "Version bumped to $CURRENT_VERSION - releasing."
