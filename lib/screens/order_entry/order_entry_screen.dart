@@ -453,6 +453,9 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
                         onIncrement: price != null
                             ? () => _setQty(product.id, qty + 1)
                             : null,
+                        onQtySet: price != null
+                            ? (v) => _setQty(product.id, v.clamp(0, 9999))
+                            : null,
                       );
                     },
                   ),

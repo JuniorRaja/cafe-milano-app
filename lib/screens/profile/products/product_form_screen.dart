@@ -16,10 +16,23 @@ class ProductFormScreen extends ConsumerStatefulWidget {
   ConsumerState<ProductFormScreen> createState() => _ProductFormScreenState();
 }
 
+const _kUnitOptions = [
+  'pc',
+  'kg',
+  'g',
+  'dozen',
+  'box',
+  'packet',
+  'litre',
+  'ml',
+];
+const _kOtherUnit = 'Other';
+
 class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _unitCtrl = TextEditingController();
+  String? _selectedUnit;
   String? _photoPath;
   bool _loading = true;
   bool _saving = false;
@@ -36,8 +49,16 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
           await ref.read(databaseProvider).productDao.getProduct(widget.productId!);
       if (product != null && mounted) {
         _nameCtrl.text = product.name;
-        _unitCtrl.text = product.unit ?? '';
         _photoPath = product.photoPath;
+        final unit = product.unit;
+        if (unit != null && unit.isNotEmpty) {
+          if (_kUnitOptions.contains(unit)) {
+            _selectedUnit = unit;
+          } else {
+            _selectedUnit = _kOtherUnit;
+            _unitCtrl.text = unit;
+          }
+        }
       }
     }
     if (mounted) setState(() => _loading = false);
@@ -51,10 +72,13 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
+    final unit = _selectedUnit == _kOtherUnit
+        ? _unitCtrl.text.trim()
+        : _selectedUnit;
     final companion = ProductsCompanion(
       id: widget.productId != null ? Value(widget.productId!) : const Value.absent(),
       name: Value(_nameCtrl.text.trim()),
-      unit: Value(_unitCtrl.text.trim().isEmpty ? null : _unitCtrl.text.trim()),
+      unit: Value(unit == null || unit.isEmpty ? null : unit),
       photoPath: Value(_photoPath),
     );
     await ref.read(databaseProvider).productDao.upsertProduct(companion);
@@ -204,14 +228,36 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                         (v == null || v.trim().isEmpty) ? 'Name is required' : null,
                   ),
                   const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _unitCtrl,
+                  DropdownButtonFormField<String>(
+                    initialValue: _selectedUnit,
                     decoration: const InputDecoration(
                       labelText: 'Unit',
-                      hintText: 'e.g. pc, kg, dozen',
                       border: OutlineInputBorder(),
                     ),
+                    items: [
+                      for (final u in _kUnitOptions)
+                        DropdownMenuItem(value: u, child: Text(u)),
+                      const DropdownMenuItem(
+                        value: _kOtherUnit,
+                        child: Text(_kOtherUnit),
+                      ),
+                    ],
+                    onChanged: (v) => setState(() => _selectedUnit = v),
                   ),
+                  if (_selectedUnit == _kOtherUnit) ...[
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _unitCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Custom Unit',
+                        hintText: 'e.g. tray, sack',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Enter a unit'
+                          : null,
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   FilledButton(
                     onPressed: _saving ? null : _save,

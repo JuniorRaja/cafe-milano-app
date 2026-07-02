@@ -1,9 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../app.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  PackageInfo? _packageInfo;
+
+  @override
+  void initState() {
+    super.initState();
+    PackageInfo.fromPlatform().then((info) {
+      if (mounted) setState(() => _packageInfo = info);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -126,6 +142,29 @@ class ProfileScreen extends StatelessWidget {
                   title: 'Standing Orders',
                   subtitle: 'Default order quantities per shop',
                   onTap: () => context.push(AppRoutes.standingOrders),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 32),
+          Center(
+            child: Column(
+              children: [
+                Text(
+                  'CAFE MILANO',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 2,
+                    color: Colors.grey.shade300,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _packageInfo != null
+                      ? 'v${_packageInfo!.version} (build ${_packageInfo!.buildNumber})'
+                      : ' ',
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
                 ),
               ],
             ),

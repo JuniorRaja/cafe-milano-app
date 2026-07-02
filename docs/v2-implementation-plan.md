@@ -33,30 +33,30 @@ Decisions confirmed with the user:
 - [ ] App bar, window title, and Profile header all read "Milano Orders" consistently.
 - [ ] Regenerated launcher icon shows the logo on a white background, correctly rounded on an emulator/device home screen.
 
-## Phase 1 — Splash Screen + Home Greeting
+## Phase 1 — Splash Screen + Home Greeting ✅ Done
 
 **Action items:**
-- [ ] Add `flutter_native_splash` dev dependency; configure a plain white-background + logo native splash for Android/iOS, generate via its CLI.
-- [ ] New `lib/screens/splash/splash_screen.dart`: a `StatefulWidget` that fades/scales the logo in over ~1.2s using an `AnimationController`, then `context.go`/replaces route to Home. Wire it as the initial go_router route.
-- [ ] Update `lib/main.dart` to call `FlutterNativeSplash.preserve`/`.remove()` around this so there's no blank frame between native and in-app splash.
-- [ ] `lib/screens/home/home_screen.dart`: insert a `Text` between the `AppBar` and `const DateSelector()` showing a time-based greeting, computed inline from `DateTime.now().hour` (morning/afternoon/evening/night bands) — plain function, no new provider needed.
+- [x] Add `flutter_native_splash` dev dependency; configure a plain white-background + logo native splash for Android/iOS, generate via its CLI.
+- [x] New `lib/screens/splash/splash_screen.dart`: a `StatefulWidget` that fades/scales the logo in over ~1.2s using an `AnimationController`, then `context.go`/replaces route to Home. Wire it as the initial go_router route.
+- [x] Update `lib/main.dart` to call `FlutterNativeSplash.preserve`/`.remove()` around this so there's no blank frame between native and in-app splash.
+- [x] `lib/screens/home/home_screen.dart`: insert a `Text` between the `AppBar` and `const DateSelector()` showing a time-based greeting, computed inline from `DateTime.now().hour` (morning/afternoon/evening bands) — plain function, no new provider needed. Ended up styled as a two-line hero block (time-of-day icon + "Good <time>, <name>", name picked randomly once per app launch from Mohan/JMR) rather than a plain text line.
 
 **Success criteria:**
-- [ ] Cold launch shows the logo instantly (no white flash).
-- [ ] A brief fade/scale animation plays (~1–1.5s) before Home appears.
-- [ ] Home shows the correct time-based greeting rendered between the app bar and the date selector row.
+- [x] Cold launch shows the logo instantly (no white flash).
+- [x] A brief fade/scale animation plays (~1–1.5s) before Home appears.
+- [x] Home shows the correct time-based greeting rendered between the app bar and the date selector row.
 
-## Phase 2 — Tap-to-Edit Quantity Modal
+## Phase 2 — Tap-to-Edit Quantity Modal ✅ Done
 
 **Action items:**
-- [ ] `lib/widgets/product_qty_row.dart`: wrap the quantity `Text` in a `GestureDetector`, add an `onQtySet(int)` callback prop.
-- [ ] Tapping opens a modal (`showModalBottomSheet` or `showDialog`) containing a numeric `TextField` pre-filled with the current qty plus +/- buttons for quick nudges, and a confirm action.
-- [ ] `lib/screens/order_entry/order_entry_screen.dart`: pass `onQtySet: (v) => _setQty(product.id, v.clamp(0, 9999))` alongside the existing `onIncrement`/`onDecrement`.
+- [x] `lib/widgets/product_qty_row.dart`: wrap the quantity `Text` in a `GestureDetector`, add an `onQtySet(int)` callback prop.
+- [x] Tapping opens a modal (`showModalBottomSheet` or `showDialog`) containing a numeric `TextField` pre-filled with the current qty plus +/- buttons for quick nudges, and a confirm action.
+- [x] `lib/screens/order_entry/order_entry_screen.dart`: pass `onQtySet: (v) => _setQty(product.id, v.clamp(0, 9999))` alongside the existing `onIncrement`/`onDecrement`.
 
 **Success criteria:**
-- [ ] Tapping the qty number opens a modal with a numeric-keyboard input pre-filled with the current value and +/- controls.
-- [ ] Confirming updates the order line exactly as the existing steppers do.
-- [ ] Canceling leaves the quantity unchanged.
+- [x] Tapping the qty number opens a modal with a numeric-keyboard input pre-filled with the current value and +/- controls.
+- [x] Confirming updates the order line exactly as the existing steppers do.
+- [x] Canceling leaves the quantity unchanged.
 
 ## Phase 3 — Two-Way Pricing (Default Price + Shop Override)
 
@@ -72,26 +72,26 @@ Decisions confirmed with the user:
 - [ ] Setting a shop-specific price in Price Matrix overrides the default for that shop only.
 - [ ] Upgrading an existing install (schema v1 → v2) preserves all existing shops/orders/prices with no data loss.
 
-## Phase 4 — Unit Dropdown
+## Phase 4 — Unit Dropdown ✅ Done
 
 **Action items:**
-- [ ] `lib/screens/profile/products/product_form_screen.dart`: replace the Unit `TextFormField` with a `DropdownButtonFormField<String>` listing `pc, kg, g, dozen, box, packet, litre, ml, Other`.
-- [ ] Selecting "Other" reveals the existing `_unitCtrl` text field for custom entry.
-- [ ] On load, if a product's saved unit isn't in the default list, preselect "Other" and populate the custom field with it (keeps existing free-text units working).
+- [x] `lib/screens/profile/products/product_form_screen.dart`: replace the Unit `TextFormField` with a `DropdownButtonFormField<String>` listing `pc, kg, g, dozen, box, packet, litre, ml, Other`.
+- [x] Selecting "Other" reveals the existing `_unitCtrl` text field for custom entry.
+- [x] On load, if a product's saved unit isn't in the default list, preselect "Other" and populate the custom field with it (keeps existing free-text units working).
 
 **Success criteria:**
-- [ ] Product form offers a unit dropdown with the agreed defaults.
-- [ ] Choosing "Other" reveals free-text entry.
-- [ ] Products with pre-existing custom units still load/display/save correctly.
+- [x] Product form offers a unit dropdown with the agreed defaults.
+- [x] Choosing "Other" reveals free-text entry.
+- [x] Products with pre-existing custom units still load/display/save correctly.
 
-## Phase 5 — Version Footer on Profile
+## Phase 5 — Version Footer on Profile ✅ Done
 
 **Action items:**
-- [ ] Add `package_info_plus` dependency to read the real runtime version/build number (avoids hardcoding, stays in sync with `pubspec.yaml`).
-- [ ] `lib/screens/profile/profile_screen.dart`: add a footer block at the bottom of the `ListView` — large, low-opacity "CAFE MILANO" wordmark-style text, with `vX.Y.Z (build N)` beneath it, centered.
+- [x] Add `package_info_plus` dependency to read the real runtime version/build number (avoids hardcoding, stays in sync with `pubspec.yaml`).
+- [x] `lib/screens/profile/profile_screen.dart`: add a footer block at the bottom of the `ListView` — large, low-opacity "CAFE MILANO" wordmark-style text, with `vX.Y.Z (build N)` beneath it, centered.
 
 **Success criteria:**
-- [ ] Bottom of Profile screen shows the faded "CAFE MILANO" block with the correct live app version beneath it, matching `pubspec.yaml`.
+- [x] Bottom of Profile screen shows the faded "CAFE MILANO" block with the correct live app version beneath it, matching `pubspec.yaml`.
 
 ---
 

@@ -14,6 +14,7 @@ class ProductQtyRow extends StatelessWidget {
     this.price,
     this.onDecrement,
     this.onIncrement,
+    this.onQtySet,
   });
 
   final Product product;
@@ -21,6 +22,7 @@ class ProductQtyRow extends StatelessWidget {
   final double? price;
   final VoidCallback? onDecrement;
   final VoidCallback? onIncrement;
+  final ValueChanged<int>? onQtySet;
 
   @override
   Widget build(BuildContext context) {
@@ -76,13 +78,18 @@ class ProductQtyRow extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 _StepperBtn(icon: Icons.remove, onPressed: onDecrement),
-                SizedBox(
-                  width: 40,
-                  child: Text(
-                    qty.toString(),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        fontSize: 20, fontWeight: FontWeight.bold),
+                GestureDetector(
+                  onTap: onQtySet != null
+                      ? () => _showQtyModal(context)
+                      : null,
+                  child: SizedBox(
+                    width: 40,
+                    child: Text(
+                      qty.toString(),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
                 _StepperBtn(icon: Icons.add, onPressed: onIncrement),
@@ -90,6 +97,124 @@ class ProductQtyRow extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showQtyModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => _QtyEditSheet(
+        product: product,
+        initialQty: qty,
+        onConfirm: onQtySet!,
+      ),
+    );
+  }
+}
+
+class _QtyEditSheet extends StatefulWidget {
+  const _QtyEditSheet({
+    required this.product,
+    required this.initialQty,
+    required this.onConfirm,
+  });
+
+  final Product product;
+  final int initialQty;
+  final ValueChanged<int> onConfirm;
+
+  @override
+  State<_QtyEditSheet> createState() => _QtyEditSheetState();
+}
+
+class _QtyEditSheetState extends State<_QtyEditSheet> {
+  late final TextEditingController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: widget.initialQty.toString());
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  int get _value => int.tryParse(_ctrl.text) ?? 0;
+
+  void _nudge(int delta) {
+    setState(() {
+      final next = (_value + delta).clamp(0, 9999);
+      _ctrl.text = next.toString();
+      _ctrl.selection = TextSelection.collapsed(offset: _ctrl.text.length);
+    });
+  }
+
+  void _confirm() {
+    widget.onConfirm(_value.clamp(0, 9999));
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            widget.product.name,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _StepperBtn(icon: Icons.remove, onPressed: () => _nudge(-1)),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: TextField(
+                    controller: _ctrl,
+                    autofocus: true,
+                    textAlign: TextAlign.center,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                    ],
+                    style: const TextStyle(
+                        fontSize: 22, fontWeight: FontWeight.bold),
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(vertical: 10),
+                    ),
+                  ),
+                ),
+              ),
+              _StepperBtn(icon: Icons.add, onPressed: () => _nudge(1)),
+            ],
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: _confirm,
+              child: const Text('Confirm'),
+            ),
+          ),
+        ],
       ),
     );
   }
