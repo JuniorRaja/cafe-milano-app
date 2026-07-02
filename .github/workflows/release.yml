@@ -56,6 +56,10 @@ jobs:
         if: steps.version_check.outputs.should_release == 'true'
         run: flutter pub get
 
+      - name: Generate Drift code
+        if: steps.version_check.outputs.should_release == 'true'
+        run: dart run build_runner build
+
       - name: Decode release keystore
         if: steps.version_check.outputs.should_release == 'true'
         run: echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > android/app/upload-keystore.jks
