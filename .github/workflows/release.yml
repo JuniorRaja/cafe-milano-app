@@ -1,0 +1,120 @@
+name: Release APK
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if pubspec.yaml version changed
+        id: version_check
+        run: |
+          CURRENT_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version:\s*//' | tr -d '[:space:]')
+          if git rev-parse HEAD^ >/dev/null 2>&1; then
+            PREVIOUS_VERSION=$(git show HEAD^:pubspec.yaml | grep '^version:' | sed 's/version:\s*//' | tr -d '[:space:]')
+          else
+            PREVIOUS_VERSION=""
+          fi
+          TAG="v${CURRENT_VERSION//+/-}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          if [ "$CURRENT_VERSION" = "$PREVIOUS_VERSION" ]; then
+            echo "Version unchanged ($CURRENT_VERSION) - skipping release."
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          elif git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists - skipping release."
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Version bumped to $CURRENT_VERSION - releasing."
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Java
+        if: steps.version_check.outputs.should_release == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter
+        if: steps.version_check.outputs.should_release == 'true'
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.2"
+          channel: stable
+
+      - name: Install dependencies
+        if: steps.version_check.outputs.should_release == 'true'
+        run: flutter pub get
+
+      - name: Decode release keystore
+        if: steps.version_check.outputs.should_release == 'true'
+        run: echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > android/app/upload-keystore.jks
+
+      - name: Write key.properties
+        if: steps.version_check.outputs.should_release == 'true'
+        run: |
+          cat > android/key.properties <<EOF
+          storePassword=${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.RELEASE_KEY_PASSWORD }}
+          keyAlias=${{ secrets.RELEASE_KEY_ALIAS }}
+          storeFile=app/upload-keystore.jks
+          EOF
+
+      - name: Build release APK
+        if: steps.version_check.outputs.should_release == 'true'
+        run: flutter build apk --release
+
+      - name: Rename APK with version
+        if: steps.version_check.outputs.should_release == 'true'
+        id: apk
+        run: |
+          NAME="MilanoOrders-${{ steps.version_check.outputs.tag }}.apk"
+          mv build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/$NAME"
+          echo "path=build/app/outputs/flutter-apk/$NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Generate release notes
+        if: steps.version_check.outputs.should_release == 'true'
+        id: notes
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          {
+            echo "notes<<NOTES_EOF"
+            if [ -n "$LAST_TAG" ]; then
+              git log "$LAST_TAG"..HEAD --pretty=format:"- %s"
+            else
+              git log --pretty=format:"- %s"
+            fi
+            echo ""
+            echo "NOTES_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tag
+        if: steps.version_check.outputs.should_release == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "${{ steps.version_check.outputs.tag }}"
+          git push origin "${{ steps.version_check.outputs.tag }}"
+
+      - name: Publish GitHub Release
+        if: steps.version_check.outputs.should_release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version_check.outputs.tag }}
+          name: ${{ steps.version_check.outputs.tag }}
+          body: ${{ steps.notes.outputs.notes }}
+          files: ${{ steps.apk.outputs.path }}
+
+      - name: Clean up signing files
+        if: always()
+        run: rm -f android/key.properties android/app/upload-keystore.jks

@@ -46,3 +46,9 @@ app.*.map.json
 
 # Drift generated files (regenerate with: dart run build_runner build)
 lib/database/app_database.g.dart
+
+# Release signing (never commit the keystore or its passwords)
+/android/key.properties
+*.jks
+*.keystore
+*.b64

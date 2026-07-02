@@ -1,0 +1,4 @@
+storePassword=REPLACE_ME
+keyPassword=REPLACE_ME
+keyAlias=milano-upload
+storeFile=/absolute/path/to/milano-release.jks
