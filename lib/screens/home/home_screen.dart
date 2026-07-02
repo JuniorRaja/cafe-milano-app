@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -105,6 +107,39 @@ class HomeScreen extends ConsumerWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Row(
+              children: [
+                Icon(_greetingIcon(), color: kBrandGold, size: 30),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'WELCOME BACK',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade500,
+                        letterSpacing: 1.1,
+                      ),
+                    ),
+                    Text(
+                      '${_greeting()}, $_greetingName',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: kBrandBrown,
+                        height: 1.15,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
           const DateSelector(),
           const Divider(height: 1),
           Expanded(
@@ -170,4 +205,21 @@ class HomeScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+const _greetingNames = ['Mohan', 'JMR'];
+final _greetingName = _greetingNames[Random().nextInt(_greetingNames.length)];
+
+String _greeting() {
+  final hour = DateTime.now().hour;
+  if (hour >= 5 && hour < 12) return 'Good morning';
+  if (hour >= 12 && hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
+IconData _greetingIcon() {
+  final hour = DateTime.now().hour;
+  if (hour >= 5 && hour < 12) return Icons.wb_sunny_rounded;
+  if (hour >= 12 && hour < 17) return Icons.wb_cloudy_rounded;
+  return Icons.nights_stay_rounded;
 }

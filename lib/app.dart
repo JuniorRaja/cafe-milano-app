@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'screens/splash/splash_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/orders/orders_screen.dart';
 import 'screens/kitchen/kitchen_screen.dart';
@@ -20,6 +21,7 @@ const kBrandMaroon = Color(0xFFB71C1C); // logo ring + inner circle — reserved
 const kSurface     = Color(0xFFFFFBF5); // warm cream
 
 class AppRoutes {
+  static const splash        = '/splash';
   static const home          = '/';
   static const orders        = '/orders';
   static const kitchen       = '/kitchen';
@@ -36,8 +38,12 @@ class AppRoutes {
 }
 
 final _router = GoRouter(
-  initialLocation: AppRoutes.home,
+  initialLocation: AppRoutes.splash,
   routes: [
+    GoRoute(
+      path: AppRoutes.splash,
+      builder: (context, state) => const SplashScreen(),
+    ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>
           _ScaffoldWithNavBar(navigationShell: navigationShell),

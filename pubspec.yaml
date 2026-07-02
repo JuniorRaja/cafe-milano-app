@@ -21,6 +21,7 @@ dependencies:
   sqlite3_flutter_libs: ^0.5.27
   path: ^1.9.0
   google_fonts: ^6.2.1
+  flutter_native_splash: ^2.4.4
 
 dev_dependencies:
   flutter_test:
@@ -32,6 +33,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - mobile-app-logo-trasnsp.png
 
 flutter_launcher_icons:
   android: "launcher_icon"
@@ -40,3 +43,10 @@ flutter_launcher_icons:
   min_sdk_android: 21
   adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "mobile-app-logo-trasnsp.png"
+
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: mobile-app-logo-trasnsp.png
+  android_12:
+    color: "#FFFFFF"
+    image: mobile-app-logo-trasnsp.png
