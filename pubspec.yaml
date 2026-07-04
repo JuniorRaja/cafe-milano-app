@@ -22,6 +22,8 @@ dependencies:
   path: ^1.9.0
   flutter_native_splash: ^2.4.4
   package_info_plus: ^8.1.2
+  pdf: ^3.11.1
+  printing: ^5.13.4
 
 dev_dependencies:
   flutter_test:
@@ -35,6 +37,7 @@ flutter:
   uses-material-design: true
   assets:
     - mobile-app-logo-trasnsp.png
+    - bg-vector.png
   fonts:
     - family: Poppins
       fonts:

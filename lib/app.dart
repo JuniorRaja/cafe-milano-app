@@ -13,6 +13,8 @@ import 'screens/profile/products/product_list_screen.dart';
 import 'screens/profile/products/product_form_screen.dart';
 import 'screens/profile/prices/price_matrix_screen.dart';
 import 'screens/profile/standing_orders/standing_orders_screen.dart';
+import 'screens/profile/business_info/business_info_form_screen.dart';
+import 'screens/profile/products/catalog_share_picker_screen.dart';
 import 'screens/order_entry/order_entry_screen.dart';
 
 // Brand colors extracted from the Caffe Milano logo
@@ -20,6 +22,7 @@ const kBrandGold   = Color(0xFFFFC000); // logo background — primary seed
 const kBrandBrown  = Color(0xFF4A2C2A); // espresso — active/selected states, icon & text accents
 const kBrandMaroon = Color(0xFFB71C1C); // logo ring + inner circle — reserved for brand-mark use, not seeded
 const kSurface     = Color(0xFFFFFBF5); // warm cream
+const kDefaultLogoAsset = 'mobile-app-logo-trasnsp.png';
 
 class AppRoutes {
   static const splash        = '/splash';
@@ -36,6 +39,8 @@ class AppRoutes {
   static const productEdit   = '/profile/products/:id/edit';
   static const prices        = '/profile/prices';
   static const standingOrders = '/profile/standing-orders';
+  static const businessInfo  = '/profile/business-info';
+  static const catalogShare  = '/profile/products/share';
 }
 
 final _router = GoRouter(
@@ -102,6 +107,10 @@ final _router = GoRouter(
                       productId: int.parse(state.pathParameters['id']!),
                     ),
                   ),
+                  GoRoute(
+                    path: 'share',
+                    builder: (context, state) => const CatalogSharePickerScreen(),
+                  ),
                 ],
               ),
               GoRoute(
@@ -111,6 +120,10 @@ final _router = GoRouter(
               GoRoute(
                 path: 'standing-orders',
                 builder: (context, state) => const StandingOrdersScreen(),
+              ),
+              GoRoute(
+                path: 'business-info',
+                builder: (context, state) => const BusinessInfoFormScreen(),
               ),
             ],
           ),

@@ -32,6 +32,13 @@ class ProductListScreen extends ConsumerWidget {
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.share),
+            tooltip: 'Share catalog',
+            onPressed: () => context.push(AppRoutes.catalogShare),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push(AppRoutes.productNew),

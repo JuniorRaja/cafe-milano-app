@@ -9,6 +9,7 @@ import 'tables/shop_prices.dart';
 import 'tables/standing_orders.dart';
 import 'tables/daily_orders.dart';
 import 'tables/order_lines.dart';
+import 'tables/business_info.dart';
 
 export 'tables/shops.dart';
 export 'tables/products.dart';
@@ -16,16 +17,18 @@ export 'tables/shop_prices.dart';
 export 'tables/standing_orders.dart';
 export 'tables/daily_orders.dart';
 export 'tables/order_lines.dart';
+export 'tables/business_info.dart';
 
 part 'app_database.g.dart';
 part 'daos/shop_dao.dart';
 part 'daos/product_dao.dart';
 part 'daos/order_dao.dart';
 part 'daos/price_dao.dart';
+part 'daos/business_info_dao.dart';
 
 @DriftDatabase(
-  tables: [Shops, Products, ShopPrices, StandingOrders, DailyOrders, OrderLines],
-  daos: [ShopDao, ProductDao, OrderDao, PriceDao],
+  tables: [Shops, Products, ShopPrices, StandingOrders, DailyOrders, OrderLines, BusinessInfo],
+  daos: [ShopDao, ProductDao, OrderDao, PriceDao, BusinessInfoDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
@@ -33,13 +36,16 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onUpgrade: (m, from, to) async {
           if (from < 2) {
             await m.addColumn(products, products.price);
+          }
+          if (from < 3) {
+            await m.createTable(businessInfo);
           }
         },
       );

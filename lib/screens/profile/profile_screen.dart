@@ -144,6 +144,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   subtitle: 'Default order quantities per shop',
                   onTap: () => context.push(AppRoutes.standingOrders),
                 ),
+                const Divider(height: 1, indent: 64),
+                _SettingsTile(
+                  icon: Icons.storefront_outlined,
+                  title: 'Business Info',
+                  subtitle: 'Name, contact & logo for shared catalogs',
+                  onTap: () => context.push(AppRoutes.businessInfo),
+                ),
               ],
             ),
           ),
