@@ -59,8 +59,14 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
           data: (products) => {for (final p in products) p.id: p},
           orElse: () => <int, Product>{},
         );
+    final lines = linesAsync.maybeWhen(
+      data: (lines) => lines,
+      orElse: () => <KitchenRawLine>[],
+    );
+    final hasLines = lines.isNotEmpty;
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -87,6 +93,12 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
               style: const TextStyle(fontSize: 13),
             ),
           ),
+          IconButton(
+            icon: const Icon(Icons.share),
+            tooltip: 'Share kitchen list',
+            onPressed:
+                hasLines ? () => _share(lines, shopMap, productMap) : null,
+          ),
         ],
         bottom: TabBar(
           controller: _tabController,
@@ -95,18 +107,6 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
             Tab(text: 'By Shop'),
           ],
         ),
-      ),
-      floatingActionButton: linesAsync.maybeWhen(
-        data: (lines) => lines.isNotEmpty
-            ? FloatingActionButton(
-                onPressed: () => _share(lines, shopMap, productMap),
-                backgroundColor: const Color(0xFF25D366),
-                foregroundColor: Colors.white,
-                tooltip: 'Share kitchen list',
-                child: const Icon(Icons.share),
-              )
-            : null,
-        orElse: () => null,
       ),
       body: linesAsync.when(
         data: (lines) {

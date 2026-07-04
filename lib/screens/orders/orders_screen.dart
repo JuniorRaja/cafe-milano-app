@@ -56,6 +56,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     );
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
