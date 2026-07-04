@@ -19,6 +19,9 @@ class FloatingNavBar extends StatefulWidget {
 class _FloatingNavBarState extends State<FloatingNavBar>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
+  late final CurvedAnimation _curved;
+  late final Animation<Offset> _leftIconSlide;
+  late final Animation<Offset> _rightIconSlide;
   bool _reducedMotion = false;
   bool _scheduled = false;
 
@@ -36,6 +39,13 @@ class _FloatingNavBarState extends State<FloatingNavBar>
       vsync: this,
       duration: const Duration(milliseconds: 450),
     );
+    _curved = CurvedAnimation(parent: _controller, curve: Curves.easeOutBack);
+    _leftIconSlide =
+        Tween<Offset>(begin: const Offset(0.3, 0), end: Offset.zero)
+            .animate(_curved);
+    _rightIconSlide =
+        Tween<Offset>(begin: const Offset(-0.3, 0), end: Offset.zero)
+            .animate(_curved);
   }
 
   @override
@@ -69,16 +79,11 @@ class _FloatingNavBarState extends State<FloatingNavBar>
 
     if (_reducedMotion) return icon;
 
-    final curved = CurvedAnimation(parent: _controller, curve: Curves.easeOutBack);
-    final slideOffset = fromLeft
-        ? Tween<Offset>(begin: const Offset(0.3, 0), end: Offset.zero).animate(curved)
-        : Tween<Offset>(begin: const Offset(-0.3, 0), end: Offset.zero).animate(curved);
-
     return SlideTransition(
-      position: slideOffset,
+      position: fromLeft ? _leftIconSlide : _rightIconSlide,
       child: FadeTransition(
         opacity: _controller,
-        child: ScaleTransition(scale: curved, child: icon),
+        child: ScaleTransition(scale: _curved, child: icon),
       ),
     );
   }
@@ -94,6 +99,14 @@ class _FloatingNavBarState extends State<FloatingNavBar>
             ),
       child: const SizedBox(width: 56),
     );
+
+    final half = _icons.length ~/ 2;
+    final leftIcons = [
+      for (var i = 0; i < half; i++) _buildIcon(i, fromLeft: true),
+    ];
+    final rightIcons = [
+      for (var i = half; i < _icons.length; i++) _buildIcon(i, fromLeft: false),
+    ];
 
     return Container(
       height: 64,
@@ -111,13 +124,7 @@ class _FloatingNavBarState extends State<FloatingNavBar>
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildIcon(0, fromLeft: true),
-          _buildIcon(1, fromLeft: true),
-          fabGap,
-          _buildIcon(2, fromLeft: false),
-          _buildIcon(3, fromLeft: false),
-        ],
+        children: [...leftIcons, fabGap, ...rightIcons],
       ),
     );
   }
