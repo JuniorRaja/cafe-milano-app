@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'widgets/floating_nav_bar.dart';
+import 'widgets/app_background.dart';
 import 'screens/splash/splash_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/orders/orders_screen.dart';
@@ -136,7 +137,7 @@ class MilanoOrdersApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         visualDensity: VisualDensity.compact,
-        textTheme: GoogleFonts.poppinsTextTheme(),
+        fontFamily: 'Poppins',
         colorScheme: ColorScheme.fromSeed(
           seedColor: kBrandGold,
           surface: kSurface,
@@ -156,13 +157,15 @@ class MilanoOrdersApp extends StatelessWidget {
           }),
           labelTextStyle: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {
-              return GoogleFonts.poppins(
+              return const TextStyle(
+                fontFamily: 'Poppins',
                 color: kBrandBrown,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               );
             }
-            return GoogleFonts.poppins(
+            return TextStyle(
+              fontFamily: 'Poppins',
               color: Colors.grey.shade600,
               fontSize: 11,
             );
@@ -211,38 +214,36 @@ class _ScaffoldWithNavBar extends StatelessWidget {
     final showNavBar = _topLevelPaths.contains(location);
 
     return Scaffold(
-      body: navigationShell,
+      backgroundColor: kSurface,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: AppBackground()),
+          navigationShell,
+        ],
+      ),
       bottomNavigationBar: showNavBar
-          ? NavigationBar(
+          ? FloatingNavBar(
               selectedIndex: navigationShell.currentIndex,
               onDestinationSelected: (index) => navigationShell.goBranch(
                 index,
                 initialLocation: index == navigationShell.currentIndex,
               ),
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(Icons.home_outlined),
-                  selectedIcon: Icon(Icons.home),
-                  label: 'Home',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.receipt_long_outlined),
-                  selectedIcon: Icon(Icons.receipt_long),
-                  label: 'Orders',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.restaurant_outlined),
-                  selectedIcon: Icon(Icons.restaurant),
-                  label: 'Kitchen',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.person_outline),
-                  selectedIcon: Icon(Icons.person),
-                  label: 'Profile',
-                ),
-              ],
             )
           : null,
+      floatingActionButton: showNavBar
+          ? FloatingActionButton(
+              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Tap a shop card to enter an order'),
+                  duration: Duration(seconds: 2),
+                ),
+              ),
+              backgroundColor: kBrandGold,
+              foregroundColor: Colors.black87,
+              child: const Icon(Icons.add),
+            )
+          : null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
 }

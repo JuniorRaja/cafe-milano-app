@@ -23,185 +23,108 @@ class HomeScreen extends ConsumerWidget {
     final summariesAsync = ref.watch(orderSummariesForDateProvider(selectedDate));
 
     return Scaffold(
-      appBar: AppBar(
-        titleSpacing: 12,
-        title: Row(
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        top: true,
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: kBrandGold,
-              child: const Icon(Icons.bakery_dining,
-                  color: Colors.black87, size: 18),
-            ),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                RichText(
-                  text: const TextSpan(
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Row(
+                children: [
+                  Icon(_greetingIcon(), color: kBrandGold, size: 30),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      TextSpan(
-                        text: 'Milano',
+                      Text(
+                        'WELCOME BACK',
                         style: TextStyle(
-                          color: kBrandGold,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 17,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade500,
+                          letterSpacing: 1.1,
                         ),
                       ),
-                      TextSpan(
-                        text: ' Orders',
-                        style: TextStyle(
-                          color: Colors.black87,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 17,
+                      Text(
+                        '${_greeting()}, $_greetingName',
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          color: kBrandBrown,
+                          height: 1.15,
                         ),
                       ),
                     ],
                   ),
-                ),
-                Text(
-                  'Manage orders from all shops',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-                ),
-              ],
+                ],
+              ),
+            ),
+            const DateSelector(),
+            Expanded(
+              child: shopsAsync.when(
+                data: (shops) {
+                  final summaryMap = summariesAsync.maybeWhen(
+                    data: (summaries) =>
+                        {for (final s in summaries) s.order.shopId: s},
+                    orElse: () => <int, OrderDaySummary>{},
+                  );
+                  final dateStr = DateFormat('yyyy-MM-dd').format(selectedDate);
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                        child: Row(
+                          children: [
+                            Text(
+                              'Shops',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            const Spacer(),
+                            Text(
+                              '${shops.length} shops',
+                              style: const TextStyle(
+                                color: kBrandBrown,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: ListView.builder(
+                          itemCount: shops.length,
+                          itemBuilder: (context, index) {
+                            final shop = shops[index];
+                            return StaggeredFadeIn(
+                              index: index,
+                              child: ShopOrderCard(
+                                shop: shop,
+                                summary: summaryMap[shop.id],
+                                onTap: () => context
+                                    .push('/order/${shop.id}?date=$dateStr'),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  );
+                },
+                loading: () =>
+                    const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Center(child: Text('Error: $e')),
+              ),
             ),
           ],
         ),
-        actions: [
-          Stack(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.notifications_outlined),
-                onPressed: null,
-              ),
-              Positioned(
-                top: 10,
-                right: 10,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: kBrandBrown,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Tap a shop card to enter an order'),
-              duration: Duration(seconds: 2),
-            ),
-          );
-        },
-        backgroundColor: kBrandGold,
-        foregroundColor: Colors.black87,
-        child: const Icon(Icons.add),
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Row(
-              children: [
-                Icon(_greetingIcon(), color: kBrandGold, size: 30),
-                const SizedBox(width: 10),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'WELCOME BACK',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade500,
-                        letterSpacing: 1.1,
-                      ),
-                    ),
-                    Text(
-                      '${_greeting()}, $_greetingName',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                        color: kBrandBrown,
-                        height: 1.15,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const DateSelector(),
-          const Divider(height: 1),
-          Expanded(
-            child: shopsAsync.when(
-              data: (shops) {
-                final summaryMap = summariesAsync.maybeWhen(
-                  data: (summaries) =>
-                      {for (final s in summaries) s.order.shopId: s},
-                  orElse: () => <int, OrderDaySummary>{},
-                );
-                final dateStr = DateFormat('yyyy-MM-dd').format(selectedDate);
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                      child: Row(
-                        children: [
-                          Text(
-                            'Shops',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                          const Spacer(),
-                          Text(
-                            '${shops.length} shops',
-                            style: const TextStyle(
-                              color: kBrandBrown,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: shops.length,
-                        itemBuilder: (context, index) {
-                          final shop = shops[index];
-                          return StaggeredFadeIn(
-                            index: index,
-                            child: ShopOrderCard(
-                              shop: shop,
-                              summary: summaryMap[shop.id],
-                              onTap: () => context
-                                  .push('/order/${shop.id}?date=$dateStr'),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                );
-              },
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
-            ),
-          ),
-        ],
       ),
     );
   }
