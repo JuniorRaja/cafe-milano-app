@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
@@ -9,7 +10,7 @@ import 'package:share_plus/share_plus.dart';
 import '../app.dart' show kDefaultLogoAsset;
 import '../database/app_database.dart';
 
-enum CatalogShareFormat { pdf, image }
+enum CatalogShareFormat { pdf, image, text }
 
 const _kRowHeight = 56.0;
 const _kImageWidth = 480.0;
@@ -215,4 +216,33 @@ Future<void> shareCatalogAsImage({
   await file.writeAsBytes(pngBytes);
 
   await Share.shareXFiles([XFile(file.path)], text: 'Cafe Milano Catalog');
+}
+
+String _buildCatalogText({
+  required BusinessInfoData? business,
+  required List<Product> products,
+}) {
+  final buf = StringBuffer();
+  buf.writeln('🍽️ ${business?.name ?? 'Cafe Milano'} — Product Catalog');
+  if (business?.address != null && business!.address!.isNotEmpty) {
+    buf.writeln(business.address!);
+  }
+  if (business?.phone != null && business!.phone!.isNotEmpty) {
+    buf.writeln('Phone: ${business.phone}');
+  }
+  buf.writeln();
+
+  final maxNameLen = products.map((p) => p.name.length).fold(0, max);
+  for (final product in products) {
+    buf.writeln('${product.name.padRight(maxNameLen + 2)}${_formatPrice(product)}');
+  }
+
+  return buf.toString().trim();
+}
+
+Future<void> shareCatalogAsText({
+  required BusinessInfoData? business,
+  required List<Product> products,
+}) async {
+  await Share.share(_buildCatalogText(business: business, products: products));
 }

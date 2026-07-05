@@ -151,6 +151,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   subtitle: 'Name, contact & logo for shared catalogs',
                   onTap: () => context.push(AppRoutes.businessInfo),
                 ),
+                const Divider(height: 1, indent: 64),
+                _SettingsTile(
+                  icon: Icons.backup_outlined,
+                  title: 'Backup & Restore',
+                  subtitle: 'Export or import all your data',
+                  onTap: () => context.push(AppRoutes.backupRestore),
+                ),
               ],
             ),
           ),

@@ -25,10 +25,11 @@ part 'daos/product_dao.dart';
 part 'daos/order_dao.dart';
 part 'daos/price_dao.dart';
 part 'daos/business_info_dao.dart';
+part 'daos/backup_dao.dart';
 
 @DriftDatabase(
   tables: [Shops, Products, ShopPrices, StandingOrders, DailyOrders, OrderLines, BusinessInfo],
-  daos: [ShopDao, ProductDao, OrderDao, PriceDao, BusinessInfoDao],
+  daos: [ShopDao, ProductDao, OrderDao, PriceDao, BusinessInfoDao, BackupDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());

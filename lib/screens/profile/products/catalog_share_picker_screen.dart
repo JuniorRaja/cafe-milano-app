@@ -38,6 +38,11 @@ class _CatalogSharePickerScreenState
               title: const Text('Share as Image'),
               onTap: () => Navigator.pop(ctx, CatalogShareFormat.image),
             ),
+            ListTile(
+              leading: const Icon(Icons.text_snippet_outlined),
+              title: const Text('Share as Text'),
+              onTap: () => Navigator.pop(ctx, CatalogShareFormat.text),
+            ),
           ],
         ),
       ),
@@ -49,8 +54,10 @@ class _CatalogSharePickerScreenState
       final business = await ref.read(businessInfoProvider.future);
       if (format == CatalogShareFormat.pdf) {
         await shareCatalogAsPdf(business: business, products: selectedProducts);
-      } else {
+      } else if (format == CatalogShareFormat.image) {
         await shareCatalogAsImage(business: business, products: selectedProducts);
+      } else {
+        await shareCatalogAsText(business: business, products: selectedProducts);
       }
     } catch (e) {
       if (mounted) {
