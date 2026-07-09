@@ -125,6 +125,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const Divider(height: 1, indent: 64),
                 _SettingsTile(
+                  icon: Icons.category_outlined,
+                  title: 'Categories',
+                  subtitle: 'Group products by category',
+                  onTap: () => context.push(AppRoutes.categories),
+                ),
+                const Divider(height: 1, indent: 64),
+                _SettingsTile(
                   icon: Icons.bakery_dining_outlined,
                   title: 'Products',
                   subtitle: 'Manage bakery product catalog',

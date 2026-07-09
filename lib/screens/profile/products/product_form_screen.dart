@@ -6,7 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../database/app_database.dart';
+import '../../../providers/category_provider.dart';
 import '../../../providers/database_provider.dart';
+import '../../../services/category_emoji.dart';
 
 class ProductFormScreen extends ConsumerStatefulWidget {
   const ProductFormScreen({super.key, this.productId});
@@ -42,6 +44,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   final _priceCtrl = TextEditingController();
   String? _selectedUnit;
   String? _photoPath;
+  int? _selectedCategoryId;
   bool _loading = true;
   bool _saving = false;
 
@@ -58,6 +61,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       if (product != null && mounted) {
         _nameCtrl.text = product.name;
         _photoPath = product.photoPath;
+        _selectedCategoryId = product.categoryId;
         if (product.price != null) {
           _priceCtrl.text = _formatPrice(product.price!);
         }
@@ -93,6 +97,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       unit: Value(unit == null || unit.isEmpty ? null : unit),
       photoPath: Value(_photoPath),
       price: Value(priceText.isEmpty ? null : double.parse(priceText)),
+      categoryId: Value(_selectedCategoryId),
     );
     await ref.read(databaseProvider).productDao.upsertProduct(companion);
     if (mounted) context.pop();
@@ -145,6 +150,18 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final allCats = ref.watch(allCategoriesProvider).maybeWhen(
+          data: (c) => c,
+          orElse: () => <Category>[],
+        );
+    final activeCats = allCats.where((c) => c.isActive).toList();
+    // Ensure selected (possibly inactive) category is always in items to avoid dropdown assertion
+    final selectedIsActive =
+        _selectedCategoryId == null || activeCats.any((c) => c.id == _selectedCategoryId);
+    final inactiveCatForValue = selectedIsActive
+        ? null
+        : allCats.where((c) => c.id == _selectedCategoryId).firstOrNull;
+
     return Scaffold(
       appBar: AppBar(
         title: Column(
@@ -296,6 +313,30 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                           : null,
                     ),
                   ],
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<int?>(
+                    initialValue: _selectedCategoryId,
+                    decoration: const InputDecoration(
+                      labelText: 'Category',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: [
+                      const DropdownMenuItem<int?>(
+                          value: null, child: Text('Uncategorised')),
+                      for (final cat in activeCats)
+                        DropdownMenuItem<int?>(
+                          value: cat.id,
+                          child: Text('${emojiFor(cat.name)} ${cat.name}'),
+                        ),
+                      if (inactiveCatForValue != null)
+                        DropdownMenuItem<int?>(
+                          value: inactiveCatForValue.id,
+                          child: Text(
+                              '${emojiFor(inactiveCatForValue.name)} ${inactiveCatForValue.name} (inactive)'),
+                        ),
+                    ],
+                    onChanged: (v) => setState(() => _selectedCategoryId = v),
+                  ),
                   const SizedBox(height: 24),
                   FilledButton(
                     onPressed: _saving ? null : _save,

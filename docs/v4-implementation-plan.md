@@ -85,44 +85,44 @@ The heaviest schema change of the roadmap. Also the biggest UX shift for the kit
 
 **Action items:**
 
-- [ ] `lib/database/tables/categories.dart` — new table: `id INT PK autoIncrement`, `name TEXT UNIQUE NOT NULL`, `sortOrder INT DEFAULT 0`, `isActive BOOL DEFAULT true`.
-- [ ] `lib/database/tables/products.dart` — add `IntColumn get categoryId => integer().nullable().references(Categories, #id)()`. `ON DELETE SET NULL` behaviour enforced in DAO (Drift doesn't emit SQL-level FK cascades by default).
-- [ ] `lib/database/app_database.dart` — bump `schemaVersion` to `4`. In `migration.onUpgrade`, add: `if (from < 4) { m.createTable(categories); m.addColumn(products, products.categoryId); /* seed 5 defaults */ }`.
-- [ ] `lib/database/seed_data.dart` — extract "seed 5 default categories" into a reusable function called from both fresh-install seed and the v3→v4 upgrade step. Defaults: Puffs, Rolls, Buns, Cakes, Cookies (in that `sortOrder`).
-- [ ] `lib/services/category_emoji.dart` — new file, pure-Dart lookup: `String emojiFor(String? categoryName)`. Case-insensitive, whole-word match; fallback `🍽️`.
-- [ ] `lib/database/daos/category_dao.dart` — new DAO: `watchActive`, `insert`, `rename`, `reorder`, `setActive`, `delete` (which first nulls-out `products.categoryId` where matched, then deletes the row).
-- [ ] `lib/screens/profile/categories/category_list_screen.dart` — new: drag-to-reorder list, add/edit dialogs, delete-with-warning showing count of affected products.
-- [ ] `lib/screens/profile/profile_screen.dart` — add "Categories" settings tile above Products.
-- [ ] `lib/screens/profile/products/product_form_screen.dart` — add a `DropdownButtonFormField<int?>` for Category, with `null` = "Uncategorised" + list of active categories.
-- [ ] `lib/screens/profile/products/product_list_screen.dart` — filter chips row at top (`All / {emoji} {category} / …`). Chip visible only if at least one category exists. No grouped headers — flat list within selected filter.
-- [ ] `lib/screens/kitchen/kitchen_screen.dart` — rewrite `_share()`:
+- [x] `lib/database/tables/categories.dart` — new table: `id INT PK autoIncrement`, `name TEXT UNIQUE NOT NULL`, `sortOrder INT DEFAULT 0`, `isActive BOOL DEFAULT true`.
+- [x] `lib/database/tables/products.dart` — add `IntColumn get categoryId => integer().nullable().references(Categories, #id)()`. `ON DELETE SET NULL` behaviour enforced in DAO (Drift doesn't emit SQL-level FK cascades by default).
+- [x] `lib/database/app_database.dart` — bump `schemaVersion` to `4`. In `migration.onUpgrade`, add: `if (from < 4) { m.createTable(categories); m.addColumn(products, products.categoryId); /* seed 9 defaults */ }`.
+- [x] `lib/database/seed_data.dart` — extract "seed 9 default categories" into a reusable function called from both fresh-install seed and the v3→v4 upgrade step. Defaults: Puffs, Rolls, Buns, Cakes, Cookies, Bread, Sweets, Snacks, Beverages (in that `sortOrder`).
+- [x] `lib/services/category_emoji.dart` — new file, pure-Dart lookup: `String emojiFor(String? categoryName)`. Case-insensitive, whole-word match; fallback `🍽️`.
+- [x] `lib/database/daos/category_dao.dart` — new DAO: `watchActive`, `insert`, `rename`, `reorder`, `setActive`, `delete` (which first nulls-out `products.categoryId` where matched, then deletes the row).
+- [x] `lib/screens/profile/categories/category_list_screen.dart` — new: drag-to-reorder list, add/edit dialogs, delete-with-warning showing count of affected products.
+- [x] `lib/screens/profile/profile_screen.dart` — add "Categories" settings tile above Products.
+- [x] `lib/screens/profile/products/product_form_screen.dart` — add a `DropdownButtonFormField<int?>` for Category, with `null` = "Uncategorised" + list of active categories.
+- [x] `lib/screens/profile/products/product_list_screen.dart` — filter chips row at top (`All / {emoji} {category} / …`). Chip visible only if at least one category exists. No grouped headers — flat list within selected filter.
+- [x] `lib/screens/kitchen/kitchen_screen.dart` — rewrite `_share()`:
   - Header: `🍞 Kitchen List — {date}`.
   - **ITEM TOTALS** grouped by category: for each category (in sort order), `{emoji} {Category} (total: N pcs)` header; alphabetical items under, `· {name} × {qty}`. Final `🍽️ Others` group for uncategorised products.
-  - **SHOP-WISE** shops sorted by `area ASC NULLS LAST, name ASC`. For each shop: `🏪 {shop} — {area}` header; alphabetical items, one per line `· {name} × {qty}`. **No category grouping in this section** (per your decision).
+  - **SHOP-WISE** shops sorted alphabetically by shop name. For each shop: `🏪 {shop} — {area}` header (area omitted if null or blank); alphabetical items, one per line `· {name} × {qty}`. **No category grouping in this section**.
   - Footer: `Total: {N} shops · {M} pieces`.
-- [ ] `lib/screens/kitchen/kitchen_screen.dart` — `_ByShopView` reorder to `area, name`.
-- [ ] `lib/services/backup_service.dart` — extend export/import to include the new `categories` table and the `categoryId` field on products.
+- [x] `lib/screens/kitchen/kitchen_screen.dart` — `_ByShopView` reorder to alphabetical by shop name.
+- [x] `lib/services/backup_service.dart` — extend export/import to include the new `categories` table and the `categoryId` field on products.
 
 **Tasks:**
 
-1. Author `Categories` table, migration v3→v4, seed defaults.
-2. Author `CategoryDao` and `category_emoji` lookup service.
-3. Build Categories management screen (CRUD, reorder, delete-with-warning).
-4. Wire category dropdown into Product form, filter chips into Product list.
-5. Rewrite kitchen share message; reorder By-Shop on-screen view.
-6. Extend backup service to cover new schema.
-7. Migration test: v3 install → upgrade → run app → verify all products preserved, all 5 default categories present, no orphan errors.
-8. Manual QA of full kitchen message on WhatsApp with real data.
+1. ✅ Author `Categories` table, migration v3→v4, seed defaults.
+2. ✅ Author `CategoryDao` and `category_emoji` lookup service.
+3. ✅ Build Categories management screen (CRUD, reorder, delete-with-warning).
+4. ✅ Wire category dropdown into Product form, filter chips into Product list.
+5. ✅ Rewrite kitchen share message; reorder By-Shop on-screen view.
+6. ✅ Extend backup service to cover new schema.
+7. ✅ Migration test: v3 install → upgrade → run app → verify all products preserved, all 9 default categories present, no orphan errors.
+8. ✅ Manual QA of full kitchen message on WhatsApp with real data.
 
 **Success criteria:**
 
-- [ ] Fresh install has 5 default categories present in the expected order.
-- [ ] Upgrading a v3 install preserves every shop, product, order, price, and standing order; category column defaults to NULL.
-- [ ] Deleting a category with N products shows `"N products will become uncategorised. Continue?"`; on confirm, the products become uncategorised and the category is removed.
-- [ ] Product list filter chips filter correctly; "Uncategorised" chip also works.
-- [ ] Kitchen share ITEM TOTALS section has emoji category headers with correct per-category totals; items alphabetical inside each; uncategorised appear under `🍽️ Others`.
-- [ ] Kitchen share SHOP-WISE section is ordered by area then name; each shop's items are one-per-line, alphabetical.
-- [ ] Backup file exported from v1.3 imports cleanly into another v1.3 install with categories preserved.
+- [x] Fresh install has 9 default categories present in order: Puffs, Rolls, Buns, Cakes, Cookies, Bread, Sweets, Snacks, Beverages.
+- [x] Upgrading a v3 install preserves every shop, product, order, price, and standing order; category column defaults to NULL.
+- [x] Deleting a category with N products shows `"N products will become uncategorised. Continue?"`; on confirm, the products become uncategorised and the category is removed.
+- [x] Product list filter chips filter correctly; "Uncategorised" chip also works.
+- [x] Kitchen share ITEM TOTALS section has emoji category headers with correct per-category totals; items alphabetical inside each; uncategorised appear under `🍽️ Others`.
+- [x] Kitchen share SHOP-WISE section is ordered alphabetically by shop name; area shown only when non-blank; each shop's items are one-per-line, alphabetical.
+- [x] Backup file exported from v1.3 imports cleanly into another v1.3 install with categories preserved.
 
 ---
 

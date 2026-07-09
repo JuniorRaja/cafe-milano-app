@@ -4,9 +4,11 @@ import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../app.dart';
 import '../../database/app_database.dart';
+import '../../providers/category_provider.dart';
 import '../../providers/order_provider.dart';
 import '../../providers/shop_provider.dart';
 import '../../providers/product_provider.dart';
+import '../../services/category_emoji.dart';
 import '../../widgets/staggered_fade_in.dart';
 
 class KitchenScreen extends ConsumerStatefulWidget {
@@ -58,6 +60,10 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
           data: (products) => {for (final p in products) p.id: p},
           orElse: () => <int, Product>{},
         );
+    final categories = ref.watch(allCategoriesProvider).maybeWhen(
+          data: (c) => c,
+          orElse: () => <Category>[],
+        );
     final lines = linesAsync.maybeWhen(
       data: (lines) => lines,
       orElse: () => <KitchenRawLine>[],
@@ -97,7 +103,7 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
             tooltip: 'Share kitchen list',
             onPressed: hasLines
                 ? () => _tabController.index == 0
-                    ? _shareItems(lines, productMap)
+                    ? _shareItems(lines, productMap, categories)
                     : _shareAllShops(lines, shopMap, productMap)
                 : null,
           ),
@@ -138,28 +144,66 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
   void _shareItems(
     List<KitchenRawLine> lines,
     Map<int, Product> productMap,
+    List<Category> categories,
   ) {
     final dateLabel = DateFormat('dd MMM yyyy').format(_date);
+
     final Map<int, int> itemTotals = {};
     for (final l in lines) {
       itemTotals[l.productId] = (itemTotals[l.productId] ?? 0) + l.qty;
     }
-    final sorted = itemTotals.entries
-        .where((e) => e.value > 0)
-        .toList()
-      ..sort((a, b) {
-          final na = productMap[a.key]?.name.toLowerCase() ?? '';
-          final nb = productMap[b.key]?.name.toLowerCase() ?? '';
-          return na.compareTo(nb);
-        });
+
+    // Group by categoryId (null = uncategorised)
+    final Map<int?, List<MapEntry<int, int>>> byCat = {};
+    for (final entry in itemTotals.entries.where((e) => e.value > 0)) {
+      final catId = productMap[entry.key]?.categoryId;
+      byCat.putIfAbsent(catId, () => []).add(entry);
+    }
+
+    // Sort each group alphabetically by product name
+    int cmpByName(MapEntry<int, int> a, MapEntry<int, int> b) =>
+        (productMap[a.key]?.name.toLowerCase() ?? '')
+            .compareTo(productMap[b.key]?.name.toLowerCase() ?? '');
+    for (final list in byCat.values) {
+      list.sort(cmpByName);
+    }
+
+    final knownCatIds = categories.map((c) => c.id).toSet();
 
     final buf = StringBuffer();
     buf.writeln('🍞 Kitchen List — $dateLabel');
     buf.writeln();
-    for (final entry in sorted) {
-      buf.writeln(
-          '· ${productMap[entry.key]?.name ?? 'Product #${entry.key}'} × ${entry.value}');
+
+    // Emit categories in sort order
+    for (final cat in categories) {
+      final items = byCat[cat.id];
+      if (items == null || items.isEmpty) continue;
+      final total = items.fold<int>(0, (s, e) => s + e.value);
+      buf.writeln('${emojiFor(cat.name)} ${cat.name} (total: $total pcs)');
+      for (final e in items) {
+        buf.writeln('· ${productMap[e.key]?.name ?? '#${e.key}'} × ${e.value}');
+      }
+      buf.writeln();
     }
+
+    // Others: null categoryId or orphaned categoryId not in known list
+    final others = <MapEntry<int, int>>[];
+    for (final entry in byCat.entries) {
+      if (entry.key == null || !knownCatIds.contains(entry.key)) {
+        others.addAll(entry.value);
+      }
+    }
+    others.sort(cmpByName);
+
+    if (others.isNotEmpty) {
+      final total = others.fold<int>(0, (s, e) => s + e.value);
+      buf.writeln('🍽️ Others (total: $total pcs)');
+      for (final e in others) {
+        buf.writeln('· ${productMap[e.key]?.name ?? '#${e.key}'} × ${e.value}');
+      }
+      buf.writeln();
+    }
+
     Share.share(buf.toString().trim());
   }
 
@@ -172,7 +216,8 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
     final dateLabel = DateFormat('dd MMM yyyy').format(_date);
     final shop = shopMap[shopId];
     final shopName = shop?.name ?? 'Shop #$shopId';
-    final areaLabel = shop?.area != null ? ' — ${shop!.area}' : '';
+    final shopArea = shop?.area?.trim();
+    final areaLabel = (shopArea != null && shopArea.isNotEmpty) ? ' — $shopArea' : '';
 
     final Map<int, int> totals = {};
     for (final l in lines.where((l) => l.shopId == shopId)) {
@@ -213,6 +258,7 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
       shopProducts[l.shopId]![l.productId] =
           (shopProducts[l.shopId]![l.productId] ?? 0) + l.qty;
     }
+    _sortShops(shopOrder, shopMap);
 
     final buf = StringBuffer();
     buf.writeln('🍞 Kitchen List — $dateLabel');
@@ -221,7 +267,8 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
     for (final shopId in shopOrder) {
       final shop = shopMap[shopId];
       final shopName = shop?.name ?? 'Shop #$shopId';
-      final areaLabel = shop?.area != null ? ' — ${shop!.area}' : '';
+      final shopArea = shop?.area?.trim();
+      final areaLabel = (shopArea != null && shopArea.isNotEmpty) ? ' — $shopArea' : '';
       buf.writeln('🏪 $shopName$areaLabel');
       final productEntries = shopProducts[shopId]!
           .entries
@@ -244,6 +291,13 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
     );
     Share.share(buf.toString().trim());
   }
+
+  void _sortShops(List<int> shopOrder, Map<int, Shop> shopMap) {
+    shopOrder.sort((a, b) => _cmpShops(shopMap[a], shopMap[b]));
+  }
+
+  static int _cmpShops(Shop? sa, Shop? sb) =>
+      (sa?.name ?? '').toLowerCase().compareTo((sb?.name ?? '').toLowerCase());
 }
 
 // ---------------------------------------------------------------------------
@@ -394,6 +448,7 @@ class _ByShopView extends StatelessWidget {
       shopProducts[l.shopId]![l.productId] =
           (shopProducts[l.shopId]![l.productId] ?? 0) + l.qty;
     }
+    shopOrder.sort((a, b) => _KitchenScreenState._cmpShops(shopMap[a], shopMap[b]));
 
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
@@ -435,9 +490,9 @@ class _ByShopView extends StatelessWidget {
                               fontSize: 15,
                             ),
                           ),
-                          if (shop?.area != null)
+                          if (shop?.area?.trim().isNotEmpty == true)
                             Text(
-                              shop!.area!,
+                              shop!.area!.trim(),
                               style: TextStyle(
                                   fontSize: 12, color: Colors.grey[600]),
                             ),

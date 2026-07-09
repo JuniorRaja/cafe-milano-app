@@ -2,6 +2,18 @@ import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'app_database.dart';
 
+Future<void> seedDefaultCategories(AppDatabase db) async {
+  const defaults = [
+    'Puffs', 'Rolls', 'Buns', 'Cakes', 'Cookies',
+    'Bread', 'Sweets', 'Snacks', 'Beverages',
+  ];
+  for (var i = 0; i < defaults.length; i++) {
+    await db.into(db.categories).insertOnConflictUpdate(
+          CategoriesCompanion.insert(name: defaults[i], sortOrder: Value(i)),
+        );
+  }
+}
+
 Future<void> seedDatabase(AppDatabase db) async {
   final existing = await db.select(db.shops).get();
   if (existing.isNotEmpty) {
@@ -11,6 +23,8 @@ Future<void> seedDatabase(AppDatabase db) async {
   debugPrint('[MilanoOrders] Seeding database...');
 
   await db.transaction(() async {
+    await seedDefaultCategories(db);
+
     // 2 shops
     final shopIds = <int>[];
     for (final companion in [

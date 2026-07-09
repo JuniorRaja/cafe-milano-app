@@ -16,6 +16,7 @@ import 'screens/profile/standing_orders/standing_orders_screen.dart';
 import 'screens/profile/business_info/business_info_form_screen.dart';
 import 'screens/profile/products/catalog_share_picker_screen.dart';
 import 'screens/profile/backup/backup_restore_screen.dart';
+import 'screens/profile/categories/category_list_screen.dart';
 import 'screens/order_entry/order_entry_screen.dart';
 
 // Brand colors extracted from the Caffe Milano logo
@@ -42,6 +43,7 @@ class AppRoutes {
   static const standingOrders = '/profile/standing-orders';
   static const businessInfo  = '/profile/business-info';
   static const catalogShare  = '/profile/products/share';
+  static const categories    = '/profile/categories';
   static const backupRestore = '/profile/backup';
 }
 
@@ -126,6 +128,10 @@ final _router = GoRouter(
               GoRoute(
                 path: 'business-info',
                 builder: (context, state) => const BusinessInfoFormScreen(),
+              ),
+              GoRoute(
+                path: 'categories',
+                builder: (context, state) => const CategoryListScreen(),
               ),
               GoRoute(
                 path: 'backup',

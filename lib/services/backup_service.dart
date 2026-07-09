@@ -88,6 +88,7 @@ Future<void> importBackup(AppDatabase db, File file) async {
 
   const requiredKeys = [
     'schemaVersion',
+    'categories',
     'shops',
     'products',
     'shopPrices',
@@ -140,6 +141,7 @@ Future<void> importBackup(AppDatabase db, File file) async {
   }
 
   await db.backupDao.restoreAll({
+    'categories': backup['categories'],
     'shops': backup['shops'],
     'products': products,
     'businessInfo': businessInfoJson,
