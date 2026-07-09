@@ -134,13 +134,13 @@ Depends on Phase 2 (categories drive PDF sections).
 
 **Action items:**
 
-- [ ] `lib/services/catalog_share_service.dart` — rebuild `_buildPdfBytes(...)` using `pw.MultiPage`:
+- [x] `lib/services/catalog_share_service.dart` — rebuild `_buildPdfBytes(...)` using `pw.MultiPage`:
   - **Cover page** — logo centred (~120 px), business name (brand-brown, `bold`, size 22), address + phone (grey, size 10), italic `"Product Catalog"` in gold accent, current date as `"Prices valid as of {date}"`.
   - **Content pages** — one section per category (in sort order). Section header: gold accent horizontal bar + `{emoji} {Category}` in brown, `bold`, size 16. Products laid out as a **2-column grid of cards**: 100×100 photo (or coloured letter-avatar placeholder for products with no photo); product name (bold); category label (small grey); unit (small grey); price (brand-brown, right-aligned). Uncategorised products under a final `🍽️ Others` section.
   - **Every content page footer**: thin gold rule; `{business.name} · ☎ {phone}   ·   Page X of Y`.
-- [ ] `lib/services/catalog_share_service.dart` — rewrite `_buildCatalogText(...)` to mirror the PDF grouping: category header lines with emojis, alphabetical items, `Category: unit — ₹price` per line.
-- [ ] `lib/services/catalog_share_service.dart` — delete the image-catalog helpers already stripped in Phase 1 (should already be gone; sanity check).
-- [ ] `lib/screens/profile/products/catalog_share_picker_screen.dart` — picker now only shows PDF and Text. No behavioural change needed beyond Phase 1's removal.
+- [x] `lib/services/catalog_share_service.dart` — rewrite `_buildCatalogText(...)` to mirror the PDF grouping: category header lines with emojis, alphabetical items, `Category: unit — ₹price` per line.
+- [x] `lib/services/catalog_share_service.dart` — delete the image-catalog helpers already stripped in Phase 1 (should already be gone; sanity check).
+- [x] `lib/screens/profile/products/catalog_share_picker_screen.dart` — picker now only shows PDF and Text. No behavioural change needed beyond Phase 1's removal.
 
 **Tasks:**
 
@@ -153,12 +153,12 @@ Depends on Phase 2 (categories drive PDF sections).
 
 **Success criteria:**
 
-- [ ] Generated PDF cover page shows logo, business name, address, phone, and today's date.
-- [ ] Categories appear in the same order as the Categories screen; alphabetical products inside each; uncategorised products land in a final `🍽️ Others` section.
-- [ ] Products with no photo show a coloured letter-avatar (not an empty grey box).
-- [ ] Every content page footer shows business name, phone, and `Page X of Y`.
-- [ ] Text share, opened in WhatsApp, shows category groups with emojis and alphabetical items.
-- [ ] Image-catalog code path is confirmed gone (`grep` clean, sanity re-check from Phase 1).
+- [x] Generated PDF cover page shows logo, business name, address, phone, and today's date.
+- [x] Categories appear in the same order as the Categories screen; alphabetical products inside each; uncategorised products land in a final `🍽️ Others` section.
+- [x] Products with no photo show a coloured letter-avatar (not an empty grey box).
+- [x] Every content page footer shows business name, phone, and `Page X of Y`.
+- [x] Text share, opened in WhatsApp, shows category groups with emojis and alphabetical items.
+- [x] Image-catalog code path is confirmed gone (`grep` clean, sanity re-check from Phase 1).
 
 ---
 

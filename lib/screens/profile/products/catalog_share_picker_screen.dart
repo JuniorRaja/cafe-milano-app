@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../database/app_database.dart';
 import '../../../providers/product_provider.dart';
+import '../../../providers/category_provider.dart';
 import '../../../providers/business_info_provider.dart';
 import '../../../services/catalog_share_service.dart';
 import '../../../widgets/letter_avatar.dart';
@@ -46,11 +47,12 @@ class _CatalogSharePickerScreenState
 
     setState(() => _generating = true);
     try {
-      final business = await ref.read(businessInfoProvider.future);
+      final business   = await ref.read(businessInfoProvider.future);
+      final categories = await ref.read(activeCategoriesProvider.future);
       if (format == CatalogShareFormat.pdf) {
-        await shareCatalogAsPdf(business: business, products: selectedProducts);
+        await shareCatalogAsPdf(business: business, products: selectedProducts, categories: categories);
       } else {
-        await shareCatalogAsText(business: business, products: selectedProducts);
+        await shareCatalogAsText(business: business, products: selectedProducts, categories: categories);
       }
     } catch (e) {
       if (mounted) {
