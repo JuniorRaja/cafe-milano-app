@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -221,24 +220,13 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     final buf = StringBuffer();
     buf.writeln('🧾 Bills — $dateLabel');
     buf.writeln();
-
-    final maxLen = summaries
-        .map((s) => shopMap[s.order.shopId]?.name.length ?? 0)
-        .fold(0, max);
-
     for (final s in summaries) {
       final name = shopMap[s.order.shopId]?.name ?? 'Unknown';
-      buf.writeln(
-        '${name.padRight(maxLen + 2)}: ₹${NumberFormat('#,##0').format(s.total)}',
-      );
+      buf.writeln('🏪 $name — ₹${NumberFormat('#,##0').format(s.total)}');
     }
-
     buf.writeln();
     final grand = summaries.fold<double>(0, (a, b) => a + b.total);
-    buf.writeln(
-      '${'GRAND TOTAL'.padRight(maxLen + 2)}: ₹${NumberFormat('#,##0').format(grand)}',
-    );
-
+    buf.writeln('GRAND TOTAL: ₹${NumberFormat('#,##0').format(grand)}');
     await Share.share(buf.toString().trim());
   }
 
@@ -252,20 +240,20 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     buf.writeln('🧾 Bill — $shopName');
     buf.writeln('Date: $dateLabel');
     buf.writeln();
-
     if (owl != null && owl.lines.isNotEmpty) {
-      final maxNameLen = owl.lines
-          .map((l) => productMap[l.productId]?.name.length ?? 0)
-          .fold(0, max);
+      final sorted = [...owl.lines]..sort((a, b) {
+          final na = productMap[a.productId]?.name.toLowerCase() ?? '';
+          final nb = productMap[b.productId]?.name.toLowerCase() ?? '';
+          return na.compareTo(nb);
+        });
       double total = 0;
-      for (final line in owl.lines) {
+      for (final line in sorted) {
         final name =
             productMap[line.productId]?.name ?? 'Product #${line.productId}';
         final lineTotal = line.qty * line.unitPrice;
         total += lineTotal;
         buf.writeln(
-          '${name.padRight(maxNameLen + 2)}× ${line.qty.toString().padLeft(4)}  ₹${NumberFormat('#,##0').format(lineTotal)}',
-        );
+            '· $name × ${line.qty} — ₹${NumberFormat('#,##0').format(lineTotal)}');
       }
       buf.writeln();
       buf.writeln('TOTAL: ₹${NumberFormat('#,##0').format(total)}');
@@ -313,6 +301,7 @@ class _OrderCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(
                   horizontal: 16, vertical: 14),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   CircleAvatar(
                     radius: 18,
@@ -342,30 +331,36 @@ class _OrderCard extends StatelessWidget {
                             style: TextStyle(
                                 fontSize: 12, color: Colors.grey[600]),
                           ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Text(
+                              '₹${NumberFormat('#,##0').format(summary.total)}',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 15),
+                            ),
+                            const Spacer(),
+                            _StatusChip(
+                              label: isConfirmed ? 'Confirmed' : 'Pending',
+                              color: isConfirmed ? Colors.green : Colors.grey,
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.share, size: 20),
+                              onPressed: onShare,
+                              visualDensity: VisualDensity.compact,
+                              tooltip: 'Share bill',
+                            ),
+                            Icon(
+                              isExpanded
+                                  ? Icons.expand_less
+                                  : Icons.expand_more,
+                              color: Colors.grey,
+                              size: 20,
+                            ),
+                          ],
+                        ),
                       ],
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '₹${NumberFormat('#,##0').format(summary.total)}',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 15),
-                  ),
-                  const SizedBox(width: 8),
-                  _StatusChip(
-                    label: isConfirmed ? 'Confirmed' : 'Pending',
-                    color: isConfirmed ? Colors.green : Colors.grey,
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.share, size: 20),
-                    onPressed: onShare,
-                    visualDensity: VisualDensity.compact,
-                    tooltip: 'Share bill',
-                  ),
-                  Icon(
-                    isExpanded ? Icons.expand_less : Icons.expand_more,
-                    color: Colors.grey,
-                    size: 20,
                   ),
                 ],
               ),

@@ -62,7 +62,8 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
 
     if (!mounted) return;
 
-    final prods = results[0] as List<Product>;
+    final prods = (results[0] as List<Product>)
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     final prices = results[1] as List<ShopPrice>;
     final sos = results[2] as List<StandingOrder>;
     final owl = results[3] as OrderWithLines?;

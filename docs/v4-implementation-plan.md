@@ -50,14 +50,14 @@ Small, self-contained cleanups. No schema changes, no new deps.
 
 **Action items:**
 
-- [ ] `lib/screens/profile/products/catalog_share_picker_screen.dart` — remove the `ListTile('Share as Image')` in the format bottom sheet (lines 36-45 area).
-- [ ] `lib/services/catalog_share_service.dart` — delete `_buildImagePdfBytes(...)`, `shareCatalogAsImage(...)`, the `_kRowHeight` / `_kImageWidth` constants, and the `CatalogShareFormat.image` enum member. Remove now-dead imports (`printing.Printing.raster`, temp dir writes) if unused.
-- [ ] `lib/screens/orders/orders_screen.dart` — refactor `_OrderCard` (lines 279-389): line 1 = full-width shop name + area; line 2 = right-aligned amount + Confirmed/Pending chip + share icon + expand arrow. Removes wrap-explosion at 130% system font.
-- [ ] `lib/screens/orders/orders_screen.dart` — rewrite `_shareAll` (lines 216-243): drop `padRight` columns; emit `🏪 {shop} — ₹{amount}` per shop on its own line; a blank line then a bold-styled `GRAND TOTAL: ₹{grand}` at bottom.
-- [ ] `lib/screens/orders/orders_screen.dart` — rewrite `_buildBillText` (lines 245-276): emoji header `🧾 Bill — {shop}`; date line; alphabetical items as `· {name} × {qty} — ₹{lineTotal}`; blank line; `TOTAL: ₹{total}`.
-- [ ] `lib/screens/kitchen/kitchen_screen.dart` — in `_share()` (lines 134-206), switch the ITEM TOTALS section from `qty desc` to alphabetical by product name (`compareTo` with `toLowerCase()`).
-- [ ] `lib/screens/kitchen/kitchen_screen.dart` — in `_ByItemView` (lines 234-316), switch the on-screen list from `qty desc` to alphabetical.
-- [ ] `lib/screens/order_entry/order_entry_screen.dart` — after `_products` is loaded in `_init()`, sort alphabetically by name before `setState`.
+- [x] `lib/screens/profile/products/catalog_share_picker_screen.dart` — remove the `ListTile('Share as Image')` in the format bottom sheet (lines 36-45 area).
+- [x] `lib/services/catalog_share_service.dart` — delete `_buildImagePdfBytes(...)`, `shareCatalogAsImage(...)`, the `_kRowHeight` / `_kImageWidth` constants, and the `CatalogShareFormat.image` enum member. Remove now-dead imports (`printing.Printing.raster`, temp dir writes) if unused.
+- [x] `lib/screens/orders/orders_screen.dart` — refactor `_OrderCard` (lines 279-389): line 1 = full-width shop name + area; line 2 = right-aligned amount + Confirmed/Pending chip + share icon + expand arrow. Removes wrap-explosion at 130% system font.
+- [x] `lib/screens/orders/orders_screen.dart` — rewrite `_shareAll` (lines 216-243): drop `padRight` columns; emit `🏪 {shop} — ₹{amount}` per shop on its own line; a blank line then a bold-styled `GRAND TOTAL: ₹{grand}` at bottom.
+- [x] `lib/screens/orders/orders_screen.dart` — rewrite `_buildBillText` (lines 245-276): emoji header `🧾 Bill — {shop}`; date line; alphabetical items as `· {name} × {qty} — ₹{lineTotal}`; blank line; `TOTAL: ₹{total}`.
+- [x] `lib/screens/kitchen/kitchen_screen.dart` — split share into tab-aware `_shareItems` / `_shareAllShops` / per-shop `_shareShop`; ITEM TOTALS and SHOP-WISE both use emoji + one-item-per-line format, alphabetical. Each shop in By Shop view has its own share button.
+- [x] `lib/screens/kitchen/kitchen_screen.dart` — By Item tab wrapped in a single card; By Shop tab renders one card per shop. Both on-screen lists alphabetical.
+- [x] `lib/screens/order_entry/order_entry_screen.dart` — after `_products` is loaded in `_init()`, sort alphabetically by name before `setState`.
 
 **Tasks:**
 
@@ -69,11 +69,11 @@ Small, self-contained cleanups. No schema changes, no new deps.
 
 **Success criteria:**
 
-- [ ] `grep -R "shareCatalogAsImage\|_buildImagePdfBytes\|CatalogShareFormat.image" lib/` returns no matches.
+- [x] `grep -R "shareCatalogAsImage\|_buildImagePdfBytes\|CatalogShareFormat.image" lib/` returns no matches.
 - [ ] Daily Billing shows ≥ 4 shop cards on screen at 130 % system font on a 6-inch phone.
 - [ ] "Share All Bills" and single-bill share previews are readable on WhatsApp without monospaced font.
-- [ ] Kitchen By-Item on-screen list and Order Entry product list are alphabetical.
-- [ ] Kitchen share message ITEM TOTALS section is alphabetical.
+- [x] Kitchen By-Item on-screen list and Order Entry product list are alphabetical.
+- [x] Kitchen share message ITEM TOTALS section is alphabetical.
 
 ---
 

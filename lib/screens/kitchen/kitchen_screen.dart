@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -96,8 +95,11 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
           IconButton(
             icon: const Icon(Icons.share),
             tooltip: 'Share kitchen list',
-            onPressed:
-                hasLines ? () => _share(lines, shopMap, productMap) : null,
+            onPressed: hasLines
+                ? () => _tabController.index == 0
+                    ? _shareItems(lines, productMap)
+                    : _shareAllShops(lines, shopMap, productMap)
+                : null,
           ),
         ],
         bottom: TabBar(
@@ -121,6 +123,8 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
                 lines: lines,
                 shopMap: shopMap,
                 productMap: productMap,
+                onShareShop: (shopId) =>
+                    _shareShop(shopId, lines, shopMap, productMap),
               ),
             ],
           );
@@ -131,41 +135,74 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
     );
   }
 
-  void _share(
+  void _shareItems(
+    List<KitchenRawLine> lines,
+    Map<int, Product> productMap,
+  ) {
+    final dateLabel = DateFormat('dd MMM yyyy').format(_date);
+    final Map<int, int> itemTotals = {};
+    for (final l in lines) {
+      itemTotals[l.productId] = (itemTotals[l.productId] ?? 0) + l.qty;
+    }
+    final sorted = itemTotals.entries
+        .where((e) => e.value > 0)
+        .toList()
+      ..sort((a, b) {
+          final na = productMap[a.key]?.name.toLowerCase() ?? '';
+          final nb = productMap[b.key]?.name.toLowerCase() ?? '';
+          return na.compareTo(nb);
+        });
+
+    final buf = StringBuffer();
+    buf.writeln('🍞 Kitchen List — $dateLabel');
+    buf.writeln();
+    for (final entry in sorted) {
+      buf.writeln(
+          '· ${productMap[entry.key]?.name ?? 'Product #${entry.key}'} × ${entry.value}');
+    }
+    Share.share(buf.toString().trim());
+  }
+
+  void _shareShop(
+    int shopId,
     List<KitchenRawLine> lines,
     Map<int, Shop> shopMap,
     Map<int, Product> productMap,
   ) {
     final dateLabel = DateFormat('dd MMM yyyy').format(_date);
-    final buf = StringBuffer();
-    buf.writeln('🍞 Kitchen List — $dateLabel');
-    buf.writeln();
+    final shop = shopMap[shopId];
+    final shopName = shop?.name ?? 'Shop #$shopId';
+    final areaLabel = shop?.area != null ? ' — ${shop!.area}' : '';
 
-    final Map<int, int> itemTotals = {};
-    for (final l in lines) {
-      itemTotals[l.productId] = (itemTotals[l.productId] ?? 0) + l.qty;
+    final Map<int, int> totals = {};
+    for (final l in lines.where((l) => l.shopId == shopId)) {
+      totals[l.productId] = (totals[l.productId] ?? 0) + l.qty;
     }
-    final sortedItems = itemTotals.entries
+    final sorted = totals.entries
         .where((e) => e.value > 0)
         .toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
+      ..sort((a, b) {
+          final na = productMap[a.key]?.name.toLowerCase() ?? '';
+          final nb = productMap[b.key]?.name.toLowerCase() ?? '';
+          return na.compareTo(nb);
+        });
 
-    final maxItemLen = sortedItems.isEmpty
-        ? 0
-        : sortedItems
-            .map((e) => productMap[e.key]?.name.length ?? 0)
-            .fold(0, max);
-
-    buf.writeln('ITEM TOTALS');
-    for (final entry in sortedItems) {
-      final name = productMap[entry.key]?.name ?? 'Product #${entry.key}';
-      buf.writeln(
-        '${name.padRight(maxItemLen + 2)}: ${entry.value.toString().padLeft(4)}',
-      );
-    }
-
+    final buf = StringBuffer();
+    buf.writeln('🏪 $shopName$areaLabel — $dateLabel');
     buf.writeln();
+    for (final entry in sorted) {
+      buf.writeln(
+          '· ${productMap[entry.key]?.name ?? '#${entry.key}'} × ${entry.value}');
+    }
+    Share.share(buf.toString().trim());
+  }
 
+  void _shareAllShops(
+    List<KitchenRawLine> lines,
+    Map<int, Shop> shopMap,
+    Map<int, Product> productMap,
+  ) {
+    final dateLabel = DateFormat('dd MMM yyyy').format(_date);
     final Map<int, Map<int, int>> shopProducts = {};
     final List<int> shopOrder = [];
     for (final l in lines) {
@@ -177,31 +214,34 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
           (shopProducts[l.shopId]![l.productId] ?? 0) + l.qty;
     }
 
-    final maxShopLen = shopOrder
-        .map((id) => shopMap[id]?.name.length ?? 0)
-        .fold(0, max);
-
-    buf.writeln('SHOP-WISE');
+    final buf = StringBuffer();
+    buf.writeln('🍞 Kitchen List — $dateLabel');
+    buf.writeln();
     int totalPieces = 0;
     for (final shopId in shopOrder) {
-      final shopName = shopMap[shopId]?.name ?? 'Shop #$shopId';
+      final shop = shopMap[shopId];
+      final shopName = shop?.name ?? 'Shop #$shopId';
+      final areaLabel = shop?.area != null ? ' — ${shop!.area}' : '';
+      buf.writeln('🏪 $shopName$areaLabel');
       final productEntries = shopProducts[shopId]!
           .entries
           .where((e) => e.value > 0)
-          .toList();
-      final shopLine = productEntries
-          .map((e) =>
-              '${productMap[e.key]?.name ?? '#${e.key}'}×${e.value}')
-          .join(', ');
-      buf.writeln('${shopName.padRight(maxShopLen + 2)}: $shopLine');
+          .toList()
+        ..sort((a, b) {
+            final na = productMap[a.key]?.name.toLowerCase() ?? '';
+            final nb = productMap[b.key]?.name.toLowerCase() ?? '';
+            return na.compareTo(nb);
+          });
+      for (final pe in productEntries) {
+        buf.writeln(
+            '· ${productMap[pe.key]?.name ?? '#${pe.key}'} × ${pe.value}');
+      }
       totalPieces += productEntries.fold<int>(0, (s, e) => s + e.value);
+      buf.writeln();
     }
-
-    buf.writeln();
     buf.writeln(
-      'Total: ${shopOrder.length} shop${shopOrder.length != 1 ? 's' : ''} | $totalPieces pieces',
+      'Total: ${shopOrder.length} shop${shopOrder.length != 1 ? 's' : ''} · $totalPieces pieces',
     );
-
     Share.share(buf.toString().trim());
   }
 }
@@ -246,71 +286,83 @@ class _ByItemView extends StatelessWidget {
     final sorted = totals.entries
         .where((e) => e.value > 0)
         .toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
+      ..sort((a, b) {
+          final na = productMap[a.key]?.name.toLowerCase() ?? '';
+          final nb = productMap[b.key]?.name.toLowerCase() ?? '';
+          return na.compareTo(nb);
+        });
 
-    return Column(
-      children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 12, 16, 6),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Item',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey,
-                  ),
-                ),
-              ),
-              Text(
-                'Quantity',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const Divider(height: 1),
-        Expanded(
-          child: ListView.separated(
-            itemCount: sorted.length,
-            separatorBuilder: (_, _) =>
-                const Divider(height: 1, indent: 72),
-            itemBuilder: (context, i) {
-              final entry = sorted[i];
-              final product = productMap[entry.key];
-              final unit = product?.unit;
-              return StaggeredFadeIn(
-                index: i,
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: kBrandBrown.withAlpha(30),
-                    child: const Icon(
-                      Icons.bakery_dining,
-                      color: kBrandBrown,
-                      size: 20,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      child: Card(
+        color: Colors.white,
+        clipBehavior: Clip.antiAlias,
+        margin: EdgeInsets.zero,
+        child: Column(
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 12, 16, 6),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Item',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey,
+                      ),
                     ),
                   ),
-                  title: Text(product?.name ?? 'Product #${entry.key}'),
-                  subtitle: unit != null ? Text('per $unit') : null,
-                  trailing: Text(
-                    entry.value.toString(),
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
+                  Text(
+                    'Quantity',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey,
                     ),
                   ),
-                ),
-              );
-            },
-          ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: ListView.separated(
+                itemCount: sorted.length,
+                separatorBuilder: (_, _) =>
+                    const Divider(height: 1, indent: 72),
+                itemBuilder: (context, i) {
+                  final entry = sorted[i];
+                  final product = productMap[entry.key];
+                  final unit = product?.unit;
+                  return StaggeredFadeIn(
+                    index: i,
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: kBrandBrown.withAlpha(30),
+                        child: const Icon(
+                          Icons.bakery_dining,
+                          color: kBrandBrown,
+                          size: 20,
+                        ),
+                      ),
+                      title: Text(product?.name ?? 'Product #${entry.key}'),
+                      subtitle: unit != null ? Text('per $unit') : null,
+                      trailing: Text(
+                        entry.value.toString(),
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
@@ -322,11 +374,13 @@ class _ByShopView extends StatelessWidget {
     required this.lines,
     required this.shopMap,
     required this.productMap,
+    required this.onShareShop,
   });
 
   final List<KitchenRawLine> lines;
   final Map<int, Shop> shopMap;
   final Map<int, Product> productMap;
+  final void Function(int shopId) onShareShop;
 
   @override
   Widget build(BuildContext context) {
@@ -341,43 +395,33 @@ class _ByShopView extends StatelessWidget {
           (shopProducts[l.shopId]![l.productId] ?? 0) + l.qty;
     }
 
-    final List<_ShopViewItem> items = [];
-    for (final shopId in shopOrder) {
-      final productEntries = shopProducts[shopId]!
-          .entries
-          .where((e) => e.value > 0)
-          .toList()
-        ..sort((a, b) => b.value.compareTo(a.value));
-      if (productEntries.isEmpty) continue;
-
-      final shop = shopMap[shopId];
-      final total = productEntries.fold<int>(0, (s, e) => s + e.value);
-      items.add(_ShopViewItem.header(
-        shopName: shop?.name ?? 'Shop #$shopId',
-        area: shop?.area,
-        total: total,
-      ));
-      for (final pe in productEntries) {
-        items.add(_ShopViewItem.product(
-          productName: productMap[pe.key]?.name ?? 'Product #${pe.key}',
-          qty: pe.value,
-        ));
-      }
-    }
-
     return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 80),
-      itemCount: items.length,
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+      itemCount: shopOrder.length,
       itemBuilder: (context, i) {
-        final item = items[i];
-        if (item.isHeader) {
-          return Column(
+        final shopId = shopOrder[i];
+        final shop = shopMap[shopId];
+        final productEntries = shopProducts[shopId]!
+            .entries
+            .where((e) => e.value > 0)
+            .toList()
+          ..sort((a, b) {
+              final na = productMap[a.key]?.name.toLowerCase() ?? '';
+              final nb = productMap[b.key]?.name.toLowerCase() ?? '';
+              return na.compareTo(nb);
+            });
+        if (productEntries.isEmpty) return const SizedBox.shrink();
+
+        final total = productEntries.fold<int>(0, (s, e) => s + e.value);
+
+        return Card(
+          color: Colors.white,
+          margin: const EdgeInsets.only(bottom: 8),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (i > 0) const Divider(height: 1),
-              Container(
-                color: const Color(0xFFFFF8F0),
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
                 child: Row(
                   children: [
                     Expanded(
@@ -385,76 +429,60 @@ class _ByShopView extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            item.shopName!,
+                            shop?.name ?? 'Shop #$shopId',
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
                             ),
                           ),
-                          if (item.area != null)
+                          if (shop?.area != null)
                             Text(
-                              item.area!,
+                              shop!.area!,
                               style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
+                                  fontSize: 12, color: Colors.grey[600]),
                             ),
                         ],
                       ),
                     ),
                     Text(
-                      '${item.total} pcs',
+                      '$total pcs',
                       style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: kBrandBrown,
-                      ),
+                          fontWeight: FontWeight.w600, color: kBrandBrown),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.share, size: 18),
+                      onPressed: () => onShareShop(shopId),
+                      visualDensity: VisualDensity.compact,
+                      tooltip: 'Share ${shop?.name ?? 'shop'}',
                     ),
                   ],
                 ),
               ),
-            ],
-          );
-        }
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 10),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(item.productName!),
+              const Divider(height: 1, indent: 16, endIndent: 16),
+              ...productEntries.map(
+                (pe) => Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 28, vertical: 10),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(productMap[pe.key]?.name ??
+                            'Product #${pe.key}'),
+                      ),
+                      Text(
+                        pe.value.toString(),
+                        style:
+                            const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              Text(
-                item.qty.toString(),
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
+              const SizedBox(height: 4),
             ],
           ),
         );
       },
     );
   }
-}
-
-class _ShopViewItem {
-  final bool isHeader;
-  final String? shopName;
-  final String? area;
-  final int total;
-  final String? productName;
-  final int qty;
-
-  const _ShopViewItem.header({
-    required this.shopName,
-    this.area,
-    required this.total,
-  })  : isHeader = true,
-        productName = null,
-        qty = 0;
-
-  const _ShopViewItem.product({
-    required this.productName,
-    required this.qty,
-  })  : isHeader = false,
-        shopName = null,
-        area = null,
-        total = 0;
 }

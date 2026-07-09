@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -10,10 +9,7 @@ import 'package:share_plus/share_plus.dart';
 import '../app.dart' show kDefaultLogoAsset;
 import '../database/app_database.dart';
 
-enum CatalogShareFormat { pdf, image, text }
-
-const _kRowHeight = 56.0;
-const _kImageWidth = 480.0;
+enum CatalogShareFormat { pdf, text }
 
 String _formatPrice(Product product) {
   if (product.price == null) {
@@ -163,59 +159,12 @@ Future<Uint8List> _buildPdfBytes({
   return doc.save();
 }
 
-Future<Uint8List> _buildImagePdfBytes({
-  required BusinessInfoData? business,
-  required List<Product> products,
-}) async {
-  final theme = await _loadTheme();
-  final logo = await _loadLogo(business);
-  final photos = await _loadProductPhotos(products);
-
-  const headerHeight = 160.0;
-  const margin = 20.0;
-  final pageHeight = headerHeight + products.length * _kRowHeight + margin * 2;
-
-  final doc = pw.Document(theme: theme);
-  doc.addPage(
-    pw.Page(
-      pageTheme: pw.PageTheme(
-        pageFormat: PdfPageFormat(_kImageWidth, pageHeight, marginAll: margin),
-        buildBackground: _whiteBackground,
-      ),
-      build: (context) => pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-        children: [
-          _buildLetterhead(business, logo),
-          for (final product in products) _buildProductRow(product, photos[product.id]),
-        ],
-      ),
-    ),
-  );
-  return doc.save();
-}
-
 Future<void> shareCatalogAsPdf({
   required BusinessInfoData? business,
   required List<Product> products,
 }) async {
   final bytes = await _buildPdfBytes(business: business, products: products);
   await Printing.sharePdf(bytes: bytes, filename: 'cafe-milano-catalog.pdf');
-}
-
-Future<void> shareCatalogAsImage({
-  required BusinessInfoData? business,
-  required List<Product> products,
-}) async {
-  final pdfBytes = await _buildImagePdfBytes(business: business, products: products);
-  final page = await Printing.raster(pdfBytes, dpi: 150).first;
-  final pngBytes = await page.toPng();
-
-  final dir = await getTemporaryDirectory();
-  final file = File(
-      '${dir.path}/cafe-milano-catalog-${DateTime.now().millisecondsSinceEpoch}.png');
-  await file.writeAsBytes(pngBytes);
-
-  await Share.shareXFiles([XFile(file.path)], text: 'Cafe Milano Catalog');
 }
 
 String _buildCatalogText({
