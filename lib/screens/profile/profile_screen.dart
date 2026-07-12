@@ -25,25 +25,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        title: Column(
+      body: SafeArea(
+        top: true,
+        bottom: false,
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Profile',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.person_rounded,
+                      color: kBrandGold, size: 28),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'PROFILE',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade500,
+                          letterSpacing: 1.1,
+                        ),
+                      ),
+                      const Text(
+                        'Settings',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: kBrandBrown,
+                          height: 1.15,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            Text(
-              'Settings & Configuration',
-              style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade500,
-                  fontWeight: FontWeight.normal),
-            ),
-          ],
-        ),
-      ),
-      body: ListView(
+            // Content
+            Expanded(
+              child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           // App branding header — gold background matching logo
@@ -199,6 +224,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         ],
+      ),
+            ),
+          ],
+        ),
       ),
     );
   }

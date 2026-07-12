@@ -4,9 +4,11 @@ import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../app.dart';
 import '../../database/app_database.dart';
+import '../../providers/date_provider.dart';
 import '../../providers/order_provider.dart';
 import '../../providers/shop_provider.dart';
 import '../../providers/product_provider.dart';
+import '../../widgets/date_selector.dart';
 import '../../widgets/staggered_fade_in.dart';
 
 class OrdersScreen extends ConsumerStatefulWidget {
@@ -17,34 +19,12 @@ class OrdersScreen extends ConsumerStatefulWidget {
 }
 
 class _OrdersScreenState extends ConsumerState<OrdersScreen> {
-  late DateTime _date;
   int? _expandedOrderId;
 
   @override
-  void initState() {
-    super.initState();
-    final now = DateTime.now();
-    _date = DateTime(now.year, now.month, now.day);
-  }
-
-  Future<void> _pickDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _date,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null && mounted) {
-      setState(() {
-        _date = picked;
-        _expandedOrderId = null;
-      });
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final summariesAsync = ref.watch(orderSummariesForDateProvider(_date));
+    final date = ref.watch(selectedDateProvider);
+    final summariesAsync = ref.watch(orderSummariesForDateProvider(date));
     final shopMap = ref.watch(allShopsProvider).maybeWhen(
       data: (shops) => {for (final s in shops) s.id: s},
       orElse: () => <int, Shop>{},
@@ -56,147 +36,168 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        title: Column(
+      body: SafeArea(
+        top: true,
+        bottom: false,
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Daily Billing',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              'Summary of all shop bills',
-              style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade500,
-                  fontWeight: FontWeight.normal),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton.icon(
-            onPressed: _pickDate,
-            icon: const Icon(Icons.calendar_today, size: 14),
-            label: Text(
-              DateFormat('dd MMM yyyy').format(_date),
-              style: const TextStyle(fontSize: 13),
-            ),
-          ),
-        ],
-      ),
-      body: summariesAsync.when(
-        data: (summaries) {
-          if (summaries.isEmpty) {
-            return const Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Row(
                 children: [
-                  Icon(Icons.receipt_long_outlined,
-                      size: 64, color: Colors.grey),
-                  SizedBox(height: 12),
-                  Text(
-                    'No orders for this date',
-                    style: TextStyle(color: Colors.grey, fontSize: 15),
+                  const Icon(Icons.receipt_long_rounded,
+                      color: kBrandGold, size: 28),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'DAILY BILLING',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade500,
+                          letterSpacing: 1.1,
+                        ),
+                      ),
+                      const Text(
+                        'Shop Bills',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: kBrandBrown,
+                          height: 1.15,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            );
-          }
-
-          final grandTotal =
-              summaries.fold<double>(0, (s, e) => s + e.total);
-
-          return Column(
-            children: [
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                  itemCount: summaries.length,
-                  itemBuilder: (context, i) {
-                    final s = summaries[i];
-                    final shop = shopMap[s.order.shopId];
-                    final isExpanded = _expandedOrderId == s.order.id;
-                    return StaggeredFadeIn(
-                      key: ValueKey(s.order.id),
-                      index: i,
-                      child: _OrderCard(
-                        summary: s,
-                        shop: shop,
-                        index: i + 1,
-                        productMap: productMap,
-                        isExpanded: isExpanded,
-                        onToggle: () => setState(() {
-                          _expandedOrderId =
-                              isExpanded ? null : s.order.id;
-                        }),
-                        onShare: () => _shareOne(s, shop, productMap),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              // Floating grand total card
-              SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Card(
-                    color: kBrandBrown,
-                    elevation: 6,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 14),
-                      child: Row(
+            ),
+            // Date selector
+            const DateSelector(),
+            // Content
+            Expanded(
+              child: summariesAsync.when(
+                data: (summaries) {
+                  if (summaries.isEmpty) {
+                    return const Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text(
-                                'Grand Total',
-                                style: TextStyle(
-                                    color: Colors.white, fontSize: 12),
-                              ),
-                              Text(
-                                '₹${NumberFormat('#,##0.##').format(grandTotal)}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const Spacer(),
-                          OutlinedButton.icon(
-                            onPressed: () =>
-                                _shareAll(summaries, shopMap),
-                            icon: const Icon(Icons.share,
-                                size: 16, color: Colors.white),
-                            label: const Text(
-                              'Share All Bills',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Colors.white),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
+                          Icon(Icons.receipt_long_outlined,
+                              size: 64, color: Colors.grey),
+                          SizedBox(height: 12),
+                          Text(
+                            'No orders for this date',
+                            style: TextStyle(color: Colors.grey, fontSize: 15),
                           ),
                         ],
                       ),
-                    ),
-                  ),
-                ),
+                    );
+                  }
+
+                  final grandTotal =
+                      summaries.fold<double>(0, (s, e) => s + e.total);
+
+                  return Column(
+                    children: [
+                      Expanded(
+                        child: ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                          itemCount: summaries.length,
+                          itemBuilder: (context, i) {
+                            final s = summaries[i];
+                            final shop = shopMap[s.order.shopId];
+                            final isExpanded = _expandedOrderId == s.order.id;
+                            return StaggeredFadeIn(
+                              key: ValueKey(s.order.id),
+                              index: i,
+                              child: _OrderCard(
+                                summary: s,
+                                shop: shop,
+                                index: i + 1,
+                                productMap: productMap,
+                                isExpanded: isExpanded,
+                                onToggle: () => setState(() {
+                                  _expandedOrderId =
+                                      isExpanded ? null : s.order.id;
+                                }),
+                                onShare: () => _shareOne(s, shop, productMap),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      // Floating grand total card
+                      SafeArea(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Card(
+                            color: kBrandBrown,
+                            elevation: 6,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 14),
+                              child: Row(
+                                children: [
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Text(
+                                        'Grand Total',
+                                        style: TextStyle(
+                                            color: Colors.white, fontSize: 12),
+                                      ),
+                                      Text(
+                                        '₹${NumberFormat('#,##0.##').format(grandTotal)}',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const Spacer(),
+                                  OutlinedButton.icon(
+                                    onPressed: () =>
+                                        _shareAll(summaries, shopMap, date),
+                                    icon: const Icon(Icons.share,
+                                        size: 16, color: Colors.white),
+                                    label: const Text(
+                                      'Share All Bills',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                    style: OutlinedButton.styleFrom(
+                                      side: const BorderSide(color: Colors.white),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+                loading: () =>
+                    const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Center(child: Text('Error: $e')),
               ),
-            ],
-          );
-        },
-        loading: () =>
-            const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -206,17 +207,19 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     Shop? shop,
     Map<int, Product> productMap,
   ) async {
+    final date = ref.read(selectedDateProvider);
     final owl =
         await ref.read(orderWithLinesProvider(summary.order.id).future);
-    final text = _buildBillText(shop?.name ?? 'Unknown', owl, productMap);
+    final text = _buildBillText(shop?.name ?? 'Unknown', owl, productMap, date);
     await Share.share(text);
   }
 
   Future<void> _shareAll(
     List<OrderDaySummary> summaries,
     Map<int, Shop> shopMap,
+    DateTime date,
   ) async {
-    final dateLabel = DateFormat('dd MMM yyyy').format(_date);
+    final dateLabel = DateFormat('dd MMM yyyy').format(date);
     final buf = StringBuffer();
     buf.writeln('🧾 Bills — $dateLabel');
     buf.writeln();
@@ -234,8 +237,9 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     String shopName,
     OrderWithLines? owl,
     Map<int, Product> productMap,
+    DateTime date,
   ) {
-    final dateLabel = DateFormat('dd MMM yyyy').format(_date);
+    final dateLabel = DateFormat('dd MMM yyyy').format(date);
     final buf = StringBuffer();
     buf.writeln('🧾 Bill — $shopName');
     buf.writeln('Date: $dateLabel');

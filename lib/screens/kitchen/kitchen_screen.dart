@@ -5,10 +5,12 @@ import 'package:share_plus/share_plus.dart';
 import '../../app.dart';
 import '../../database/app_database.dart';
 import '../../providers/category_provider.dart';
+import '../../providers/date_provider.dart';
 import '../../providers/order_provider.dart';
 import '../../providers/shop_provider.dart';
 import '../../providers/product_provider.dart';
 import '../../services/category_emoji.dart';
+import '../../widgets/date_selector.dart';
 import '../../widgets/staggered_fade_in.dart';
 
 class KitchenScreen extends ConsumerStatefulWidget {
@@ -20,14 +22,11 @@ class KitchenScreen extends ConsumerStatefulWidget {
 
 class _KitchenScreenState extends ConsumerState<KitchenScreen>
     with SingleTickerProviderStateMixin {
-  late DateTime _date;
   late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
-    _date = DateTime(now.year, now.month, now.day);
     _tabController = TabController(length: 2, vsync: this);
   }
 
@@ -37,21 +36,10 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
     super.dispose();
   }
 
-  Future<void> _pickDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _date,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null && mounted) {
-      setState(() => _date = picked);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final linesAsync = ref.watch(kitchenLinesForDateProvider(_date));
+    final date = ref.watch(selectedDateProvider);
+    final linesAsync = ref.watch(kitchenLinesForDateProvider(date));
     final shopMap = ref.watch(allShopsProvider).maybeWhen(
           data: (shops) => {for (final s in shops) s.id: s},
           orElse: () => <int, Shop>{},
@@ -72,71 +60,105 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        title: Column(
+      body: SafeArea(
+        top: true,
+        bottom: false,
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Kitchen Production',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              'Production plan for the day',
-              style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade500,
-                  fontWeight: FontWeight.normal),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton.icon(
-            onPressed: _pickDate,
-            icon: const Icon(Icons.calendar_today, size: 14),
-            label: Text(
-              DateFormat('dd MMM yyyy').format(_date),
-              style: const TextStyle(fontSize: 13),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.share),
-            tooltip: 'Share kitchen list',
-            onPressed: hasLines
-                ? () => _tabController.index == 0
-                    ? _shareItems(lines, productMap, categories)
-                    : _shareAllShops(lines, shopMap, productMap)
-                : null,
-          ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'By Item'),
-            Tab(text: 'By Shop'),
-          ],
-        ),
-      ),
-      body: linesAsync.when(
-        data: (lines) {
-          if (lines.isEmpty) {
-            return const _EmptyState();
-          }
-          return TabBarView(
-            controller: _tabController,
-            children: [
-              _ByItemView(lines: lines, productMap: productMap),
-              _ByShopView(
-                lines: lines,
-                shopMap: shopMap,
-                productMap: productMap,
-                onShareShop: (shopId) =>
-                    _shareShop(shopId, lines, shopMap, productMap),
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.restaurant_rounded,
+                      color: kBrandGold, size: 28),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'KITCHEN',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade500,
+                            letterSpacing: 1.1,
+                          ),
+                        ),
+                        const Text(
+                          'Production',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: kBrandBrown,
+                            height: 1.15,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Share button
+                  IconButton(
+                    icon: const Icon(Icons.share_rounded),
+                    color: kBrandBrown,
+                    tooltip: 'Share kitchen list',
+                    onPressed: hasLines
+                        ? () => _tabController.index == 0
+                            ? _shareItems(lines, productMap, categories, date)
+                            : _shareAllShops(lines, shopMap, productMap, date)
+                        : null,
+                  ),
+                ],
               ),
-            ],
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+            ),
+            // Date selector
+            const DateSelector(),
+            // Tab bar
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: TabBar(
+                controller: _tabController,
+                tabs: const [
+                  Tab(text: 'By Item'),
+                  Tab(text: 'By Shop'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Content
+            Expanded(
+              child: linesAsync.when(
+                data: (lines) {
+                  if (lines.isEmpty) {
+                    return const _EmptyState();
+                  }
+                  return TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _ByItemView(lines: lines, productMap: productMap),
+                      _ByShopView(
+                        lines: lines,
+                        shopMap: shopMap,
+                        productMap: productMap,
+                        onShareShop: (shopId) =>
+                            _shareShop(shopId, lines, shopMap, productMap, date),
+                      ),
+                    ],
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Center(child: Text('Error: $e')),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -145,8 +167,9 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
     List<KitchenRawLine> lines,
     Map<int, Product> productMap,
     List<Category> categories,
+    DateTime date,
   ) {
-    final dateLabel = DateFormat('dd MMM yyyy').format(_date);
+    final dateLabel = DateFormat('dd MMM yyyy').format(date);
 
     final Map<int, int> itemTotals = {};
     for (final l in lines) {
@@ -212,8 +235,9 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
     List<KitchenRawLine> lines,
     Map<int, Shop> shopMap,
     Map<int, Product> productMap,
+    DateTime date,
   ) {
-    final dateLabel = DateFormat('dd MMM yyyy').format(_date);
+    final dateLabel = DateFormat('dd MMM yyyy').format(date);
     final shop = shopMap[shopId];
     final shopName = shop?.name ?? 'Shop #$shopId';
     final shopArea = shop?.area?.trim();
@@ -246,8 +270,9 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
     List<KitchenRawLine> lines,
     Map<int, Shop> shopMap,
     Map<int, Product> productMap,
+    DateTime date,
   ) {
-    final dateLabel = DateFormat('dd MMM yyyy').format(_date);
+    final dateLabel = DateFormat('dd MMM yyyy').format(date);
     final Map<int, Map<int, int>> shopProducts = {};
     final List<int> shopOrder = [];
     for (final l in lines) {
