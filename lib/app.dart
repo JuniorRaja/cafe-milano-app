@@ -3,7 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'widgets/floating_nav_bar.dart';
 import 'widgets/app_background.dart';
 import 'screens/splash/splash_screen.dart';
-import 'screens/home/home_screen.dart';
+import 'screens/home/home_shops_screen.dart';
+import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/orders/orders_screen.dart';
 import 'screens/kitchen/kitchen_screen.dart';
 import 'screens/profile/profile_screen.dart';
@@ -17,6 +18,8 @@ import 'screens/profile/business_info/business_info_form_screen.dart';
 import 'screens/profile/products/catalog_share_picker_screen.dart';
 import 'screens/profile/backup/backup_restore_screen.dart';
 import 'screens/profile/categories/category_list_screen.dart';
+import 'screens/profile/dashboard_settings_screen.dart';
+import 'screens/dashboard/kpi_help_screen.dart';
 import 'screens/order_entry/order_entry_screen.dart';
 
 // Brand colors extracted from the Caffe Milano logo
@@ -29,6 +32,7 @@ const kDefaultLogoAsset = 'mobile-app-logo-trasnsp.png';
 class AppRoutes {
   static const splash        = '/splash';
   static const home          = '/';
+  static const homeShops     = '/home/shops';
   static const orders        = '/orders';
   static const kitchen       = '/kitchen';
   static const profile       = '/profile';
@@ -45,6 +49,8 @@ class AppRoutes {
   static const catalogShare  = '/profile/products/share';
   static const categories    = '/profile/categories';
   static const backupRestore = '/profile/backup';
+  static const dashboardSettings = '/profile/dashboard-settings';
+  static const kpiHelp       = '/profile/dashboard-settings/help';
 }
 
 final _router = GoRouter(
@@ -61,7 +67,13 @@ final _router = GoRouter(
         StatefulShellBranch(routes: [
           GoRoute(
             path: AppRoutes.home,
-            builder: (context, state) => const HomeScreen(),
+            builder: (context, state) => const DashboardScreen(),
+            routes: [
+              GoRoute(
+                path: 'home/shops',
+                builder: (context, state) => const HomeShopsScreen(),
+              ),
+            ],
           ),
         ]),
         StatefulShellBranch(routes: [
@@ -136,6 +148,18 @@ final _router = GoRouter(
               GoRoute(
                 path: 'backup',
                 builder: (context, state) => const BackupRestoreScreen(),
+              ),
+              GoRoute(
+                path: 'dashboard-settings',
+                builder: (context, state) => const DashboardSettingsScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'help',
+                    builder: (context, state) => KpiHelpScreen(
+                      scrollToSection: state.extra as String?,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -226,7 +250,7 @@ class MilanoOrdersApp extends StatelessWidget {
   }
 }
 
-const _topLevelPaths = {'/', '/orders', '/kitchen', '/profile'};
+const _topLevelPaths = {'/', '/orders', '/kitchen', '/profile', '/home/shops'};
 
 class _ScaffoldWithNavBar extends StatelessWidget {
   const _ScaffoldWithNavBar({required this.navigationShell});
@@ -257,15 +281,10 @@ class _ScaffoldWithNavBar extends StatelessWidget {
           : null,
       floatingActionButton: showNavBar
           ? FloatingActionButton(
-              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Tap a shop card to enter an order'),
-                  duration: Duration(seconds: 2),
-                ),
-              ),
+              onPressed: () => GoRouter.of(context).push('/home/shops'),
               backgroundColor: kBrandGold,
               foregroundColor: Colors.black87,
-              child: const Icon(Icons.add),
+              child: const Icon(Icons.store_rounded),
             )
           : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,

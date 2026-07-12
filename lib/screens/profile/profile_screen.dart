@@ -160,6 +160,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const Divider(height: 1, indent: 64),
                 _SettingsTile(
+                  icon: Icons.dashboard_customize_outlined,
+                  title: 'Dashboard',
+                  subtitle: 'Customize visible sections & KPI help',
+                  onTap: () => context.push(AppRoutes.dashboardSettings),
+                ),
+                const Divider(height: 1, indent: 64),
+                _SettingsTile(
                   icon: Icons.backup_outlined,
                   title: 'Backup & Restore',
                   subtitle: 'Export or import all your data',

@@ -13,8 +13,8 @@ import '../../widgets/date_selector.dart';
 import '../../widgets/shop_order_card.dart';
 import '../../widgets/staggered_fade_in.dart';
 
-class HomeScreen extends ConsumerWidget {
-  const HomeScreen({super.key});
+class HomeShopsScreen extends ConsumerWidget {
+  const HomeShopsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
