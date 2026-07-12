@@ -185,7 +185,7 @@ class MilanoOrdersApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         visualDensity: VisualDensity.compact,
-        fontFamily: 'Poppins',
+        fontFamily: 'Quicksand',
         colorScheme: ColorScheme.fromSeed(
           seedColor: kBrandGold,
           surface: kSurface,
@@ -206,14 +206,14 @@ class MilanoOrdersApp extends StatelessWidget {
           labelTextStyle: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {
               return const TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Quicksand',
                 color: kBrandBrown,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               );
             }
             return TextStyle(
-              fontFamily: 'Poppins',
+              fontFamily: 'Quicksand',
               color: Colors.grey.shade600,
               fontSize: 11,
             );

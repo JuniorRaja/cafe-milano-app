@@ -32,8 +32,8 @@ String _formatPrice(Product product) {
 }
 
 Future<pw.ThemeData> _loadTheme() async {
-  final regular = await rootBundle.load('assets/fonts/Poppins-Regular.ttf');
-  final bold    = await rootBundle.load('assets/fonts/Poppins-Bold.ttf');
+  final regular = await rootBundle.load('assets/fonts/Quicksand-Regular.ttf');
+  final bold    = await rootBundle.load('assets/fonts/Quicksand-Bold.ttf');
   return pw.ThemeData.withFont(
     base: pw.Font.ttf(regular),
     bold: pw.Font.ttf(bold),

@@ -1,7 +1,7 @@
 name: milano_orders
 description: "Milano Orders — Daily bakery order management"
 publish_to: 'none'
-version: 1.4.0+4
+version: 1.5.0+5
 
 environment:
   sdk: ^3.12.2
@@ -43,14 +43,14 @@ flutter:
     - bg-vector.png
     - docs/cafe-milano-backup-20260708-224812.json
   fonts:
-    - family: Poppins
+    - family: Quicksand
       fonts:
-        - asset: assets/fonts/Poppins-Regular.ttf
-        - asset: assets/fonts/Poppins-Medium.ttf
+        - asset: assets/fonts/Quicksand-Regular.ttf
+        - asset: assets/fonts/Quicksand-Medium.ttf
           weight: 500
-        - asset: assets/fonts/Poppins-SemiBold.ttf
+        - asset: assets/fonts/Quicksand-SemiBold.ttf
           weight: 600
-        - asset: assets/fonts/Poppins-Bold.ttf
+        - asset: assets/fonts/Quicksand-Bold.ttf
           weight: 700
 
 flutter_launcher_icons:
