@@ -249,22 +249,110 @@ class DashboardDao extends DatabaseAccessor<AppDatabase>
   /// Weekday heatmap: avg pieces per category per weekday (last 4 weeks).
   Future<List<Map<String, dynamic>>> getWeekdayHeatmap(
       DateTime fourWeeksAgo) async {
-    // Stub — Phase C
-    return [];
-  }
-
-  /// Stacked revenue trend: daily revenue per category (30 days).
-  Future<List<Map<String, dynamic>>> getStackedTrend(
-      DateTime thirtyDaysAgo) async {
-    // Stub — Phase C
-    return [];
+    final startDay =
+        DateTime(fourWeeksAgo.year, fourWeeksAgo.month, fourWeeksAgo.day);
+    final query = customSelect(
+      'SELECT sub.categoryId, sub.weekday, AVG(sub.daily_total) AS avg_pieces '
+      'FROM ( '
+      '  SELECT p.category_id AS categoryId, '
+      '    CAST(strftime(\'%w\', o.order_date) AS INTEGER) AS weekday, '
+      '    SUM(ol.qty) AS daily_total '
+      '  FROM order_lines ol '
+      '  INNER JOIN daily_orders o ON ol.order_id = o.id '
+      '  INNER JOIN products p ON ol.product_id = p.id '
+      '  WHERE o.order_date >= ? '
+      '  GROUP BY o.order_date, p.category_id '
+      ') sub '
+      'GROUP BY sub.categoryId, sub.weekday',
+      variables: [Variable.withDateTime(startDay)],
+      readsFrom: {orderLines, dailyOrders, products},
+    );
+    final rows = await query.get();
+    return rows
+        .map((r) => {
+              'categoryId': r.read<int?>('categoryId'),
+              'weekday': r.read<int>('weekday'),
+              'avg_pieces': r.read<double>('avg_pieces'),
+            })
+        .toList();
   }
 
   // ─── Attention Flags ───────────────────────────────────────────────────
 
   /// Active shops with no orders in the last 7 days.
   Future<List<int>> getInactiveShopIds(DateTime sevenDaysAgo) async {
-    // Stub — Phase C
-    return [];
+    final startDay =
+        DateTime(sevenDaysAgo.year, sevenDaysAgo.month, sevenDaysAgo.day);
+    final query = customSelect(
+      'SELECT s.id AS shopId FROM shops s '
+      'WHERE s.is_active = 1 '
+      'AND s.id NOT IN ('
+      '  SELECT DISTINCT o.shop_id FROM daily_orders o '
+      '  WHERE o.order_date >= ?'
+      ')',
+      variables: [Variable.withDateTime(startDay)],
+      readsFrom: {shops, dailyOrders},
+    );
+    final rows = await query.get();
+    return rows.map((r) => r.read<int>('shopId')).toList();
+  }
+
+  /// Revenue per category for a given date range (used for flag comparisons).
+  Future<Map<int?, double>> getCategoryRevenuesForRange(
+      DateTime start, DateTime end) async {
+    final startDay = DateTime(start.year, start.month, start.day);
+    final endDay = DateTime(end.year, end.month, end.day);
+    final query = customSelect(
+      'SELECT p.category_id AS categoryId, '
+      'COALESCE(SUM(ol.qty * ol.unit_price), 0.0) AS revenue '
+      'FROM order_lines ol '
+      'INNER JOIN daily_orders o ON ol.order_id = o.id '
+      'INNER JOIN products p ON ol.product_id = p.id '
+      'WHERE o.order_date >= ? AND o.order_date <= ? '
+      'GROUP BY p.category_id',
+      variables: [Variable.withDateTime(startDay), Variable.withDateTime(endDay)],
+      readsFrom: {orderLines, dailyOrders, products},
+    );
+    final rows = await query.get();
+    return {
+      for (final r in rows) r.read<int?>('categoryId'): r.read<double>('revenue')
+    };
+  }
+
+  /// Categories that had orders on at least 3 of the last 7 days but none today.
+  Future<List<int?>> getZeroDayCategoryIds(DateTime today) async {
+    final dayStart = DateTime(today.year, today.month, today.day);
+    final sevenDaysAgo = dayStart.subtract(const Duration(days: 7));
+    final query = customSelect(
+      'SELECT p.category_id AS categoryId, '
+      'COUNT(DISTINCT o.order_date) AS active_days '
+      'FROM order_lines ol '
+      'INNER JOIN daily_orders o ON ol.order_id = o.id '
+      'INNER JOIN products p ON ol.product_id = p.id '
+      'WHERE o.order_date >= ? AND o.order_date < ? '
+      'GROUP BY p.category_id '
+      'HAVING active_days >= 3',
+      variables: [Variable.withDateTime(sevenDaysAgo), Variable.withDateTime(dayStart)],
+      readsFrom: {orderLines, dailyOrders, products},
+    );
+    final frequentCats = await query.get();
+    final frequentCatIds =
+        frequentCats.map((r) => r.read<int?>('categoryId')).toSet();
+
+    // Check which of those have zero today
+    final todayQuery = customSelect(
+      'SELECT DISTINCT p.category_id AS categoryId '
+      'FROM order_lines ol '
+      'INNER JOIN daily_orders o ON ol.order_id = o.id '
+      'INNER JOIN products p ON ol.product_id = p.id '
+      'WHERE o.order_date = ?',
+      variables: [Variable.withDateTime(dayStart)],
+      readsFrom: {orderLines, dailyOrders, products},
+    );
+    final todayCats = await todayQuery.get();
+    final todayCatIds =
+        todayCats.map((r) => r.read<int?>('categoryId')).toSet();
+
+    return frequentCatIds.difference(todayCatIds).toList();
   }
 }

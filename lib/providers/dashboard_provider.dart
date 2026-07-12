@@ -31,12 +31,14 @@ class DashboardRangeNotifier extends StateNotifier<DashboardRange> {
 
 final todayRevenueProvider = FutureProvider<double>((ref) async {
   final db = ref.watch(databaseProvider);
+  ref.watch(dashboardRangeProvider); // dependency for refresh
   final today = DateTime.now();
   return db.dashboardDao.getRevenueForDate(today);
 });
 
 final revenueDeltaProvider = FutureProvider<double?>((ref) async {
   final db = ref.watch(databaseProvider);
+  ref.watch(dashboardRangeProvider); // dependency for refresh
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
   final sameWeekdayLastWeek = today.subtract(const Duration(days: 7));
@@ -54,6 +56,7 @@ final revenueDeltaProvider = FutureProvider<double?>((ref) async {
 final shopsServedTodayProvider =
     FutureProvider<(int served, int total)>((ref) async {
   final db = ref.watch(databaseProvider);
+  ref.watch(dashboardRangeProvider); // dependency for refresh
   final today = DateTime.now();
   final served = await db.dashboardDao.getShopsServedForDate(today);
   final total = await db.dashboardDao.getTotalActiveShops();
@@ -62,6 +65,7 @@ final shopsServedTodayProvider =
 
 final pendingConfirmationsProvider = FutureProvider<int>((ref) async {
   final db = ref.watch(databaseProvider);
+  ref.watch(dashboardRangeProvider); // dependency for refresh
   final today = DateTime.now();
   return db.dashboardDao.getPendingCountForDate(today);
 });
@@ -263,23 +267,126 @@ final productLeaderboardProvider =
       .toList();
 });
 
-// ─── Operational Patterns (stubs — Phase C) ─────────────────────────────────
+// ─── Operational Patterns ────────────────────────────────────────────────────
 
-/// `Map<categoryId, Map<weekday (0=Mon..6=Sun), avgPieces>>`
+/// `Map<categoryId, Map<weekday (0=Sun..6=Sat → remapped to 0=Mon..6=Sun), avgPieces>>`
 final weekdayHeatmapProvider =
     FutureProvider<Map<int?, Map<int, double>>>((ref) async {
-  return {};
+  final db = ref.watch(databaseProvider);
+  final now = DateTime.now();
+  final fourWeeksAgo =
+      DateTime(now.year, now.month, now.day).subtract(const Duration(days: 28));
+
+  final rows = await db.dashboardDao.getWeekdayHeatmap(fourWeeksAgo);
+
+  // SQLite strftime('%w') → 0=Sunday..6=Saturday
+  // We want 0=Monday..6=Sunday
+  int remapWeekday(int sqliteWeekday) {
+    // 0(Sun)→6, 1(Mon)→0, 2(Tue)→1, ... 6(Sat)→5
+    return (sqliteWeekday + 6) % 7;
+  }
+
+  final Map<int?, Map<int, double>> result = {};
+  for (final row in rows) {
+    final catId = row['categoryId'] as int?;
+    final weekday = remapWeekday(row['weekday'] as int);
+    final avg = row['avg_pieces'] as double;
+    result.putIfAbsent(catId, () => {});
+    result[catId]![weekday] = avg;
+  }
+  return result;
 });
 
-/// `Map<date, Map<categoryId, revenue>>`
-final stackedRevenueTrendProvider =
-    FutureProvider<Map<DateTime, Map<int?, double>>>((ref) async {
-  return {};
-});
-
-// ─── Attention Flags (stub — Phase C) ───────────────────────────────────────
+// ─── Attention Flags ────────────────────────────────────────────────────────
 
 final attentionFlagsProvider =
     FutureProvider<List<AttentionFlag>>((ref) async {
-  return [];
+  final db = ref.watch(databaseProvider);
+  final range = ref.watch(dashboardRangeProvider);
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+
+  final cats = await db.categoryDao.watchActive().first;
+  final catMap = {for (final c in cats) c.id: c.name};
+
+  final List<AttentionFlag> flags = [];
+
+  // 1. Declining Category — revenue down > 15% vs mirror period
+  if (range.mirrorRange != null) {
+    final currentRevs = await db.dashboardDao
+        .getCategoryRevenuesForRange(range.range.start, range.range.end);
+    final mirrorRevs = await db.dashboardDao.getCategoryRevenuesForRange(
+        range.mirrorRange!.start, range.mirrorRange!.end);
+
+    for (final entry in currentRevs.entries) {
+      final catId = entry.key;
+      final current = entry.value;
+      final mirror = mirrorRevs[catId] ?? 0;
+      if (mirror > 0) {
+        final change = ((current - mirror) / mirror) * 100;
+        if (change < -15) {
+          final catName = catId != null ? (catMap[catId] ?? 'Others') : 'Others';
+          flags.add(AttentionFlag(
+            type: AttentionFlagType.decliningCategory,
+            icon: '📉',
+            message: '$catName down ${change.abs().toStringAsFixed(0)}%',
+            detail: 'vs previous period',
+          ));
+        }
+      }
+    }
+  }
+
+  // 2. Inactive Shop — active shop with 0 orders in last 7 days
+  final sevenDaysAgo = today.subtract(const Duration(days: 7));
+  final inactiveIds = await db.dashboardDao.getInactiveShopIds(sevenDaysAgo);
+  if (inactiveIds.isNotEmpty) {
+    // Get shop names
+    final allShops = await db.shopDao.watchAllShops().first;
+    final shopMap = {for (final s in allShops) s.id: s.name};
+    for (final id in inactiveIds.take(3)) {
+      final name = shopMap[id] ?? 'Shop #$id';
+      flags.add(AttentionFlag(
+        type: AttentionFlagType.inactiveShop,
+        icon: '🏪',
+        message: '$name inactive 7+ days',
+        detail: 'No orders placed recently',
+      ));
+    }
+  }
+
+  // 3. Concentration Risk — single shop > 25% of total revenue
+  final shopConc = await db.dashboardDao
+      .getShopConcentration(range.range.start, range.range.end);
+  if (shopConc.isNotEmpty) {
+    final totalRev =
+        shopConc.fold<double>(0, (sum, r) => sum + (r['rev'] as double));
+    if (totalRev > 0) {
+      for (final shop in shopConc) {
+        final share = (shop['rev'] as double) / totalRev * 100;
+        if (share > 25) {
+          flags.add(AttentionFlag(
+            type: AttentionFlagType.concentrationRisk,
+            icon: '⚖️',
+            message: '${shop['shopName']} is ${share.toStringAsFixed(0)}% of revenue',
+            detail: 'Diversification protects you',
+          ));
+        }
+      }
+    }
+  }
+
+  // 4. Zero Day — category with daily orders has 0 today
+  final zeroDayCats = await db.dashboardDao.getZeroDayCategoryIds(today);
+  for (final catId in zeroDayCats.take(2)) {
+    final catName = catId != null ? (catMap[catId] ?? 'Others') : 'Others';
+    flags.add(AttentionFlag(
+      type: AttentionFlagType.zeroDay,
+      icon: '⚠️',
+      message: '$catName has 0 orders today',
+      detail: 'Usually active daily',
+    ));
+  }
+
+  return flags;
 });

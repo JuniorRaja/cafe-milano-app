@@ -110,7 +110,12 @@ class _FloatingNavBarState extends State<FloatingNavBar>
 
     return Container(
       height: 64,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: EdgeInsets.fromLTRB(
+        16,
+        8,
+        16,
+        8 + MediaQuery.of(context).padding.bottom,
+      ),
       decoration: BoxDecoration(
         color: kSurface,
         borderRadius: BorderRadius.circular(32),

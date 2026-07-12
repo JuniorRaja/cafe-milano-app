@@ -68,7 +68,7 @@ class DashboardSettingsScreen extends ConsumerWidget {
                 const Divider(height: 1, indent: 16),
                 _ToggleTile(
                   title: 'Operational Patterns',
-                  subtitle: 'Heatmap & stacked trend',
+                  subtitle: 'Day-of-week heatmap',
                   value: settings.showOperationalPatterns,
                   onChanged: (v) =>
                       notifier.toggle(kDashOperationalPatterns, v),
@@ -144,15 +144,6 @@ class DashboardSettingsScreen extends ConsumerWidget {
                   onChanged: (v) => notifier.toggle(kDashHeatmap, v),
                   onInfo: () => context.push('/profile/dashboard-settings/help',
                       extra: 'heatmap'),
-                ),
-                const Divider(height: 1, indent: 16),
-                _ToggleTile(
-                  title: 'Revenue Trend (Stacked)',
-                  subtitle: '30-day stacked area',
-                  value: settings.showRevenueTrend,
-                  onChanged: (v) => notifier.toggle(kDashRevenueTrend, v),
-                  onInfo: () => context.push('/profile/dashboard-settings/help',
-                      extra: 'revenue_trend'),
                 ),
               ],
             ),

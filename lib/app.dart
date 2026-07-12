@@ -32,7 +32,7 @@ const kDefaultLogoAsset = 'mobile-app-logo-trasnsp.png';
 class AppRoutes {
   static const splash        = '/splash';
   static const home          = '/';
-  static const homeShops     = '/home/shops';
+  static const dashboard     = '/dashboard';
   static const orders        = '/orders';
   static const kitchen       = '/kitchen';
   static const profile       = '/profile';
@@ -67,13 +67,7 @@ final _router = GoRouter(
         StatefulShellBranch(routes: [
           GoRoute(
             path: AppRoutes.home,
-            builder: (context, state) => const DashboardScreen(),
-            routes: [
-              GoRoute(
-                path: 'home/shops',
-                builder: (context, state) => const HomeShopsScreen(),
-              ),
-            ],
+            builder: (context, state) => const HomeShopsScreen(),
           ),
         ]),
         StatefulShellBranch(routes: [
@@ -166,6 +160,11 @@ final _router = GoRouter(
         ]),
       ],
     ),
+    // Dashboard as a top-level push route (opened from FAB)
+    GoRoute(
+      path: AppRoutes.dashboard,
+      builder: (context, state) => const DashboardScreen(),
+    ),
     GoRoute(
       path: '/order/:shopId',
       builder: (context, state) => OrderEntryScreen(
@@ -250,7 +249,7 @@ class MilanoOrdersApp extends StatelessWidget {
   }
 }
 
-const _topLevelPaths = {'/', '/orders', '/kitchen', '/profile', '/home/shops'};
+const _topLevelPaths = {'/', '/orders', '/kitchen', '/profile', '/dashboard'};
 
 class _ScaffoldWithNavBar extends StatelessWidget {
   const _ScaffoldWithNavBar({required this.navigationShell});
@@ -281,10 +280,10 @@ class _ScaffoldWithNavBar extends StatelessWidget {
           : null,
       floatingActionButton: showNavBar
           ? FloatingActionButton(
-              onPressed: () => GoRouter.of(context).push('/home/shops'),
+              onPressed: () => GoRouter.of(context).push(AppRoutes.dashboard),
               backgroundColor: kBrandGold,
               foregroundColor: Colors.black87,
-              child: const Icon(Icons.store_rounded),
+              child: const Icon(Icons.dashboard_rounded),
             )
           : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
