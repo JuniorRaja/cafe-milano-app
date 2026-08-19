@@ -166,55 +166,35 @@ Depends on Phase 2 (categories drive PDF sections).
 
 **Scope: point 7.**
 
-Depends on Phase 2 (kitchen category-wise donut) but NOT on Phase 5 (ledger) — sales dashboard ships revenue-only; Outstanding card is deferred to Phase 6.
+Depends on Phase 2 (categories) for category-level breakdowns. Does NOT depend on Phase 5 (ledger) — Outstanding card deferred to Phase 6.
 
-**Action items:**
+> **Full spec**: See [`docs/dashboard_plan.md`](./dashboard_plan.md) for complete KPI definitions, SQL queries, provider architecture, UI layout, settings screen, and help guide.
 
-- [ ] `pubspec.yaml` — add `fl_chart: ^0.68.0`.
-- [ ] `lib/screens/home/home_screen.dart` — rename current file/class to `home_shops_screen.dart` / `HomeShopsScreen`; keep the file's current content (shops list). Register under route `/home/shops`.
-- [ ] `lib/screens/dashboard/dashboard_screen.dart` — new file. Riverpod-driven, top-level `SingleChildScrollView` of cards.
-- [ ] `lib/app.dart` — swap the Home branch's first route from `HomeScreen` to `DashboardScreen`. Add `/home/shops` inside the same branch. Change the centre-docked FAB from the current snackbar `+` (`_ScaffoldWithNavBar.build`, `app.dart:252-263`) to a Home icon that calls `context.go('/home/shops')`. Keep the FAB visible on all four top-level tabs.
-- [ ] `lib/providers/dashboard_provider.dart` — new file:
-  - `dashboardRangeProvider` (`StateProvider<DashboardRange>`), with presets `today, thisWeek, lastWeek, thisMonth, lastMonth, last90, custom`.
-  - `kitchenDailyTotalsProvider(range)` — `List<({DateTime date, int pieces})>`.
-  - `kitchenCategoryBreakdownProvider(range)` — `List<({int? categoryId, String name, int pieces})>`.
-  - `salesRevenueSummaryProvider` — `({double today, double wtd, double mtd})`.
-  - `salesDailyRevenueProvider(range)` — `List<({DateTime date, double revenue})>`.
-  - `salesTopShopsProvider(range)` — `List<({int shopId, String name, double revenue})>` (top 5).
-  - `salesTopProductsProvider(range)` — `List<({int productId, String name, double revenue})>` (top 5).
-- [ ] `lib/database/daos/dashboard_dao.dart` — new DAO backing the providers with grouped aggregations.
-- [ ] `lib/widgets/dashboard/date_range_pill.dart` — segmented pill: `Today · This Week · Last Week · This Month · Last Month · Last 90 Days · Custom`. On "Custom" tap → `showDateRangePicker`.
-- [ ] `lib/widgets/dashboard/kitchen_section.dart` — cards:
-  1. Today's total production (hero number) + `Confirmed X / Pending Y shops` subtitle.
-  2. Top 5 items today — horizontal bar list.
-  3. Category-wise donut for selected range (`fl_chart PieChart`, `centerSpaceRadius` for donut hole).
-  4. 7-day trend line for total pieces (`fl_chart LineChart`).
-- [ ] `lib/widgets/dashboard/sales_section.dart` — cards:
-  1. 3-number strip: Today's revenue · WTD · MTD.
-  2. Top shops by revenue (bar list) · Top products by revenue (bar list).
-  3. 30-day revenue trend (`fl_chart LineChart` or `BarChart`).
+**Summary of approach**: Category-first analytics — each category treated as a mini business unit with its own revenue, volume, sparkline, and star product. Five sections: The Pulse (today snapshot), Category Scorecards (horizontal scroll), Revenue Anatomy (donut + shop concentration + product leaderboard), Operational Patterns (weekday heatmap + stacked revenue trend), and Attention Flags (smart alerts for anomalies). All sections toggleable from Profile → Dashboard Settings. KPI Help guide accessible from settings and inline ⓘ icons.
 
-**Deferred to Phase 6**: Sales dashboard "Outstanding Receivables" card (needs Ledger).
+**Key deliverables:**
+- `fl_chart: ^0.68.0` dependency
+- `DashboardDao` with ~12 grouped aggregation queries
+- `DashboardScreen` replacing Home tab; current shops list moved to `/home/shops`
+- Centre-docked FAB → Home icon navigating to shops list
+- Dashboard Settings screen (Profile → Dashboard) with per-section toggles
+- KPI Help screen with plain-language explanations
 
-**Tasks:**
-
-1. Add `fl_chart` dependency.
-2. Rename `HomeScreen` → `HomeShopsScreen`; register new `/home/shops` route.
-3. Build `DashboardScreen` shell + date-range pill.
-4. Author `DashboardDao` and dashboard providers.
-5. Build Kitchen section cards.
-6. Build Sales section cards.
-7. Rewire centre-docked FAB to navigate to `/home/shops`.
-8. Handle empty-state gracefully (zero orders in range).
-9. Manual QA at each range preset with seeded + real data.
+**Implementation in 3 sub-phases:**
+- **Phase A** — Skeleton: all files, navigation, date pill, settings screen, help page, placeholder cards. App runs, toggles work, no real data.
+- **Phase B** — Core: Pulse + Category Scorecards + Revenue Anatomy wired with real SQL. The "useful dashboard" milestone.
+- **Phase C** — Advanced: Weekday Heatmap, Stacked Revenue Trend, Attention Flags. Performance pass. Full polish.
 
 **Success criteria:**
 
-- [ ] Home tab renders Dashboard with all 7 cards (4 Kitchen + 3 Sales).
-- [ ] Centre-docked FAB shows a Home icon; tapping navigates to the shops list; back button returns to Dashboard.
-- [ ] Changing the date-range pill updates every card in one animation frame (no stale values).
-- [ ] Empty state (no orders in selected range) shows friendly card placeholders, not errors or crashed charts.
-- [ ] Charts render correctly at 30-day scale with real data density.
+- [ ] Home tab renders Dashboard; all enabled sections visible and reactive to date-range pill.
+- [ ] Centre-docked FAB shows Home icon; tapping navigates to shops list; back returns to Dashboard.
+- [ ] Category Scorecards show one card per active category + Others; sparklines accurate.
+- [ ] Attention Flags trigger only when conditions are met; dismissal works per session.
+- [ ] Dashboard Settings toggles immediately show/hide sections.
+- [ ] KPI Help screen accessible and complete.
+- [ ] Empty state (zero orders) shows friendly placeholders — no crashes.
+- [ ] Dashboard loads < 2 seconds with 90 days of data on mid-range device.
 
 ---
 
@@ -288,8 +268,9 @@ Ties everything together. No new schema.
   - Every page footer: `{business.name} · ☎ {phone}   ·   Page X of Y` — same style as catalog.
   - Shared via `Printing.sharePdf`.
 - [ ] `lib/screens/ledger/shop_ledger_screen.dart` — app bar action: "Export Statement" → date-range picker → generates PDF via the new service.
-- [ ] `lib/widgets/dashboard/sales_section.dart` — add "Outstanding Receivables" card: sum of all shops' outstanding balances. Tap → new "Shops with Outstanding" screen listing shops ordered by outstanding desc, each row navigating into its ledger.
+- [ ] `lib/widgets/dashboard/outstanding_card.dart` — new section: "Outstanding Receivables" showing sum of all shops' outstanding balances. Toggleable from Dashboard Settings. Tap → new "Shops with Outstanding" screen listing shops ordered by outstanding desc, each row navigating into its ledger.
 - [ ] `lib/screens/ledger/outstanding_list_screen.dart` — new lightweight screen backing the Dashboard tap.
+- [ ] `lib/screens/profile/dashboard_settings_screen.dart` — add "Outstanding Receivables" toggle to the settings screen.
 
 **Tasks:**
 
@@ -329,6 +310,6 @@ Ties everything together. No new schema.
 | v1.2 | 1 | Quick fixes: image catalog removed, bill message polish, alphabetical lists, Daily Billing row density |
 | v1.3 | 2 | Categories + kitchen message overhaul |
 | v1.4 | 3 | Catalog PDF redesign (menu-card style) |
-| v1.5 | 4 | Dashboard replaces Home tab (Kitchen + Sales cards) |
+| v1.5 | 4 | Dashboard replaces Home tab (category-first KPIs, attention flags, settings — see `dashboard_plan.md`) |
 | v1.6 | 5 | Ledger foundation (payments, opening balance, shop ledger screen, record payment) |
 | v1.7 | 6 | Ledger integration (payment chip on Daily Billing, PDF statement, Outstanding on Dashboard) |
