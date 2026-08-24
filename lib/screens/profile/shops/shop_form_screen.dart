@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../../database/app_database.dart';
 import '../../../providers/database_provider.dart';
 
@@ -19,6 +20,9 @@ class _ShopFormScreenState extends ConsumerState<ShopFormScreen> {
   final _nameCtrl = TextEditingController();
   final _areaCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
+  final _openingBalanceCtrl = TextEditingController();
+  DateTime? _openingBalanceAtDate;
+  bool _openingBalanceLocked = false;
   bool _loading = true;
   bool _saving = false;
 
@@ -35,6 +39,11 @@ class _ShopFormScreenState extends ConsumerState<ShopFormScreen> {
         _nameCtrl.text = shop.name;
         _areaCtrl.text = shop.area ?? '';
         _phoneCtrl.text = shop.phone ?? '';
+        if (shop.openingBalance != null) {
+          _openingBalanceCtrl.text = shop.openingBalance.toString();
+        }
+        _openingBalanceAtDate = shop.openingBalanceAt;
+        _openingBalanceLocked = shop.openingBalance != null;
       }
     }
     if (mounted) setState(() => _loading = false);
@@ -43,14 +52,33 @@ class _ShopFormScreenState extends ConsumerState<ShopFormScreen> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
+    final openingBalanceText = _openingBalanceCtrl.text.trim();
     final companion = ShopsCompanion(
       id: widget.shopId != null ? Value(widget.shopId!) : const Value.absent(),
       name: Value(_nameCtrl.text.trim()),
       area: Value(_areaCtrl.text.trim().isEmpty ? null : _areaCtrl.text.trim()),
       phone: Value(_phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim()),
+      openingBalance: !_openingBalanceLocked && openingBalanceText.isNotEmpty
+          ? Value(double.parse(openingBalanceText))
+          : const Value.absent(),
+      openingBalanceAt: !_openingBalanceLocked && openingBalanceText.isNotEmpty
+          ? Value(_openingBalanceAtDate ?? DateTime.now())
+          : const Value.absent(),
     );
     await ref.read(databaseProvider).shopDao.upsertShop(companion);
     if (mounted) context.pop();
+  }
+
+  Future<void> _pickOpeningBalanceAtDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _openingBalanceAtDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null && mounted) {
+      setState(() => _openingBalanceAtDate = picked);
+    }
   }
 
   Future<void> _delete() async {
@@ -94,6 +122,7 @@ class _ShopFormScreenState extends ConsumerState<ShopFormScreen> {
     _nameCtrl.dispose();
     _areaCtrl.dispose();
     _phoneCtrl.dispose();
+    _openingBalanceCtrl.dispose();
     super.dispose();
   }
 
@@ -160,6 +189,36 @@ class _ShopFormScreenState extends ConsumerState<ShopFormScreen> {
                       border: OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.phone,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _openingBalanceCtrl,
+                    enabled: !_openingBalanceLocked,
+                    decoration: InputDecoration(
+                      labelText: 'Opening Balance',
+                      hintText: 'Amount owed before using the ledger',
+                      helperText: _openingBalanceLocked
+                          ? 'Set once — this is history.'
+                          : null,
+                      border: const OutlineInputBorder(),
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) return null;
+                      return double.tryParse(v.trim()) == null
+                          ? 'Enter a valid amount'
+                          : null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: _openingBalanceLocked ? null : _pickOpeningBalanceAtDate,
+                    icon: const Icon(Icons.calendar_today, size: 16),
+                    label: Text(
+                      _openingBalanceAtDate == null
+                          ? 'As of Date'
+                          : 'As of ${DateFormat('dd MMM yyyy').format(_openingBalanceAtDate!)}',
+                    ),
                   ),
                   const SizedBox(height: 24),
                   FilledButton(

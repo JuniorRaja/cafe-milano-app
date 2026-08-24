@@ -6,4 +6,6 @@ class Shops extends Table {
   TextColumn get area => text().nullable()();
   TextColumn get phone => text().nullable()();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  RealColumn get openingBalance => real().nullable()();
+  DateTimeColumn get openingBalanceAt => dateTime().nullable()();
 }

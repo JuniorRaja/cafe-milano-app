@@ -126,6 +126,8 @@ Future<void> importBackup(AppDatabase db, File file) async {
     'standingOrders',
     'dailyOrders',
     'orderLines',
+    'payments',
+    'paymentAllocations',
   ];
   if (requiredKeys.any((key) => !backup.containsKey(key))) {
     throw InvalidBackupException('This file is not a valid Cafe Milano backup.');
@@ -180,5 +182,7 @@ Future<void> importBackup(AppDatabase db, File file) async {
     'standingOrders': backup['standingOrders'],
     'dailyOrders': backup['dailyOrders'],
     'orderLines': backup['orderLines'],
+    'payments': backup['payments'],
+    'paymentAllocations': backup['paymentAllocations'],
   });
 }

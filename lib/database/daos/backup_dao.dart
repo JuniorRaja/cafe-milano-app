@@ -9,6 +9,8 @@ part of '../app_database.dart';
   DailyOrders,
   OrderLines,
   BusinessInfo,
+  Payments,
+  PaymentAllocations,
 ])
 class BackupDao extends DatabaseAccessor<AppDatabase> with _$BackupDaoMixin {
   BackupDao(super.db);
@@ -22,6 +24,8 @@ class BackupDao extends DatabaseAccessor<AppDatabase> with _$BackupDaoMixin {
     final dailyOrdersList = await select(dailyOrders).get();
     final orderLinesList = await select(orderLines).get();
     final businessInfoRow = await select(businessInfo).getSingleOrNull();
+    final paymentsList = await select(payments).get();
+    final paymentAllocationsList = await select(paymentAllocations).get();
 
     return {
       'categories': categoriesList.map((e) => e.toJson()).toList(),
@@ -32,13 +36,18 @@ class BackupDao extends DatabaseAccessor<AppDatabase> with _$BackupDaoMixin {
       'dailyOrders': dailyOrdersList.map((e) => e.toJson()).toList(),
       'orderLines': orderLinesList.map((e) => e.toJson()).toList(),
       'businessInfo': businessInfoRow?.toJson(),
+      'payments': paymentsList.map((e) => e.toJson()).toList(),
+      'paymentAllocations': paymentAllocationsList.map((e) => e.toJson()).toList(),
     };
   }
 
   Future<void> restoreAll(Map<String, dynamic> data) async {
     await transaction(() async {
-      // Delete in FK-safe order (dependents first)
+      // Delete in FK-safe order (dependents first). paymentAllocations
+      // references both payments and dailyOrders, so it must go before either.
       await delete(orderLines).go();
+      await delete(paymentAllocations).go();
+      await delete(payments).go();
       await delete(dailyOrders).go();
       await delete(standingOrders).go();
       await delete(shopPrices).go();
@@ -57,6 +66,12 @@ class BackupDao extends DatabaseAccessor<AppDatabase> with _$BackupDaoMixin {
       for (final json in data['shops'] as List) {
         await into(shops).insert(
           Shop.fromJson(json as Map<String, dynamic>),
+          mode: InsertMode.insertOrReplace,
+        );
+      }
+      for (final json in (data['payments'] as List? ?? [])) {
+        await into(payments).insert(
+          Payment.fromJson(json as Map<String, dynamic>),
           mode: InsertMode.insertOrReplace,
         );
       }
@@ -94,6 +109,12 @@ class BackupDao extends DatabaseAccessor<AppDatabase> with _$BackupDaoMixin {
       for (final json in data['orderLines'] as List) {
         await into(orderLines).insert(
           OrderLine.fromJson(json as Map<String, dynamic>),
+          mode: InsertMode.insertOrReplace,
+        );
+      }
+      for (final json in (data['paymentAllocations'] as List? ?? [])) {
+        await into(paymentAllocations).insert(
+          PaymentAllocation.fromJson(json as Map<String, dynamic>),
           mode: InsertMode.insertOrReplace,
         );
       }

@@ -68,6 +68,59 @@ void main() {
       await target.close();
     });
 
+    test('exportAll then restoreAll round-trips payments, allocations and opening balance', () async {
+      final source = _freshDb();
+
+      final shopId = await source.shopDao.upsertShop(
+        ShopsCompanion.insert(name: 'Hotel Raj'),
+      );
+      await source.shopDao.upsertShop(ShopsCompanion(
+        id: Value(shopId),
+        name: const Value('Hotel Raj'),
+        openingBalance: const Value(250.0),
+        openingBalanceAt: Value(DateTime(2026, 1, 1)),
+      ));
+      final productId = await source.productDao.upsertProduct(
+        ProductsCompanion.insert(name: 'Bun'),
+      );
+      final order = await source.orderDao.getOrCreateOrder(shopId, DateTime(2026, 1, 5));
+      await source.orderDao.replaceOrderLines(order.id, [
+        OrderLinesCompanion.insert(orderId: order.id, productId: productId, qty: 1, unitPrice: 500.0),
+      ]);
+      final paymentId = await source.ledgerDao.recordPayment(
+        shopId: shopId,
+        amount: 200.0,
+        paidAt: DateTime(2026, 1, 6),
+        mode: PaymentMode.upi,
+        note: 'Partial',
+      );
+
+      final exported = await source.backupDao.exportAll();
+      final roundTripped = jsonDecode(jsonEncode(exported)) as Map<String, dynamic>;
+      final statsBefore = await source.ledgerDao.watchShopStats(shopId).first;
+      await source.close();
+
+      final target = _freshDb();
+      await target.backupDao.restoreAll(roundTripped);
+
+      final shop = await target.shopDao.getShop(shopId);
+      expect(shop?.openingBalance, 250.0);
+      expect(shop?.openingBalanceAt, DateTime(2026, 1, 1));
+
+      expect(await target.ledgerDao.getBillStatus(order.id), BillStatus.partial);
+
+      final statsAfter = await target.ledgerDao.watchShopStats(shopId).first;
+      expect(statsAfter.totalCollected, statsBefore.totalCollected);
+      expect(statsAfter.outstanding, statsBefore.outstanding);
+
+      final entries = await target.ledgerDao.watchShopLedger(shopId).first;
+      final restoredPayment = entries.firstWhere((e) => e.paymentId == paymentId);
+      expect(restoredPayment.note, 'Partial');
+      expect(restoredPayment.paymentMode, PaymentMode.upi);
+
+      await target.close();
+    });
+
     test('restoreAll replaces existing data rather than merging', () async {
       final db = _freshDb();
       await db.shopDao.upsertShop(ShopsCompanion.insert(name: 'Old Shop'));
