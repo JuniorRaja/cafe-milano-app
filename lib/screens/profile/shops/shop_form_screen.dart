@@ -54,13 +54,14 @@ class _ShopFormScreenState extends ConsumerState<ShopFormScreen> {
   }
 
   Future<void> _delete() async {
-    final hasOrders =
-        await ref.read(databaseProvider).shopDao.shopHasOrders(widget.shopId!);
+    final isReferenced =
+        await ref.read(databaseProvider).shopDao.shopIsReferenced(widget.shopId!);
     if (!mounted) return;
-    if (hasOrders) {
+    if (isReferenced) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Deactivate instead — this shop has existing orders.'),
+          content: Text(
+              'Deactivate instead — this shop has existing orders, prices, or standing orders.'),
         ),
       );
       return;

@@ -69,21 +69,21 @@ reporting the previous day as "today" until something else invalidates it.
 
 ### Queries
 
-- [ ] Collapse the N+1: replace the per-shop `getShopCategoryIds` loop with **one**
+- [x] Collapse the N+1: replace the per-shop `getShopCategoryIds` loop with **one**
       grouped query returning `shopId → [categoryId]` for the whole range, then map
       in Dart. `getShopConcentration` already groups by shop; the category breadth
       can join into it or come back as a second single query.
-- [ ] Introduce a shared `categoriesProvider` — a plain `FutureProvider` calling
+- [x] Introduce a shared `categoriesProvider` — a plain `FutureProvider` calling
       `get()` once. Have all five call sites watch it instead of
       `watchActive().first`. Riverpod caches it; this is exactly what providers are for.
-- [ ] Extract `getShopConcentration` and `getCategoryScores` into their own
+- [x] Extract `getShopConcentration` and `getCategoryScores` into their own
       `FutureProvider.family` keyed on the range, and have both consumers watch the
       provider rather than calling the DAO. One execution per range, shared.
-- [ ] Introduce a `todayProvider` returning a midnight-normalised `DateTime`, and
+- [x] Introduce a `todayProvider` returning a midnight-normalised `DateTime`, and
       have the four Pulse providers watch **that** instead of
       `dashboardRangeProvider`. This removes the spurious invalidation and makes the
       day boundary explicit and overridable in tests.
-- [ ] Replace every in-provider `DateTime.now()` with `ref.watch(todayProvider)`.
+- [x] Replace every in-provider `DateTime.now()` with `ref.watch(todayProvider)`.
 - [ ] Re-measure after doc 03's indexes land. Do not do both in one release —
       otherwise there is no way to attribute any change to either.
 
@@ -91,19 +91,19 @@ reporting the previous day as "today" until something else invalidates it.
 
 Small, unrelated, and worth clearing while in the area rather than as their own release.
 
-- [ ] Delete `assets/fonts/Poppins-*.ttf` — all four files, 632 KB. Superseded by
+- [x] Delete `assets/fonts/Poppins-*.ttf` — all four files, 632 KB. Superseded by
       Quicksand at commit `d9e6799`. They are **not** bundled (not declared in
       `pubspec.yaml`), so this is repo weight only, not APK weight. Confirm no
       lingering `Poppins` reference in `lib/` before deleting.
-- [ ] `android/app/src/main/AndroidManifest.xml` — set `android:allowBackup="false"`
+- [x] `android/app/src/main/AndroidManifest.xml` — set `android:allowBackup="false"`
       on `<application>`. It currently defaults to **true**, so the business database
       is auto-synced into the user's Google Drive backup. For a single-user offline
       app holding supplier pricing, that should be a deliberate choice, and the app
       already has its own explicit Backup & Restore.
-- [ ] `lib/services/backup_service.dart:57-60` — exported backups are written into
+- [x] `lib/services/backup_service.dart:57-60` — exported backups are written into
       `getTemporaryDirectory()` and never cleaned up. Delete the previous export
       before writing a new one, or sweep files older than a day.
-- [ ] `lib/services/backup_service.dart:13-61` — export reads every product photo,
+- [x] `lib/services/backup_service.dart:13-61` — export reads every product photo,
       base64-encodes it and `jsonEncode`s the whole structure **on the main
       isolate**. On the real dataset this is the 1.7 MB seen in doc 02, and it will
       visibly jank. Move the encode into `compute()`. Low risk, contained change.
@@ -112,9 +112,9 @@ Small, unrelated, and worth clearing while in the area rather than as their own 
 
 - [ ] Dashboard load issues a **fixed** number of queries regardless of shop count —
       verify by logging query counts with 18 shops and again with a fixture of 100.
-- [ ] `getShopConcentration` and `getCategoryScores` each execute **once** per
+- [x] `getShopConcentration` and `getCategoryScores` each execute **once** per
       dashboard load, not twice.
-- [ ] Changing the date range does not re-execute the four Pulse queries.
+- [x] Changing the date range does not re-execute the four Pulse queries.
 - [ ] Every dashboard number is identical to `1.6.1` on the same dataset. This is a
       refactor — any changed figure is a bug, and the criterion is exact equality,
       not "looks about right".

@@ -4,6 +4,12 @@ part of '../app_database.dart';
 class CategoryDao extends DatabaseAccessor<AppDatabase> with _$CategoryDaoMixin {
   CategoryDao(super.db);
 
+  /// One-shot fetch of active categories — for callers that need a value
+  Future<List<Category>> getActive() => (select(categories)
+        ..where((c) => c.isActive.equals(true))
+        ..orderBy([(c) => OrderingTerm(expression: c.sortOrder)]))
+      .get();
+
   Stream<List<Category>> watchActive() =>
       (select(categories)
         ..where((c) => c.isActive.equals(true))

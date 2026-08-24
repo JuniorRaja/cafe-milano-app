@@ -2,6 +2,7 @@ import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/dashboard_models.dart';
 import '../services/category_emoji.dart';
+import 'category_provider.dart';
 import 'database_provider.dart';
 
 // ─── Range State ────────────────────────────────────────────────────────────
@@ -27,20 +28,42 @@ class DashboardRangeNotifier extends StateNotifier<DashboardRange> {
   }
 }
 
+/// Midnight-normalised "today" — the single, explicit, invalidatable source
+/// for every provider that means "today" rather than the selected range.
+/// Refreshing the dashboard re-derives it, so a session left open across
+/// midnight catches up instead of quietly reporting yesterday forever.
+final todayProvider = Provider<DateTime>((ref) {
+  final now = DateTime.now();
+  return DateTime(now.year, now.month, now.day);
+});
+
+// ─── Shared aggregates ──────────────────────────────────────────────────────
+// getShopConcentration and getCategoryScores each feed two cards; keyed on
+// range so both consumers share one execution instead of running it twice.
+
+final shopConcentrationDataProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, DateTimeRange>((ref, range) {
+  final db = ref.watch(databaseProvider);
+  return db.dashboardDao.getShopConcentration(range.start, range.end);
+});
+
+final categoryScoresDataProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, DateTimeRange>((ref, range) {
+  final db = ref.watch(databaseProvider);
+  return db.dashboardDao.getCategoryScores(range.start, range.end);
+});
+
 // ─── Pulse Providers ────────────────────────────────────────────────────────
 
 final todayRevenueProvider = FutureProvider<double>((ref) async {
   final db = ref.watch(databaseProvider);
-  ref.watch(dashboardRangeProvider); // dependency for refresh
-  final today = DateTime.now();
+  final today = ref.watch(todayProvider);
   return db.dashboardDao.getRevenueForDate(today);
 });
 
 final revenueDeltaProvider = FutureProvider<double?>((ref) async {
   final db = ref.watch(databaseProvider);
-  ref.watch(dashboardRangeProvider); // dependency for refresh
-  final now = DateTime.now();
-  final today = DateTime(now.year, now.month, now.day);
+  final today = ref.watch(todayProvider);
   final sameWeekdayLastWeek = today.subtract(const Duration(days: 7));
 
   final todayRevenue = await db.dashboardDao.getRevenueForDate(today);
@@ -56,8 +79,7 @@ final revenueDeltaProvider = FutureProvider<double?>((ref) async {
 final shopsServedTodayProvider =
     FutureProvider<(int served, int total)>((ref) async {
   final db = ref.watch(databaseProvider);
-  ref.watch(dashboardRangeProvider); // dependency for refresh
-  final today = DateTime.now();
+  final today = ref.watch(todayProvider);
   final served = await db.dashboardDao.getShopsServedForDate(today);
   final total = await db.dashboardDao.getTotalActiveShops();
   return (served, total);
@@ -65,8 +87,7 @@ final shopsServedTodayProvider =
 
 final pendingConfirmationsProvider = FutureProvider<int>((ref) async {
   final db = ref.watch(databaseProvider);
-  ref.watch(dashboardRangeProvider); // dependency for refresh
-  final today = DateTime.now();
+  final today = ref.watch(todayProvider);
   return db.dashboardDao.getPendingCountForDate(today);
 });
 
@@ -76,19 +97,17 @@ final categoryScorecardsProvider =
     FutureProvider<List<CategoryScorecard>>((ref) async {
   final db = ref.watch(databaseProvider);
   final range = ref.watch(dashboardRangeProvider);
+  final today = ref.watch(todayProvider);
 
   // Fetch active categories for name lookup
-  final cats = await (db.categoryDao.watchActive().first);
+  final cats = await ref.watch(categoriesProvider.future);
   final catMap = {for (final c in cats) c.id: c.name};
 
   // Revenue, pieces, shops per category
-  final scores =
-      await db.dashboardDao.getCategoryScores(range.range.start, range.range.end);
+  final scores = await ref.watch(categoryScoresDataProvider(range.range).future);
 
   // 7-day sparklines
-  final now = DateTime.now();
-  final sevenDaysAgo =
-      DateTime(now.year, now.month, now.day).subtract(const Duration(days: 6));
+  final sevenDaysAgo = today.subtract(const Duration(days: 6));
   final sparkRaw = await db.dashboardDao.getCategorySparklines(sevenDaysAgo);
 
   // Build sparkline map: categoryId → [7 ints]
@@ -152,11 +171,10 @@ final categoryMixProvider = FutureProvider<List<CategoryMixRow>>((ref) async {
   final db = ref.watch(databaseProvider);
   final range = ref.watch(dashboardRangeProvider);
 
-  final cats = await db.categoryDao.watchActive().first;
+  final cats = await ref.watch(categoriesProvider.future);
   final catMap = {for (final c in cats) c.id: c.name};
 
-  final scores =
-      await db.dashboardDao.getCategoryScores(range.range.start, range.range.end);
+  final scores = await ref.watch(categoryScoresDataProvider(range.range).future);
   final totalRevenue =
       scores.fold<double>(0, (sum, s) => sum + (s['revenue'] as double));
 
@@ -206,15 +224,18 @@ final shopConcentrationProvider =
   final db = ref.watch(databaseProvider);
   final range = ref.watch(dashboardRangeProvider);
 
-  final cats = await db.categoryDao.watchActive().first;
+  final cats = await ref.watch(categoriesProvider.future);
   final catMap = {for (final c in cats) c.id: c.name};
 
-  final rows = await db.dashboardDao
-      .getShopConcentration(range.range.start, range.range.end);
+  final rows = await ref.watch(shopConcentrationDataProvider(range.range).future);
 
   // Compute total for share %
   final totalRev =
       rows.fold<double>(0, (sum, r) => sum + (r['rev'] as double));
+
+  // One query for every shop's category breadth instead of one per shop.
+  final catIdsByShop =
+      await db.dashboardDao.getShopCategoryIdsForRange(range.range.start, range.range.end);
 
   final List<ShopConcentrationRow> result = [];
   for (final row in rows) {
@@ -222,9 +243,7 @@ final shopConcentrationProvider =
     final rev = row['rev'] as double;
     final share = totalRev > 0 ? (rev / totalRev * 100) : 0.0;
 
-    // Fetch category emojis for this shop
-    final catIds = await db.dashboardDao
-        .getShopCategoryIds(shopId, range.range.start, range.range.end);
+    final catIds = catIdsByShop[shopId] ?? const [];
     final emojis = catIds
         .map((id) => emojiFor(id != null ? catMap[id] : null))
         .toList();
@@ -247,7 +266,7 @@ final productLeaderboardProvider =
   final db = ref.watch(databaseProvider);
   final range = ref.watch(dashboardRangeProvider);
 
-  final cats = await db.categoryDao.watchActive().first;
+  final cats = await ref.watch(categoriesProvider.future);
   final catMap = {for (final c in cats) c.id: c.name};
 
   final rows = await db.dashboardDao
@@ -273,9 +292,8 @@ final productLeaderboardProvider =
 final weekdayHeatmapProvider =
     FutureProvider<Map<int?, Map<int, double>>>((ref) async {
   final db = ref.watch(databaseProvider);
-  final now = DateTime.now();
-  final fourWeeksAgo =
-      DateTime(now.year, now.month, now.day).subtract(const Duration(days: 28));
+  final today = ref.watch(todayProvider);
+  final fourWeeksAgo = today.subtract(const Duration(days: 28));
 
   final rows = await db.dashboardDao.getWeekdayHeatmap(fourWeeksAgo);
 
@@ -303,10 +321,9 @@ final attentionFlagsProvider =
     FutureProvider<List<AttentionFlag>>((ref) async {
   final db = ref.watch(databaseProvider);
   final range = ref.watch(dashboardRangeProvider);
-  final now = DateTime.now();
-  final today = DateTime(now.year, now.month, now.day);
+  final today = ref.watch(todayProvider);
 
-  final cats = await db.categoryDao.watchActive().first;
+  final cats = await ref.watch(categoriesProvider.future);
   final catMap = {for (final c in cats) c.id: c.name};
 
   final List<AttentionFlag> flags = [];
@@ -356,8 +373,7 @@ final attentionFlagsProvider =
   }
 
   // 3. Concentration Risk — single shop > 25% of total revenue
-  final shopConc = await db.dashboardDao
-      .getShopConcentration(range.range.start, range.range.end);
+  final shopConc = await ref.watch(shopConcentrationDataProvider(range.range).future);
   if (shopConc.isNotEmpty) {
     final totalRev =
         shopConc.fold<double>(0, (sum, r) => sum + (r['rev'] as double));

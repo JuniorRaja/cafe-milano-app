@@ -22,12 +22,22 @@ class ShopDao extends DatabaseAccessor<AppDatabase> with _$ShopDaoMixin {
       (update(shops)..where((s) => s.id.equals(id)))
           .write(ShopsCompanion(isActive: Value(active)));
 
-  Future<bool> shopHasOrders(int id) async {
-    final rows = await (db.select(db.dailyOrders)
+  Future<bool> shopIsReferenced(int id) async {
+    final orders = await (db.select(db.dailyOrders)
           ..where((o) => o.shopId.equals(id))
           ..limit(1))
         .get();
-    return rows.isNotEmpty;
+    if (orders.isNotEmpty) return true;
+    final prices = await (db.select(db.shopPrices)
+          ..where((p) => p.shopId.equals(id))
+          ..limit(1))
+        .get();
+    if (prices.isNotEmpty) return true;
+    final standing = await (db.select(db.standingOrders)
+          ..where((s) => s.shopId.equals(id))
+          ..limit(1))
+        .get();
+    return standing.isNotEmpty;
   }
 
   Future<void> deleteShop(int id) =>

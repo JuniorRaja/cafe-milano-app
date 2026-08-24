@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../app.dart';
 import '../../models/dashboard_models.dart';
+import '../../providers/category_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/dashboard_settings_provider.dart';
 import '../../widgets/dashboard/date_range_pill.dart';
@@ -151,6 +152,10 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   void _refreshDashboard(WidgetRef ref) {
+    ref.invalidate(todayProvider);
+    ref.invalidate(categoriesProvider);
+    ref.invalidate(shopConcentrationDataProvider);
+    ref.invalidate(categoryScoresDataProvider);
     ref.invalidate(todayRevenueProvider);
     ref.invalidate(revenueDeltaProvider);
     ref.invalidate(shopsServedTodayProvider);

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show compute;
 import 'package:intl/intl.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
@@ -7,12 +8,30 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../database/app_database.dart';
 
+const _backupFilePrefix = 'cafe-milano-backup-';
+
+/// Base64-encodes the photo bytes and JSON-encode run off the main isolate via [compute].
+String _buildBackupJson(Map<String, dynamic> args) {
+  final imageBytes = args['imageBytes'] as Map<String, List<int>>;
+  final images = {
+    for (final entry in imageBytes.entries) entry.key: base64Encode(entry.value),
+  };
+  final backup = {
+    'appVersion': args['appVersion'],
+    'schemaVersion': args['schemaVersion'],
+    'exportedAt': args['exportedAt'],
+    ...(args['data'] as Map<String, dynamic>),
+    'images': images,
+  };
+  return jsonEncode(backup);
+}
+
 /// Builds a full backup (all tables + referenced product/logo photos, embedded
 /// as base64) and opens the OS share sheet so the user can save it wherever
 /// they like off-device.
 Future<void> exportAndShareBackup(AppDatabase db) async {
   final data = await db.backupDao.exportAll();
-  final images = <String, String>{};
+  final imageBytes = <String, List<int>>{};
 
   final products = data['products'] as List<dynamic>;
   for (final productJson in products) {
@@ -23,7 +42,7 @@ Future<void> exportAndShareBackup(AppDatabase db) async {
     try {
       final bytes = await file.readAsBytes();
       final ext = p.extension(photoPath);
-      images['product_${productJson['id']}$ext'] = base64Encode(bytes);
+      imageBytes['product_${productJson['id']}$ext'] = bytes;
     } catch (_) {
       // Skip products whose photo file no longer exists on disk.
     }
@@ -37,7 +56,7 @@ Future<void> exportAndShareBackup(AppDatabase db) async {
       try {
         final bytes = await file.readAsBytes();
         final ext = p.extension(logoPath);
-        images['logo$ext'] = base64Encode(bytes);
+        imageBytes['logo$ext'] = bytes;
       } catch (_) {
         // Skip if the logo file no longer exists on disk.
       }
@@ -45,18 +64,30 @@ Future<void> exportAndShareBackup(AppDatabase db) async {
   }
 
   final packageInfo = await PackageInfo.fromPlatform();
-  final backup = {
+  final jsonString = await compute(_buildBackupJson, {
     'appVersion': packageInfo.version,
     'schemaVersion': db.schemaVersion,
     'exportedAt': DateTime.now().toIso8601String(),
-    ...data,
-    'images': images,
-  };
+    'data': data,
+    'imageBytes': imageBytes,
+  });
 
   final dir = await getTemporaryDirectory();
+  // Sweep prior exports
+  for (final entry in dir.listSync()) {
+    final name = p.basename(entry.path);
+    if (entry is File && name.startsWith(_backupFilePrefix) && name.endsWith('.json')) {
+      try {
+        await entry.delete();
+      } catch (_) {
+        // Best-effort cleanup; a locked file shouldn't block the new export.
+      }
+    }
+  }
+
   final timestamp = DateFormat('yyyyMMdd-HHmmss').format(DateTime.now());
-  final file = File(p.join(dir.path, 'cafe-milano-backup-$timestamp.json'));
-  await file.writeAsString(jsonEncode(backup));
+  final file = File(p.join(dir.path, '$_backupFilePrefix$timestamp.json'));
+  await file.writeAsString(jsonString);
 
   await Share.shareXFiles([XFile(file.path)], text: 'Cafe Milano Backup');
 }

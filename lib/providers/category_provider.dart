@@ -9,3 +9,7 @@ final activeCategoriesProvider = StreamProvider<List<Category>>((ref) {
 final allCategoriesProvider = StreamProvider<List<Category>>((ref) {
   return ref.watch(databaseProvider).categoryDao.watchAll();
 });
+
+final categoriesProvider = FutureProvider<List<Category>>((ref) {
+  return ref.watch(databaseProvider).categoryDao.getActive();
+});

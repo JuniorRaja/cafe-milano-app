@@ -22,12 +22,23 @@ class ProductDao extends DatabaseAccessor<AppDatabase> with _$ProductDaoMixin {
       (update(products)..where((p) => p.id.equals(id)))
           .write(ProductsCompanion(isActive: Value(active)));
 
-  Future<bool> productHasOrderLines(int id) async {
-    final rows = await (db.select(db.orderLines)
+  /// True if [id] is referenced by order lines, prices, or standing orders
+  Future<bool> productIsReferenced(int id) async {
+    final lines = await (db.select(db.orderLines)
           ..where((l) => l.productId.equals(id))
           ..limit(1))
         .get();
-    return rows.isNotEmpty;
+    if (lines.isNotEmpty) return true;
+    final prices = await (db.select(db.shopPrices)
+          ..where((p) => p.productId.equals(id))
+          ..limit(1))
+        .get();
+    if (prices.isNotEmpty) return true;
+    final standing = await (db.select(db.standingOrders)
+          ..where((s) => s.productId.equals(id))
+          ..limit(1))
+        .get();
+    return standing.isNotEmpty;
   }
 
   Future<void> deleteProduct(int id) =>

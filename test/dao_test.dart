@@ -58,6 +58,44 @@ void main() {
       final all = await db.shopDao.watchAllShops().first;
       expect(all.map((s) => s.name), ['Apple', 'Zebra']);
     });
+
+    test('shopIsReferenced is false with no orders, prices, or standing orders', () async {
+      final id = await db.shopDao.upsertShop(ShopsCompanion.insert(name: 'Shop'));
+      expect(await db.shopDao.shopIsReferenced(id), isFalse);
+    });
+
+    test('shopIsReferenced is true when only a shop_price references it', () async {
+      final shopId = await db.shopDao.upsertShop(ShopsCompanion.insert(name: 'Shop'));
+      final productId = await db.productDao.upsertProduct(ProductsCompanion.insert(name: 'Bun'));
+      await db.priceDao.upsertPrice(
+        ShopPricesCompanion.insert(shopId: shopId, productId: productId, price: 5.0),
+      );
+      expect(await db.shopDao.shopIsReferenced(shopId), isTrue);
+    });
+
+    test('shopIsReferenced is true when only a standing order references it', () async {
+      final shopId = await db.shopDao.upsertShop(ShopsCompanion.insert(name: 'Shop'));
+      final productId = await db.productDao.upsertProduct(ProductsCompanion.insert(name: 'Bun'));
+      await db.priceDao.upsertStandingOrder(
+        StandingOrdersCompanion.insert(shopId: shopId, productId: productId, defaultQty: const Value(5)),
+      );
+      expect(await db.shopDao.shopIsReferenced(shopId), isTrue);
+    });
+
+    test('deleting a shop with dependent shop_prices is rejected, not silently orphaned', () async {
+      final shopId = await db.shopDao.upsertShop(ShopsCompanion.insert(name: 'Shop'));
+      final productId = await db.productDao.upsertProduct(ProductsCompanion.insert(name: 'Bun'));
+      await db.priceDao.upsertPrice(
+        ShopPricesCompanion.insert(shopId: shopId, productId: productId, price: 5.0),
+      );
+
+      await expectLater(db.shopDao.deleteShop(shopId), throwsA(anything));
+
+      final shops = await db.shopDao.watchAllShops().first;
+      expect(shops, hasLength(1));
+      final price = await db.priceDao.getPrice(shopId, productId);
+      expect(price, isNotNull);
+    });
   });
 
   // ─── ProductDao ───────────────────────────────────────────────────────────
@@ -97,6 +135,33 @@ void main() {
       await db.productDao.setProductActive(id, false);
       await db.productDao.setProductActive(id, true);
       expect((await db.productDao.watchActiveProducts().first).length, 1);
+    });
+
+    test('productIsReferenced is false with no order lines, prices, or standing orders', () async {
+      final id = await db.productDao.upsertProduct(ProductsCompanion.insert(name: 'Bun'));
+      expect(await db.productDao.productIsReferenced(id), isFalse);
+    });
+
+    test('productIsReferenced is true when only a standing order references it', () async {
+      final shopId = await db.shopDao.upsertShop(ShopsCompanion.insert(name: 'Shop'));
+      final productId = await db.productDao.upsertProduct(ProductsCompanion.insert(name: 'Bun'));
+      await db.priceDao.upsertStandingOrder(
+        StandingOrdersCompanion.insert(shopId: shopId, productId: productId, defaultQty: const Value(5)),
+      );
+      expect(await db.productDao.productIsReferenced(productId), isTrue);
+    });
+
+    test('deleting a product with dependent standing_orders is rejected, not silently orphaned', () async {
+      final shopId = await db.shopDao.upsertShop(ShopsCompanion.insert(name: 'Shop'));
+      final productId = await db.productDao.upsertProduct(ProductsCompanion.insert(name: 'Bun'));
+      await db.priceDao.upsertStandingOrder(
+        StandingOrdersCompanion.insert(shopId: shopId, productId: productId, defaultQty: const Value(5)),
+      );
+
+      await expectLater(db.productDao.deleteProduct(productId), throwsA(anything));
+
+      final products = await db.productDao.watchActiveProducts().first;
+      expect(products, hasLength(1));
     });
   });
 

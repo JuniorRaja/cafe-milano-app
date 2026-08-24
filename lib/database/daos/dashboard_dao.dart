@@ -182,27 +182,26 @@ class DashboardDao extends DatabaseAccessor<AppDatabase>
             })
         .toList();
   }
-
-  /// Category emojis for a given shop in a date range.
-  Future<List<int?>> getShopCategoryIds(
-      int shopId, DateTime start, DateTime end) async {
+  
+  Future<Map<int, List<int?>>> getShopCategoryIdsForRange(
+      DateTime start, DateTime end) async {
     final startDay = DateTime(start.year, start.month, start.day);
     final endDay = DateTime(end.year, end.month, end.day);
     final query = customSelect(
-      'SELECT DISTINCT p.category_id AS categoryId '
+      'SELECT DISTINCT o.shop_id AS shopId, p.category_id AS categoryId '
       'FROM order_lines ol '
       'INNER JOIN daily_orders o ON ol.order_id = o.id '
       'INNER JOIN products p ON ol.product_id = p.id '
-      'WHERE o.shop_id = ? AND o.order_date >= ? AND o.order_date <= ?',
-      variables: [
-        Variable.withInt(shopId),
-        Variable.withDateTime(startDay),
-        Variable.withDateTime(endDay),
-      ],
+      'WHERE o.order_date >= ? AND o.order_date <= ?',
+      variables: [Variable.withDateTime(startDay), Variable.withDateTime(endDay)],
       readsFrom: {orderLines, dailyOrders, products},
     );
     final rows = await query.get();
-    return rows.map((r) => r.read<int?>('categoryId')).toList();
+    final Map<int, List<int?>> result = {};
+    for (final r in rows) {
+      result.putIfAbsent(r.read<int>('shopId'), () => []).add(r.read<int?>('categoryId'));
+    }
+    return result;
   }
 
   /// Top products by revenue.

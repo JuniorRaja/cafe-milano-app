@@ -104,15 +104,16 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   }
 
   Future<void> _delete() async {
-    final hasLines = await ref
+    final isReferenced = await ref
         .read(databaseProvider)
         .productDao
-        .productHasOrderLines(widget.productId!);
+        .productIsReferenced(widget.productId!);
     if (!mounted) return;
-    if (hasLines) {
+    if (isReferenced) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Deactivate instead — this product has existing order lines.'),
+          content: Text(
+              'Deactivate instead — this product has existing order lines, prices, or standing orders.'),
         ),
       );
       return;
