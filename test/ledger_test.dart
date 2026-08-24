@@ -233,6 +233,31 @@ void main() {
       expect(payments.first.allocatedAmount, 0.0);
     });
 
+    test('empty orders never appear as bills in the ledger', () async {
+      // Opening the order-entry screen creates the order row before anything is
+      // entered, so shops accumulate zero-line orders. They must not surface as
+      // "Unpaid ₹0.00" bills or inflate the pending-bill count.
+      await db.orderDao.getOrCreateOrder(shopId, DateTime(2026, 1, 1));
+      await db.orderDao.getOrCreateOrder(shopId, DateTime(2026, 1, 2));
+      final realBill = await bill(DateTime(2026, 1, 3), 750);
+
+      final entries = await db.ledgerDao.watchShopLedger(shopId).first;
+      expect(entries, hasLength(1));
+      expect(entries.first.orderId, realBill);
+      expect(entries.first.amount, closeTo(750, 0.001));
+
+      final stats = await db.ledgerDao.watchShopStats(shopId).first;
+      expect(stats.totalBilled, closeTo(750, 0.001));
+      expect(stats.outstanding, closeTo(750, 0.001));
+    });
+
+    test('an order whose lines were all removed reads Paid, not Unpaid', () async {
+      final orderId = await bill(DateTime(2026, 1, 1), 500);
+      await db.orderDao.replaceOrderLines(orderId, []);
+
+      expect(await db.ledgerDao.getBillStatus(orderId), BillStatus.paid);
+    });
+
     test('status filter and date filter combine correctly', () async {
       await bill(DateTime(2025, 1, 1), 500); // unpaid, but outside the date range below
       final recentUnpaid = await bill(DateTime(2026, 8, 20), 300);

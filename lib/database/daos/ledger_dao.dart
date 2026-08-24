@@ -63,6 +63,10 @@ class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
   LedgerDao(super.db);
 
   BillStatus _billStatusFor(double total, double allocated) {
+    // A zero-total order owes nothing, so it is vacuously settled. This must be
+    // checked first: opening the order-entry screen creates an empty order row,
+    // and those would otherwise read Unpaid forever.
+    if (total <= _moneyEpsilon) return BillStatus.paid;
     if (allocated <= _moneyEpsilon) return BillStatus.unpaid;
     if (_moneyEquals(allocated, total)) return BillStatus.paid;
     return BillStatus.partial;
@@ -149,6 +153,11 @@ class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
         final date = row.read<DateTime>('entry_date');
         final amount = row.read<double>('amount');
         if (entryType == 'bill') {
+          // Opening the order-entry screen inserts an order row before anything
+          // is typed, so a shop accumulates empty orders. They are not bills and
+          // must not reach the ledger; skipping them cannot shift the running
+          // balance, which they contribute 0.0 to by definition.
+          if (amount <= _moneyEpsilon) continue;
           final allocated = row.read<double>('allocated');
           runningBalance += amount;
           entries.add(LedgerEntry(
