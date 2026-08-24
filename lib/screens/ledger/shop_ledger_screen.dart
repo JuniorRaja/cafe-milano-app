@@ -25,6 +25,24 @@ String _modeLabel(PaymentMode mode) {
   }
 }
 
+String _statusLabel(BillStatus status) => switch (status) {
+      BillStatus.paid => 'Paid',
+      BillStatus.partial => 'Partial',
+      BillStatus.unpaid => 'Unpaid',
+    };
+
+MaterialColor _statusColor(BillStatus status) => switch (status) {
+      BillStatus.paid => Colors.green,
+      BillStatus.partial => Colors.orange,
+      BillStatus.unpaid => Colors.red,
+    };
+
+typedef LedgerFilters = ({
+  DateTimeRange? range,
+  BillStatus? status,
+  LedgerType? type,
+});
+
 class ShopLedgerScreen extends ConsumerStatefulWidget {
   const ShopLedgerScreen({super.key, required this.shopId});
 
@@ -53,12 +71,54 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
     super.dispose();
   }
 
+  int get _activeFilterCount => [_range, _statusFilter, _typeFilter]
+      .where((f) => f != null)
+      .length;
+
+  String get _filterSummary {
+    final parts = <String>[];
+    if (_typeFilter != null) {
+      parts.add(_typeFilter == LedgerType.bill ? 'Bills' : 'Payments');
+    }
+    if (_statusFilter != null) parts.add(_statusLabel(_statusFilter!));
+    if (_range != null) {
+      parts.add(
+          '${DateFormat('dd MMM').format(_range!.start)} – ${DateFormat('dd MMM').format(_range!.end)}');
+    }
+    return parts.isEmpty ? 'All entries' : parts.join(' · ');
+  }
+
   void _openPaymentSheet() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (_) => RecordPaymentSheet(shopId: widget.shopId),
     );
+  }
+
+  Future<void> _openFilterSheet() async {
+    final result = await showModalBottomSheet<LedgerFilters>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _LedgerFilterSheet(
+        initial: (range: _range, status: _statusFilter, type: _typeFilter),
+      ),
+    );
+    if (result != null) {
+      setState(() {
+        _range = result.range;
+        _statusFilter = result.status;
+        _typeFilter = result.type;
+      });
+    }
+  }
+
+  void _clearFilters() {
+    setState(() {
+      _range = null;
+      _statusFilter = null;
+      _typeFilter = null;
+    });
   }
 
   // Editing a payment is deliberately not supported — a payment's allocations
@@ -195,8 +255,7 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
         }
 
         final totalDue = open.fold<double>(0, (sum, b) => sum + b.amountDue);
-        final oldest = open.first.date;
-        final daysOld = DateTime.now().difference(oldest).inDays;
+        final daysOld = DateTime.now().difference(open.first.date).inDays;
 
         return Column(
           children: [
@@ -255,19 +314,53 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
       status: _statusFilter,
       type: _typeFilter,
     )));
-    final hasFilters =
-        _range != null || _statusFilter != null || _typeFilter != null;
+    final hasFilters = _activeFilterCount > 0;
 
     return Column(
       children: [
-        _FiltersBar(
-          range: _range,
-          statusFilter: _statusFilter,
-          typeFilter: _typeFilter,
-          onRangeChanged: (v) => setState(() => _range = v),
-          onStatusChanged: (v) => setState(() => _statusFilter = v),
-          onTypeChanged: (v) => setState(() => _typeFilter = v),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
+          child: Row(
+            children: [
+              OutlinedButton.icon(
+                onPressed: _openFilterSheet,
+                icon: const Icon(Icons.tune, size: 16),
+                label: Text(
+                  hasFilters ? 'Filters ($_activeFilterCount)' : 'Filters',
+                  style: const TextStyle(fontSize: 13),
+                ),
+                style: OutlinedButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  foregroundColor: hasFilters ? kBrandBrown : Colors.grey.shade700,
+                  side: BorderSide(
+                    color: hasFilters ? kBrandBrown : Colors.grey.shade300,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  _filterSummary,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                    fontWeight: hasFilters ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                ),
+              ),
+              if (hasFilters)
+                IconButton(
+                  icon: const Icon(Icons.close, size: 18),
+                  color: Colors.grey.shade600,
+                  visualDensity: VisualDensity.compact,
+                  tooltip: 'Clear filters',
+                  onPressed: _clearFilters,
+                ),
+            ],
+          ),
         ),
+        const Divider(height: 1),
         Expanded(
           child: ledgerAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -300,6 +393,169 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
           ),
         ),
       ],
+    );
+  }
+}
+
+// ─── Filter sheet ──────────────────────────────────────────────────────────
+// Three rows of chips crowded the list off the screen and read as clutter.
+// One button, one summary line, and everything else behind a sheet.
+
+class _LedgerFilterSheet extends StatefulWidget {
+  const _LedgerFilterSheet({required this.initial});
+
+  final LedgerFilters initial;
+
+  @override
+  State<_LedgerFilterSheet> createState() => _LedgerFilterSheetState();
+}
+
+class _LedgerFilterSheetState extends State<_LedgerFilterSheet> {
+  DateTimeRange? _range;
+  BillStatus? _status;
+  LedgerType? _type;
+
+  @override
+  void initState() {
+    super.initState();
+    _range = widget.initial.range;
+    _status = widget.initial.status;
+    _type = widget.initial.type;
+  }
+
+  Future<void> _pickRange() async {
+    final now = DateTime.now();
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: now,
+      initialDateRange: _range ??
+          DateTimeRange(start: now.subtract(const Duration(days: 30)), end: now),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme:
+              Theme.of(context).colorScheme.copyWith(primary: kBrandBrown),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) setState(() => _range = picked);
+  }
+
+  Widget _sectionLabel(String text) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Text(
+          text.toUpperCase(),
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.8,
+            color: Colors.grey.shade500,
+          ),
+        ),
+      );
+
+  Widget _choice<T>(String label, T value, T selected, ValueChanged<T> onPick) {
+    return ChoiceChip(
+      label: Text(label, style: const TextStyle(fontSize: 12)),
+      selected: selected == value,
+      onSelected: (_) => onPick(value),
+      visualDensity: VisualDensity.compact,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text('Filters',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              const Spacer(),
+              TextButton(
+                onPressed: () => setState(() {
+                  _range = null;
+                  _status = null;
+                  _type = null;
+                }),
+                child: const Text('Reset'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _sectionLabel('Date range'),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _pickRange,
+                  icon: const Icon(Icons.date_range, size: 16),
+                  label: Text(
+                    _range == null
+                        ? 'Any date'
+                        : '${_dateFmt.format(_range!.start)} – ${_dateFmt.format(_range!.end)}',
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ),
+              ),
+              if (_range != null)
+                IconButton(
+                  icon: const Icon(Icons.close, size: 18),
+                  color: Colors.grey.shade600,
+                  tooltip: 'Clear date range',
+                  onPressed: () => setState(() => _range = null),
+                ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          _sectionLabel('Status'),
+          Wrap(
+            spacing: 8,
+            children: [
+              _choice('All', null, _status, (v) => setState(() => _status = v)),
+              _choice('Unpaid', BillStatus.unpaid, _status,
+                  (v) => setState(() => _status = v)),
+              _choice('Partial', BillStatus.partial, _status,
+                  (v) => setState(() => _status = v)),
+              _choice('Paid', BillStatus.paid, _status,
+                  (v) => setState(() => _status = v)),
+            ],
+          ),
+          const SizedBox(height: 18),
+          _sectionLabel('Type'),
+          Wrap(
+            spacing: 8,
+            children: [
+              _choice('All', null, _type, (v) => setState(() => _type = v)),
+              _choice('Bills', LedgerType.bill, _type,
+                  (v) => setState(() => _type = v)),
+              _choice('Payments', LedgerType.payment, _type,
+                  (v) => setState(() => _type = v)),
+            ],
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: () => Navigator.pop(
+                context,
+                (range: _range, status: _status, type: _type),
+              ),
+              child: const Text('Apply'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -400,112 +656,6 @@ class _StatTile extends StatelessWidget {
   }
 }
 
-class _FiltersBar extends StatelessWidget {
-  const _FiltersBar({
-    required this.range,
-    required this.statusFilter,
-    required this.typeFilter,
-    required this.onRangeChanged,
-    required this.onStatusChanged,
-    required this.onTypeChanged,
-  });
-
-  final DateTimeRange? range;
-  final BillStatus? statusFilter;
-  final LedgerType? typeFilter;
-  final ValueChanged<DateTimeRange?> onRangeChanged;
-  final ValueChanged<BillStatus?> onStatusChanged;
-  final ValueChanged<LedgerType?> onTypeChanged;
-
-  Future<void> _pickRange(BuildContext context) async {
-    if (range != null) {
-      onRangeChanged(null);
-      return;
-    }
-    final now = DateTime.now();
-    final picked = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(2020),
-      lastDate: now,
-      initialDateRange: DateTimeRange(
-        start: now.subtract(const Duration(days: 30)),
-        end: now,
-      ),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(primary: kBrandBrown),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null) onRangeChanged(picked);
-  }
-
-  Widget _chip<T>(String label, T value, T selected, ValueChanged<T> onChanged) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 6),
-      child: FilterChip(
-        label: Text(label, style: const TextStyle(fontSize: 12)),
-        selected: selected == value,
-        onSelected: (_) => onChanged(value),
-        visualDensity: VisualDensity.compact,
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          child: FilterChip(
-            avatar: const Icon(Icons.date_range, size: 16),
-            label: Text(
-              range == null
-                  ? 'Date Range'
-                  : '${_dateFmt.format(range!.start)} – ${_dateFmt.format(range!.end)}',
-              style: const TextStyle(fontSize: 12),
-            ),
-            selected: range != null,
-            onSelected: (_) => _pickRange(context),
-            visualDensity: VisualDensity.compact,
-          ),
-        ),
-        SizedBox(
-          height: 40,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            children: [
-              _chip('All', null, statusFilter, onStatusChanged),
-              _chip('Unpaid', BillStatus.unpaid, statusFilter, onStatusChanged),
-              _chip('Partial', BillStatus.partial, statusFilter, onStatusChanged),
-              _chip('Paid', BillStatus.paid, statusFilter, onStatusChanged),
-            ],
-          ),
-        ),
-        SizedBox(
-          height: 40,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            children: [
-              _chip('All', null, typeFilter, onTypeChanged),
-              _chip('Bills', LedgerType.bill, typeFilter, onTypeChanged),
-              _chip('Payments', LedgerType.payment, typeFilter, onTypeChanged),
-            ],
-          ),
-        ),
-        const SizedBox(height: 4),
-      ],
-    );
-  }
-}
-
 /// A pending bill on the Outstanding tab: what the bill was, what has been paid
 /// against it, and what is still due.
 class _OpenBillRow extends StatelessWidget {
@@ -531,28 +681,26 @@ class _OpenBillRow extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text(
-                      _dateFmt.format(entry.date),
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    if (daysOld > 0) ...[
-                      const SizedBox(width: 6),
-                      Text(
-                        '· ${daysOld}d ago',
-                        style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                    Flexible(
+                      child: Text(
+                        _dateFmt.format(entry.date),
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
-                    ],
+                    ),
+                    const SizedBox(width: 8),
+                    _StatusBadge(status: entry.billStatus!),
                   ],
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  partlyPaid
-                      ? 'Bill ${_fmtMoney(entry.amount)} · paid ${_fmtMoney(entry.allocatedAmount)}'
-                      : 'Bill ${_fmtMoney(entry.amount)}',
+                  [
+                    'Bill ${_fmtMoney(entry.amount)}',
+                    if (partlyPaid) 'paid ${_fmtMoney(entry.allocatedAmount)}',
+                    if (daysOld > 0) '${daysOld}d ago',
+                  ].join(' · '),
                   style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                 ),
-                const SizedBox(height: 4),
-                _StatusBadge(status: entry.billStatus!),
               ],
             ),
           ),
@@ -590,9 +738,10 @@ class _LedgerRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final isBill = entry.type == LedgerType.bill;
     final amountColor = isBill ? Colors.red.shade700 : Colors.green.shade700;
-    final description = isBill
-        ? 'Bill · ${_dateFmt.format(entry.date)}'
+    final subtitle = isBill
+        ? 'Bill'
         : 'Payment · ${_modeLabel(entry.paymentMode!)}';
+    final note = entry.note?.trim();
 
     return InkWell(
       onLongPress: onDelete,
@@ -611,19 +760,36 @@ class _LedgerRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(_dateFmt.format(entry.date),
-                      style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-                  const SizedBox(height: 2),
-                  Text(description,
-                      style: const TextStyle(fontWeight: FontWeight.w600)),
-                  if (isBill && entry.billStatus != null) ...[
-                    const SizedBox(height: 4),
-                    _StatusBadge(status: entry.billStatus!),
-                  ] else if (!isBill &&
-                      (entry.note?.trim().isNotEmpty ?? false)) ...[
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          _dateFmt.format(entry.date),
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      if (isBill && entry.billStatus != null) ...[
+                        const SizedBox(width: 8),
+                        _StatusBadge(status: entry.billStatus!),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                  if (!isBill && (note?.isNotEmpty ?? false)) ...[
                     const SizedBox(height: 2),
-                    Text(entry.note!,
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                    Text(
+                      note!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade500,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
                   ],
                 ],
               ),
@@ -667,16 +833,7 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final MaterialColor color = switch (status) {
-      BillStatus.paid => Colors.green,
-      BillStatus.partial => Colors.orange,
-      BillStatus.unpaid => Colors.red,
-    };
-    final label = switch (status) {
-      BillStatus.paid => 'Paid',
-      BillStatus.partial => 'Partial',
-      BillStatus.unpaid => 'Unpaid',
-    };
+    final color = _statusColor(status);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
@@ -684,8 +841,9 @@ class _StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
-        label,
-        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color.shade700),
+        _statusLabel(status),
+        style: TextStyle(
+            fontSize: 11, fontWeight: FontWeight.w600, color: color.shade700),
       ),
     );
   }

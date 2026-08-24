@@ -177,13 +177,25 @@ use a catch-up payment instead, and leave the opening balance null.
   - Stats header (above both tabs): **Total Billed · Total Collected · Outstanding ·
     Last Payment**.
   - **Outstanding tab** (default): only bills still owing, oldest first, under a
-    banner reading `N pending bills · ₹X due · oldest Nd`. Each row shows the bill
-    date, its age in days, bill total, amount paid so far, status badge, and the
-    balance due. No filters — this tab answers exactly one question.
-  - **History tab**: the chronological ledger. Filters (date range · status chips ·
-    type chips), rows of date · description (`Bill · {date}` / `Payment · {mode}`) ·
-    amount (Dr red, Cr green) · running balance, with a status badge on bill rows.
+    banner reading `N pending bills · ₹X due · oldest Nd`. No filters — this tab
+    answers exactly one question.
+  - **History tab**: the chronological ledger — rows of date · type
+    (`Bill` / `Payment · {mode}`) · amount (Dr red, Cr green) · running balance.
+  - Row layout on both tabs leads with the **date and its status badge on one
+    line**, with bill total / amount paid / age as a secondary line. The badge sits
+    beside the date rather than under the description: status and date are what the
+    eye scans a collections list for, so they belong on the same line.
+  - Zero-total orders never render as bills. Opening the order-entry screen calls
+    `getOrCreateOrder`, so a shop accumulates empty order rows that are not bills;
+    they are skipped when building the ledger (contributing 0.0, they cannot shift
+    the running balance) and `getBillStatus` derives them as Paid, not Unpaid.
   - FAB: **Record Payment**.
+- [x] Filters live behind a **bottom sheet**, not inline chips. Three rows of chips
+      (date · 4 status · 3 type) pushed the list off the screen and read as clutter.
+      The History tab now shows one `Filters (N)` button, a plain-language summary of
+      what is active (`Bills · Unpaid · 24 Jul – 23 Aug`), and a clear button. The
+      sheet groups Date range / Status / Type with Reset and Apply, and edits a draft
+      so nothing re-queries until Apply.
 - [x] Payment rows on the History tab carry a delete action (icon, and long-press),
       confirming before it runs. Editing a payment stays out of scope as decided
       below, but with no delete in the UI the documented correction path did not
