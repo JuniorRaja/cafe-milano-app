@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../database/app_database.dart';
 import '../../providers/database_provider.dart';
+import '../../providers/ledger_provider.dart';
 
 class RecordPaymentSheet extends ConsumerStatefulWidget {
   const RecordPaymentSheet({super.key, required this.shopId});
@@ -57,6 +58,9 @@ class _RecordPaymentSheetState extends ConsumerState<RecordPaymentSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final outstanding =
+        ref.watch(shopStatsProvider(widget.shopId)).value?.outstanding;
+
     return Padding(
       padding: EdgeInsets.only(
         left: 20,
@@ -74,6 +78,32 @@ class _RecordPaymentSheetState extends ConsumerState<RecordPaymentSheet> {
               'Record Payment',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
+            if (outstanding != null && outstanding > 0.005) ...[
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Text(
+                    'Outstanding ₹${outstanding.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.red.shade700,
+                    ),
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () => setState(
+                      () => _amountCtrl.text = outstanding.toStringAsFixed(2),
+                    ),
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
+                    child: const Text('Settle full', style: TextStyle(fontSize: 12)),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 16),
             TextFormField(
               controller: _amountCtrl,

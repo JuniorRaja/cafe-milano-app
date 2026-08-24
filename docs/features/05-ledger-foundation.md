@@ -76,6 +76,29 @@ An allocation may legitimately not sum to the payment. A shop can overpay, or pa
 advance. Doc 06 decides how that surfaces; here, FIFO simply stops allocating when it
 runs out of unpaid bills, and the remainder sits as an unallocated credit.
 
+### Starting from existing history
+
+On the day this ships, every bill already in the database reads Unpaid, because no
+payments have ever been recorded. That is alarming but not wrong — it is just an
+un-reconciled ledger.
+
+The intended fix is **not** the opening balance. It is a single **catch-up payment**
+per shop: record one payment for everything that shop has already paid, and FIFO
+settles the oldest bills automatically until it runs out. The shop's Outstanding
+then equals the owner's handwritten figure.
+
+> Shop billed ₹50,000 to date. Notebook says ₹8,400 still owed.
+> Record one ₹41,600 payment, noted "Opening catch-up".
+> → Eight bills settle, the ninth goes Partial, Outstanding reads ₹8,400.
+
+Which individual bills FIFO marks as settled will not match reality bill-by-bill —
+but the **balance** is exact, and the balance is the number the business runs on.
+Reconstructing a year of bill-level payment history is not worth anyone's evening.
+
+`openingBalance` therefore stays for the case it was designed for: a shop whose
+pre-ledger bills are not in this database at all. If the bills are in the database,
+use a catch-up payment instead, and leave the opening balance null.
+
 ## Action items
 
 ### Schema
@@ -147,21 +170,33 @@ runs out of unpaid bills, and the remainder sits as an unallocated credit.
 
 ### UI
 
-- [x] `lib/screens/ledger/shop_ledger_screen.dart` — new.
+- [x] `lib/screens/ledger/shop_ledger_screen.dart` — new. **Two tabs**, added after
+      first real use: the single chronological statement was accurate but unreadable —
+      it answered "what happened" when the owner was asking "who owes me what".
   - App bar: shop name + area.
-  - Stats header: **Total Billed · Total Collected · Outstanding · Last Payment**.
-  - Filters: date range · status chips (`All · Unpaid · Partial · Paid`) · type chips
-    (`All · Bills · Payments`).
-  - Chronological rows: date · description (`Bill · {date}` / `Payment · {mode}`) ·
-    amount (Dr red, Cr green) · running balance. Also shows a small Paid/Partial/
-    Unpaid badge on bill rows (not in the original spec, cheap given the data is
-    already on `LedgerEntry`).
+  - Stats header (above both tabs): **Total Billed · Total Collected · Outstanding ·
+    Last Payment**.
+  - **Outstanding tab** (default): only bills still owing, oldest first, under a
+    banner reading `N pending bills · ₹X due · oldest Nd`. Each row shows the bill
+    date, its age in days, bill total, amount paid so far, status badge, and the
+    balance due. No filters — this tab answers exactly one question.
+  - **History tab**: the chronological ledger. Filters (date range · status chips ·
+    type chips), rows of date · description (`Bill · {date}` / `Payment · {mode}`) ·
+    amount (Dr red, Cr green) · running balance, with a status badge on bill rows.
   - FAB: **Record Payment**.
+- [x] Payment rows on the History tab carry a delete action (icon, and long-press),
+      confirming before it runs. Editing a payment stays out of scope as decided
+      below, but with no delete in the UI the documented correction path did not
+      actually exist — the DAO method was unreachable. The dialog states plainly that
+      settled bills return to unpaid and that correcting means delete-and-re-record.
 - [x] `lib/screens/ledger/record_payment_sheet.dart` — new modal bottom sheet.
       Amount (required), mode selector (Cash / UPI / Bank / Cheque), note (optional),
       date defaulting to today but editable — payments get entered a day late, which
       is the whole point of the feature. Save runs FIFO allocation.
       Leave a clearly marked seam where doc 06 adds the allocation panel.
+      Shows the shop's current Outstanding with a **Settle full** shortcut that fills
+      the amount — one tap for the common "paid the whole thing" case, and the figure
+      you subtract from for a catch-up entry.
 - [x] `lib/screens/profile/shops/shop_form_screen.dart` — "Opening Balance" (numeric,
       optional) and "As of Date". Editable only on a new shop, or while
       `openingBalance` is still null. Once set it is history and must not be
@@ -186,6 +221,10 @@ runs out of unpaid bills, and the remainder sits as an unallocated credit.
     bills, an out-of-order-inserted past-dated payment sorting correctly, the
     running-balance identity, and status+date filters combined. `test/backup_test.dart`
     also gained a payments/allocations/opening-balance round-trip case.
+  - The catch-up path above: ten ₹5,000 bills, one ₹41,600 payment → Outstanding
+    lands exactly on ₹8,400, two bills stay open (one Partial at ₹3,400, one Unpaid
+    at ₹5,000), and the open bills' dues sum to the same ₹8,400.
+  - `allocatedAmount` / `amountDue` are correct per bill, and zero on payment rows.
 
 ## Success criteria
 

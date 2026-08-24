@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../app.dart';
 import '../../database/app_database.dart';
+import '../../providers/database_provider.dart';
 import '../../providers/ledger_provider.dart';
 import '../../providers/shop_provider.dart';
 import 'record_payment_sheet.dart';
@@ -33,23 +34,68 @@ class ShopLedgerScreen extends ConsumerStatefulWidget {
   ConsumerState<ShopLedgerScreen> createState() => _ShopLedgerScreenState();
 }
 
-class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen> {
+class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
   DateTimeRange? _range;
   BillStatus? _statusFilter;
   LedgerType? _typeFilter;
 
   @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  void _openPaymentSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => RecordPaymentSheet(shopId: widget.shopId),
+    );
+  }
+
+  // Editing a payment is deliberately not supported — a payment's allocations
+  // are derived, so re-pointing them safely means recomputing FIFO anyway.
+  // Delete and re-record is the correction path.
+  Future<void> _confirmDeletePayment(LedgerEntry entry) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Payment'),
+        content: Text(
+          'Delete the ${_fmtMoney(entry.amount)} payment dated '
+          '${_dateFmt.format(entry.date)}?\n\n'
+          'Any bills it settled go back to unpaid. To correct a payment, '
+          'delete it and record it again.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await ref.read(databaseProvider).ledgerDao.deletePayment(entry.paymentId!);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final shop = ref.watch(shopByIdProvider(widget.shopId)).value;
     final statsAsync = ref.watch(shopStatsProvider(widget.shopId));
-    final query = (
-      shopId: widget.shopId,
-      range: _range,
-      status: _statusFilter,
-      type: _typeFilter,
-    );
-    final ledgerAsync = ref.watch(shopLedgerProvider(query));
-    final hasFilters = _range != null || _statusFilter != null || _typeFilter != null;
 
     return Scaffold(
       appBar: AppBar(
@@ -69,13 +115,16 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen> {
               ),
           ],
         ),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Outstanding'),
+            Tab(text: 'History'),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          builder: (_) => RecordPaymentSheet(shopId: widget.shopId),
-        ),
+        onPressed: _openPaymentSheet,
         backgroundColor: kBrandGold,
         foregroundColor: Colors.black87,
         icon: const Icon(Icons.payments_outlined),
@@ -84,39 +133,173 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen> {
       body: Column(
         children: [
           _StatsHeader(statsAsync: statsAsync),
-          _FiltersBar(
-            range: _range,
-            statusFilter: _statusFilter,
-            typeFilter: _typeFilter,
-            onRangeChanged: (v) => setState(() => _range = v),
-            onStatusChanged: (v) => setState(() => _statusFilter = v),
-            onTypeChanged: (v) => setState(() => _typeFilter = v),
-          ),
           Expanded(
-            child: ledgerAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
-              data: (entries) {
-                if (entries.isEmpty) {
-                  return Center(
-                    child: Text(
-                      hasFilters
-                          ? 'No entries match these filters.'
-                          : 'No bills or payments yet.',
-                    ),
-                  );
-                }
-                return ListView.separated(
-                  padding: const EdgeInsets.only(bottom: 96),
-                  itemCount: entries.length,
-                  separatorBuilder: (_, _) => const Divider(height: 1),
-                  itemBuilder: (context, index) => _LedgerRow(entry: entries[index]),
-                );
-              },
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildOutstandingTab(),
+                _buildHistoryTab(),
+              ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  // ─── Outstanding ─────────────────────────────────────────────────────────
+  // Only bills that still owe something, oldest first — "who owes me what, and
+  // since when". Deliberately unfiltered: this tab answers one question.
+
+  Widget _buildOutstandingTab() {
+    final billsAsync = ref.watch(shopLedgerProvider((
+      shopId: widget.shopId,
+      range: null,
+      status: null,
+      type: LedgerType.bill,
+    )));
+
+    return billsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text('Error: $e')),
+      data: (bills) {
+        final open =
+            bills.where((b) => b.billStatus != BillStatus.paid).toList();
+
+        if (open.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    bills.isEmpty
+                        ? Icons.receipt_long_outlined
+                        : Icons.check_circle_outline,
+                    size: 56,
+                    color: bills.isEmpty ? Colors.grey : Colors.green.shade400,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    bills.isEmpty
+                        ? 'No bills yet for this shop.'
+                        : 'All settled — nothing pending.',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.grey, fontSize: 15),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final totalDue = open.fold<double>(0, (sum, b) => sum + b.amountDue);
+        final oldest = open.first.date;
+        final daysOld = DateTime.now().difference(oldest).inDays;
+
+        return Column(
+          children: [
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.red.shade100),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.error_outline, size: 18, color: Colors.red.shade700),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '${open.length} pending ${open.length == 1 ? 'bill' : 'bills'} · '
+                      '${_fmtMoney(totalDue)} due',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.red.shade700,
+                      ),
+                    ),
+                  ),
+                  if (daysOld > 0)
+                    Text(
+                      'oldest ${daysOld}d',
+                      style: TextStyle(fontSize: 11, color: Colors.red.shade400),
+                    ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.separated(
+                padding: const EdgeInsets.only(bottom: 96),
+                itemCount: open.length,
+                separatorBuilder: (_, _) => const Divider(height: 1),
+                itemBuilder: (context, index) =>
+                    _OpenBillRow(entry: open[index]),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ─── History ─────────────────────────────────────────────────────────────
+
+  Widget _buildHistoryTab() {
+    final ledgerAsync = ref.watch(shopLedgerProvider((
+      shopId: widget.shopId,
+      range: _range,
+      status: _statusFilter,
+      type: _typeFilter,
+    )));
+    final hasFilters =
+        _range != null || _statusFilter != null || _typeFilter != null;
+
+    return Column(
+      children: [
+        _FiltersBar(
+          range: _range,
+          statusFilter: _statusFilter,
+          typeFilter: _typeFilter,
+          onRangeChanged: (v) => setState(() => _range = v),
+          onStatusChanged: (v) => setState(() => _statusFilter = v),
+          onTypeChanged: (v) => setState(() => _typeFilter = v),
+        ),
+        Expanded(
+          child: ledgerAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Center(child: Text('Error: $e')),
+            data: (entries) {
+              if (entries.isEmpty) {
+                return Center(
+                  child: Text(
+                    hasFilters
+                        ? 'No entries match these filters.'
+                        : 'No bills or payments yet.',
+                  ),
+                );
+              }
+              return ListView.separated(
+                padding: const EdgeInsets.only(bottom: 96),
+                itemCount: entries.length,
+                separatorBuilder: (_, _) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final entry = entries[index];
+                  return _LedgerRow(
+                    entry: entry,
+                    onDelete: entry.type == LedgerType.payment
+                        ? () => _confirmDeletePayment(entry)
+                        : null,
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
@@ -323,10 +506,85 @@ class _FiltersBar extends StatelessWidget {
   }
 }
 
-class _LedgerRow extends StatelessWidget {
-  const _LedgerRow({required this.entry});
+/// A pending bill on the Outstanding tab: what the bill was, what has been paid
+/// against it, and what is still due.
+class _OpenBillRow extends StatelessWidget {
+  const _OpenBillRow({required this.entry});
 
   final LedgerEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final partlyPaid = entry.allocatedAmount > 0.005;
+    final daysOld = DateTime.now().difference(entry.date).inDays;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.receipt_long, color: Colors.red.shade700, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      _dateFmt.format(entry.date),
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    if (daysOld > 0) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        '· ${daysOld}d ago',
+                        style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  partlyPaid
+                      ? 'Bill ${_fmtMoney(entry.amount)} · paid ${_fmtMoney(entry.allocatedAmount)}'
+                      : 'Bill ${_fmtMoney(entry.amount)}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 4),
+                _StatusBadge(status: entry.billStatus!),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                'Due',
+                style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+              ),
+              Text(
+                _fmtMoney(entry.amountDue),
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                  color: Colors.red.shade700,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LedgerRow extends StatelessWidget {
+  const _LedgerRow({required this.entry, this.onDelete});
+
+  final LedgerEntry entry;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -336,52 +594,67 @@ class _LedgerRow extends StatelessWidget {
         ? 'Bill · ${_dateFmt.format(entry.date)}'
         : 'Payment · ${_modeLabel(entry.paymentMode!)}';
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            isBill ? Icons.receipt_long : Icons.payments_outlined,
-            color: amountColor,
-            size: 20,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(_dateFmt.format(entry.date),
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-                const SizedBox(height: 2),
-                Text(description, style: const TextStyle(fontWeight: FontWeight.w600)),
-                if (isBill && entry.billStatus != null) ...[
-                  const SizedBox(height: 4),
-                  _StatusBadge(status: entry.billStatus!),
-                ] else if (!isBill && (entry.note?.trim().isNotEmpty ?? false)) ...[
+    return InkWell(
+      onLongPress: onDelete,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              isBill ? Icons.receipt_long : Icons.payments_outlined,
+              color: amountColor,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(_dateFmt.format(entry.date),
+                      style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
                   const SizedBox(height: 2),
-                  Text(entry.note!,
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                  Text(description,
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                  if (isBill && entry.billStatus != null) ...[
+                    const SizedBox(height: 4),
+                    _StatusBadge(status: entry.billStatus!),
+                  ] else if (!isBill &&
+                      (entry.note?.trim().isNotEmpty ?? false)) ...[
+                    const SizedBox(height: 2),
+                    Text(entry.note!,
+                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                  ],
                 ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${isBill ? 'Dr' : 'Cr'} ${_fmtMoney(entry.amount)}',
+                  style: TextStyle(fontWeight: FontWeight.w700, color: amountColor),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Bal ${_fmtMoney(entry.runningBalance)}',
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                ),
               ],
             ),
-          ),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '${isBill ? 'Dr' : 'Cr'} ${_fmtMoney(entry.amount)}',
-                style: TextStyle(fontWeight: FontWeight.w700, color: amountColor),
+            if (onDelete != null)
+              Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: IconButton(
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  color: Colors.grey.shade500,
+                  visualDensity: VisualDensity.compact,
+                  onPressed: onDelete,
+                ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                'Bal ${_fmtMoney(entry.runningBalance)}',
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

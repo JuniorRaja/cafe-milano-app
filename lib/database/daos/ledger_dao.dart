@@ -17,6 +17,9 @@ class LedgerEntry {
   final LedgerType type;
   final DateTime date;
   final double amount;
+  /// For a bill, how much of it has been settled by allocations. Always 0 on a
+  /// payment row — a payment is not itself "allocated against".
+  final double allocatedAmount;
   final double runningBalance;
   final int? orderId;
   final int? paymentId;
@@ -29,12 +32,16 @@ class LedgerEntry {
     required this.date,
     required this.amount,
     required this.runningBalance,
+    this.allocatedAmount = 0.0,
     this.orderId,
     this.paymentId,
     this.billStatus,
     this.paymentMode,
     this.note,
   });
+
+  /// What is still owed on this bill. Meaningless on a payment row.
+  double get amountDue => amount - allocatedAmount;
 }
 
 class ShopLedgerStats {
@@ -148,6 +155,7 @@ class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
             type: LedgerType.bill,
             date: date,
             amount: amount,
+            allocatedAmount: allocated,
             runningBalance: runningBalance,
             orderId: row.read<int>('ref_id'),
             billStatus: _billStatusFor(amount, allocated),

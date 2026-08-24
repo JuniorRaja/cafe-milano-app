@@ -179,6 +179,60 @@ void main() {
       expect(await db.ledgerDao.getBillStatus(laterBill), BillStatus.partial);
     });
 
+    test('a single catch-up payment reconciles the balance to a handwritten note', () async {
+      // The real migration path: months of bills already exist, none recorded as
+      // paid, and the owner's notebook says the shop still owes 8,400. Recording
+      // one payment for everything collected so far must land the outstanding
+      // exactly on the notebook figure, with older bills settled oldest-first.
+      for (var day = 1; day <= 10; day++) {
+        await bill(DateTime(2026, 1, day), 5000); // 50,000 billed in total
+      }
+
+      await db.ledgerDao.recordPayment(
+        shopId: shopId,
+        amount: 41600,
+        paidAt: DateTime(2026, 1, 31),
+        mode: PaymentMode.cash,
+        note: 'Opening catch-up',
+      );
+
+      final stats = await db.ledgerDao.watchShopStats(shopId).first;
+      expect(stats.totalBilled, closeTo(50000, 0.001));
+      expect(stats.outstanding, closeTo(8400, 0.001));
+
+      final bills = await db.ledgerDao
+          .watchShopLedger(shopId, type: LedgerType.bill)
+          .first;
+      final open = bills.where((b) => b.billStatus != BillStatus.paid).toList();
+      expect(open.fold<double>(0, (sum, b) => sum + b.amountDue),
+          closeTo(8400, 0.001));
+      // 41,600 covers eight full bills and 1,600 of the ninth.
+      expect(open, hasLength(2));
+      expect(open.first.billStatus, BillStatus.partial);
+      expect(open.first.amountDue, closeTo(3400, 0.001));
+      expect(open.last.billStatus, BillStatus.unpaid);
+      expect(open.last.amountDue, closeTo(5000, 0.001));
+    });
+
+    test('allocatedAmount and amountDue are exposed per bill', () async {
+      await bill(DateTime(2026, 1, 1), 1000);
+      await db.ledgerDao.recordPayment(
+        shopId: shopId, amount: 300, paidAt: DateTime(2026, 1, 2), mode: PaymentMode.cash);
+
+      final bills = await db.ledgerDao
+          .watchShopLedger(shopId, type: LedgerType.bill)
+          .first;
+      expect(bills, hasLength(1));
+      expect(bills.first.amount, closeTo(1000, 0.001));
+      expect(bills.first.allocatedAmount, closeTo(300, 0.001));
+      expect(bills.first.amountDue, closeTo(700, 0.001));
+
+      final payments = await db.ledgerDao
+          .watchShopLedger(shopId, type: LedgerType.payment)
+          .first;
+      expect(payments.first.allocatedAmount, 0.0);
+    });
+
     test('status filter and date filter combine correctly', () async {
       await bill(DateTime(2025, 1, 1), 500); // unpaid, but outside the date range below
       final recentUnpaid = await bill(DateTime(2026, 8, 20), 300);
