@@ -52,3 +52,4 @@ lib/database/app_database.g.dart
 *.jks
 *.keystore
 *.b64
+.vscode/

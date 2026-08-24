@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../app.dart';
+import '../../services/update_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -12,6 +14,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   PackageInfo? _packageInfo;
+  bool _checkingForUpdate = false;
 
   @override
   void initState() {
@@ -19,6 +22,87 @@ class _ProfileScreenState extends State<ProfileScreen> {
     PackageInfo.fromPlatform().then((info) {
       if (mounted) setState(() => _packageInfo = info);
     });
+  }
+
+  Future<void> _checkForUpdate() async {
+    final packageInfo = _packageInfo;
+    if (packageInfo == null || _checkingForUpdate) return;
+
+    setState(() => _checkingForUpdate = true);
+    try {
+      final update =
+          await checkForUpdate(int.parse(packageInfo.buildNumber));
+      if (!mounted) return;
+
+      if (update == null) {
+        await showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text("You're up to date"),
+            content: Text(
+                'Version ${packageInfo.version} (build ${packageInfo.buildNumber}) is the latest.'),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Update available'),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Version ${update.version} is available.',
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                Text(update.releaseNotes),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Later'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                launchUrl(Uri.parse(update.downloadUrl),
+                    mode: LaunchMode.externalApplication);
+              },
+              child: const Text('Download'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        await showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Check failed'),
+            content: Text('$e'),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _checkingForUpdate = false);
+    }
   }
 
   @override
@@ -197,6 +281,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   subtitle: 'Export or import all your data',
                   onTap: () => context.push(AppRoutes.backupRestore),
                 ),
+                const Divider(height: 1, indent: 64),
+                _SettingsTile(
+                  icon: Icons.system_update_outlined,
+                  title: 'Check for updates',
+                  subtitle: _packageInfo != null
+                      ? 'Installed: v${_packageInfo!.version} (build ${_packageInfo!.buildNumber})'
+                      : 'Installed version unknown',
+                  trailing: _checkingForUpdate
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : null,
+                  onTap: _checkingForUpdate ? null : _checkForUpdate,
+                ),
               ],
             ),
           ),
@@ -239,12 +339,14 @@ class _SettingsTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onTap,
+    this.trailing,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -262,7 +364,7 @@ class _SettingsTile extends StatelessWidget {
           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
       subtitle: Text(subtitle,
           style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-      trailing:
+      trailing: trailing ??
           Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
       onTap: onTap,
     );

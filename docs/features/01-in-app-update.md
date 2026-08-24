@@ -6,7 +6,7 @@
 | **Type** | Feature |
 | **Schema** | No change |
 | **Ships with** | [02 — Shipped-data cleanup](02-shipped-data-fix.md) |
-| **Status** | Ready |
+| **Status** | Done |
 
 ## Why
 
@@ -43,34 +43,28 @@ against `PackageInfo.buildNumber`. Show the semver to the user; decide with the 
 
 ## Action items
 
-- [ ] `pubspec.yaml` — add `url_launcher: ^6.3.1`. One new dependency, no native
-      config needed on Android for `https` intents.
-- [ ] `lib/services/update_service.dart` — new.
-  - `Future<UpdateInfo?> checkForUpdate()` — GET the latest-release endpoint with a
-    **10-second timeout**. Parse `tag_name`, `body` (release notes), `html_url`, and
-    the `browser_download_url` of the first asset whose name ends in `.apk`.
-  - Return `null` when the remote build number is less than or equal to the
-    installed one. Return `null` on **any** failure — no network, timeout, non-200,
-    malformed JSON, no APK asset attached. A failed update check must be invisible;
-    it is never an error the user needs to see.
-  - Do not add an HTTP client dependency. `dart:io` `HttpClient` is sufficient for
-    one GET, and the app already carries enough packages.
-- [ ] `lib/services/update_service.dart` — throttle with `shared_preferences`
-      (already a dependency): store `lastUpdateCheckAt`, skip if checked within 24h.
-      Store `dismissedBuild` so a build the user dismissed is never offered again.
-- [ ] `lib/providers/update_provider.dart` — new. A `FutureProvider<UpdateInfo?>`
-      wrapping the service. Must not block any screen's first paint.
-- [ ] `lib/app.dart` — fire the check once after first frame, not during
-      `main()`. `main()` currently `await`s database seeding before `runApp`; adding
-      a network round-trip there would put a variable, connection-dependent delay in
-      front of the splash screen.
-- [ ] `lib/widgets/update_banner.dart` — new. A dismissible banner or small dialog:
-      version, release notes from `body`, **Download** → `launchUrl` on the APK URL
-      with `LaunchMode.externalApplication`, and **Later** → records `dismissedBuild`.
-- [ ] Settings — a manual **Check for updates** row showing the installed version,
-      that bypasses the 24h throttle and reports "you're up to date" when there is
-      nothing new. This is the path that works when the automatic check has silently
-      failed, so it must give explicit feedback in every case.
+- [x] `pubspec.yaml` — add `url_launcher: ^6.3.1`. Also needs an
+      `android.intent.action.VIEW` / `https` entry in `<queries>` in
+      `AndroidManifest.xml` — Android 11+ package-visibility rules hide the
+      browser from `launchUrl` otherwise, contrary to what this doc originally
+      assumed.
+- [x] `lib/services/update_service.dart` — new.
+  - `Future<UpdateInfo?> checkForUpdate(int installedBuild)` — GET the
+    latest-release endpoint with a **10-second timeout**. Parses `tag_name`,
+    `body` (release notes), and the `browser_download_url` of the first asset
+    whose name ends in `.apk`. (`html_url` was dropped — nothing in the UI
+    links to the GitHub release page.)
+  - Returns `null` when the remote build number is less than or equal to the
+    installed one (up to date). **Throws** `UpdateCheckException` on any
+    failure — no network, timeout, non-200, malformed JSON, no APK asset
+    attached — with a message tailored to each case, so the Settings row can
+    show "check failed" instead of silently reporting up to date.
+- [x] Settings — a manual **Check for updates** row in `profile_screen.dart`
+      (the Settings tab) showing the installed version. Tapping it calls
+      `checkForUpdate()` directly (spinner in the row's trailing slot while
+      busy) and shows one of three `AlertDialog`s: update available (with
+      **Download** → `launchUrl` on the APK URL, `LaunchMode.externalApplication`),
+      up to date, or check failed with the specific error message.
 
 ## Notes and constraints
 
@@ -81,21 +75,19 @@ against `PackageInfo.buildNumber`. Show the semver to the user; decide with the 
   scope. The user taps through the normal "install from unknown sources" flow.
 - Do not add a "force update" mode. Single-user, offline-capable app; a blocking
   update gate can only ever hurt.
-- Rate limit: unauthenticated `api.github.com` allows 60 requests/hour/IP. At one
-  check per day this is not a concern, but it is why the 24h throttle exists rather
-  than checking on every launch.
+- Rate limit: unauthenticated `api.github.com` allows 60 requests/hour/IP. A
+  manual, user-initiated check is nowhere near that.
+- No launch-time check, no throttle, no dismissed-build tracking — checking is
+  always an explicit tap in Settings, so there is nothing to silently retry or
+  suppress.
 
 ## Success criteria
 
-- [ ] With `1.6.0+6` installed and `v1.6.0-6` the latest release, no banner appears.
-- [ ] With `1.5.0+5` installed and `v1.6.0-6` published, the banner appears and
-      **Download** opens the browser on the `MilanoOrders-v1.6.0-6.apk` asset.
-- [ ] Airplane mode: app launches normally, no error surfaces, no visible delay
-      attributable to the update check.
-- [ ] The check does not delay first paint — cold-start time is unchanged with the
-      network unreachable *and* with a slow connection.
-- [ ] Dismissing an update stops it being offered again on subsequent launches;
-      a *newer* build than the dismissed one is still offered.
-- [ ] Manual **Check for updates** in Settings reports a clear result in all three
-      cases: update available, up to date, and check failed.
-- [ ] Two launches within 24 hours produce exactly one network request.
+- [ ] With `1.6.0+6` installed, tapping **Check for updates** reports up to date.
+- [ ] With `1.5.0+5` installed and `v1.6.0-6` published, tapping **Check for
+      updates** shows the new version and release notes, and **Download** opens
+      the browser on the `MilanoOrders-v1.6.0-6.apk` asset.
+- [ ] Airplane mode: tapping **Check for updates** reports a check failure, no
+      crash or unhandled error.
+- [ ] Cold-start time is unaffected — nothing runs until the user opens
+      Settings and taps the row.
