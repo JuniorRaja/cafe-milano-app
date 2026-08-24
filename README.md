@@ -15,3 +15,10 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+
+## Seeding dev data
+
+A debug build with no seed data starts empty. To work with realistic data,
+export a backup from your own device (Profile → Backup & Restore) and save it
+as `dev/seed.json` — it's git-ignored and loaded automatically on the next
+debug run.

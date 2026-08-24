@@ -67,32 +67,35 @@ viable. Do not re-litigate this.
 
 ### Stop it shipping
 
-- [ ] `pubspec.yaml` — delete line 44, the
+- [x] `pubspec.yaml` — delete line 44, the
       `- docs/cafe-milano-backup-20260708-224812.json` asset entry. Leave
       `mobile-app-logo-trasnsp.png` and `bg-vector.png`; both are genuinely used
       (`lib/app.dart:30`, `lib/screens/splash/splash_screen.dart:53`,
       `lib/widgets/app_background.dart:16`).
-- [ ] `lib/database/dev_seed.dart` — stop loading from `rootBundle`. Read from a
+- [x] `lib/database/dev_seed.dart` — stop loading from `rootBundle`. Read from a
       **git-ignored local path** instead, and no-op cleanly when the file is absent
       so a fresh clone still runs. Suggested: `dev/seed.json`, with `/dev/` added
       to `.gitignore`.
-- [ ] `.gitignore` — add `/dev/` and a `docs/*backup*.json` guard so an exported
+- [x] `.gitignore` — add `/dev/` and a `docs/*backup*.json` guard so an exported
       backup can never be committed into `docs/` again by reflex.
-- [ ] `README.md` — one short section: to seed realistic dev data, export a backup
+- [x] `README.md` — one short section: to seed realistic dev data, export a backup
       from your own device and drop it at `dev/seed.json`. Nobody will remember this
       otherwise.
 
 ### Fix the release seed
 
-- [ ] `lib/main.dart` — remove the `seedDatabase(db)` call from the release branch.
+- [x] `lib/main.dart` — remove the `seedDatabase(db)` call from the release branch.
       A fresh install must start **empty**, with no fabricated shops or products.
-- [ ] Keep `seedDefaultCategories(db)` running on fresh installs — the nine default
+- [x] Keep `seedDefaultCategories(db)` running on fresh installs — the nine default
       categories are real app scaffolding, not fake business data.
-- [ ] Confirm the empty-state UI is not embarrassing on a genuinely empty database.
+- [x] Confirm the empty-state UI is not embarrassing on a genuinely empty database.
       Home, Kitchen, Billing and Dashboard all need to read as "nothing here yet",
       not as a broken screen. Add empty states where missing — this is the first
       thing a new install shows, and until now nobody has ever seen it.
-- [ ] `lib/database/seed_data.dart` — keep `seedDatabase` in the tree for tests and
+      Kitchen, Billing and each Dashboard card already had one; Home
+      (`lib/screens/home/home_shops_screen.dart`) was the one gap — added a
+      matching icon+text empty state for zero shops.
+- [x] `lib/database/seed_data.dart` — keep `seedDatabase` in the tree for tests and
       debug use, but it must no longer be reachable from a release build.
 
 ### Purge the history

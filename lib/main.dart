@@ -15,7 +15,7 @@ void main() async {
   if (kDebugMode) {
     await seedFromBackup(db);
   } else {
-    await seedDatabase(db);
+    await seedDefaultCategories(db);
   }
   runApp(UncontrolledProviderScope(container: container, child: const MilanoOrdersApp()));
   FlutterNativeSplash.remove();

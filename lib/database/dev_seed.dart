@@ -1,15 +1,18 @@
 import 'dart:convert';
-import 'package:flutter/services.dart';
+import 'dart:io';
 import 'app_database.dart';
 import 'seed_data.dart';
 
-const _backupAsset = 'docs/cafe-milano-backup-20260708-224812.json';
+const _seedPath = 'dev/seed.json';
 
 Future<void> seedFromBackup(AppDatabase db) async {
+  final file = File(_seedPath);
+  if (!file.existsSync()) return;
+
   final existing = await db.select(db.shops).get();
   if (existing.isNotEmpty) return;
 
-  final raw = await rootBundle.loadString(_backupAsset);
+  final raw = await file.readAsString();
   final backup = jsonDecode(raw) as Map<String, dynamic>;
 
   await db.backupDao.restoreAll({

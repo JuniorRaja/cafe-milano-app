@@ -53,3 +53,7 @@ lib/database/app_database.g.dart
 *.keystore
 *.b64
 .vscode/
+
+# Local dev seed data (export your own backup, see README)
+/dev/
+docs/*backup*.json

@@ -99,21 +99,23 @@ class HomeShopsScreen extends ConsumerWidget {
                         ),
                       ),
                       Expanded(
-                        child: ListView.builder(
-                          itemCount: shops.length,
-                          itemBuilder: (context, index) {
-                            final shop = shops[index];
-                            return StaggeredFadeIn(
-                              index: index,
-                              child: ShopOrderCard(
-                                shop: shop,
-                                summary: summaryMap[shop.id],
-                                onTap: () => context
-                                    .push('/order/${shop.id}?date=$dateStr'),
+                        child: shops.isEmpty
+                            ? const _EmptyState()
+                            : ListView.builder(
+                                itemCount: shops.length,
+                                itemBuilder: (context, index) {
+                                  final shop = shops[index];
+                                  return StaggeredFadeIn(
+                                    index: index,
+                                    child: ShopOrderCard(
+                                      shop: shop,
+                                      summary: summaryMap[shop.id],
+                                      onTap: () => context.push(
+                                          '/order/${shop.id}?date=$dateStr'),
+                                    ),
+                                  );
+                                },
                               ),
-                            );
-                          },
-                        ),
                       ),
                     ],
                   );
@@ -125,6 +127,27 @@ class HomeShopsScreen extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.storefront_outlined, size: 64, color: Colors.grey),
+          SizedBox(height: 12),
+          Text(
+            'No shops yet',
+            style: TextStyle(color: Colors.grey, fontSize: 15),
+          ),
+        ],
       ),
     );
   }

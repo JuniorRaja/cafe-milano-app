@@ -1,7 +1,7 @@
 name: milano_orders
 description: "Milano Orders — Daily bakery order management"
 publish_to: 'none'
-version: 1.5.0+5
+version: 1.6.0+6
 
 environment:
   sdk: ^3.12.2
@@ -42,7 +42,6 @@ flutter:
   assets:
     - mobile-app-logo-trasnsp.png
     - bg-vector.png
-    - docs/cafe-milano-backup-20260708-224812.json
   fonts:
     - family: Quicksand
       fonts:
