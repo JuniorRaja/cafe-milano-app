@@ -55,13 +55,18 @@ opens the app to two fictional shops.
 
 ## Decision taken
 
-**Rewrite history with `git filter-repo`, keep the repository public.** Chosen
-2026-08-23 over the alternatives (remove-going-forward, going private, or both).
+**Remove the file going forward, keep the repository public, skip the history
+rewrite.** Superseded 2026-08-24 — originally planned to rewrite history with
+`git filter-repo`, decided against it as too much effort for the payoff.
 
-Rationale: the repo has 0 forks and 0 stars, so the rewrite's blast radius is
-effectively zero, and staying public is what keeps [doc 01](01-in-app-update.md)'s
-token-free update check and the [doc 13](13-distribution-docs.md) download page
-viable. Do not re-litigate this.
+Rationale: the repo has 0 forks and 0 stars, so staying public is what keeps
+[doc 01](01-in-app-update.md)'s token-free update check and the
+[doc 13](13-distribution-docs.md) download page viable. `git rm` stops the file
+from shipping and from appearing in the repo's current tree / `git log`, but the
+old commit (`9c610fd`) and its raw GitHub URL remain reachable indefinitely —
+this is accepted, not a gap to close later. Treat the backup's contents (shop
+names, areas, phone numbers, trading history) as having been public since
+2026-07-08 regardless of what the repo looks like today.
 
 ## Action items
 
@@ -98,28 +103,17 @@ viable. Do not re-litigate this.
 - [x] `lib/database/seed_data.dart` — keep `seedDatabase` in the tree for tests and
       debug use, but it must no longer be reachable from a release build.
 
-### Purge the history
+### Purge the history — skipped
 
-Do this **after** the code changes above are merged to `master`, so the rewrite is
-done once against final content.
+Decided 2026-08-24: not doing the `git filter-repo` rewrite. Too much effort
+(install tooling, rewrite all SHAs from `9c610fd` onward, force-push, re-push
+tags, re-verify Releases page and raw-URL 404) for the marginal benefit, given
+0 forks/0 stars and the data having already been public for 7 weeks regardless.
 
-- [ ] Confirm no other branch needs the file. At time of writing the only branches
-      are `master` and `claude/shop-ledger-payments-vaavtt`.
-- [ ] Take a full local backup of the repo before starting. This step is not
-      reversible from the remote once force-pushed.
-- [ ] `git filter-repo --invert-paths --path docs/cafe-milano-backup-20260708-224812.json`
-      Verify with `git log --all --oneline -- docs/cafe-milano-backup-20260708-224812.json`
-      returning nothing.
-- [ ] Force-push `master`. Re-clone locally afterwards — `filter-repo` rewrites every
-      commit SHA, so the existing working copy is no longer usable against the remote.
-- [ ] Existing release **tags** point at rewritten SHAs. Verify the Releases page
-      still resolves and the published APK assets still download; re-push tags if not.
-      The APKs themselves are unaffected — they are uploaded binaries, not git objects.
-- [ ] After GitHub has garbage-collected, re-check the raw URL returns 404. This can
-      lag; if it persists, GitHub Support can force GC on request.
-- [ ] Treat the exposed data as having been public since 2026-07-08. Whether the
-      shops' phone numbers warrant telling anyone is a judgement call — flagging it
-      here so the decision is deliberate rather than skipped.
+- [x] File removed from the working tree going forward (`git rm`) — see above.
+- [ ] Not doing: history rewrite, force-push, tag re-push, raw-URL 404 check.
+- [ ] Not doing: notifying anyone about the phone-number exposure — revisit if
+      that changes.
 
 ## Success criteria
 
@@ -132,6 +126,7 @@ done once against final content.
 - [ ] Restoring a backup into that clean install produces the correct data.
 - [ ] `flutter run` in debug with no `dev/seed.json` starts cleanly and does not throw.
 - [ ] `flutter run` in debug **with** `dev/seed.json` present seeds as before.
-- [ ] `git log --all -- docs/cafe-milano-backup-20260708-224812.json` is empty.
-- [ ] The raw GitHub URL returns 404.
+- [ ] ~~`git log --all -- docs/cafe-milano-backup-20260708-224812.json` is empty.~~
+      N/A — history rewrite skipped, the old commit stays in `git log --all`.
+- [ ] ~~The raw GitHub URL returns 404.~~ N/A — same reason.
 - [ ] The Releases page still lists prior releases with working APK downloads.
