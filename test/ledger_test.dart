@@ -161,6 +161,24 @@ void main() {
       expect(entries.last.runningBalance, closeTo(stats.outstanding, 0.001));
     });
 
+    test('a payment recorded for a past date lands in correct chronological position', () async {
+      // The bill is inserted first, but dated *after* the payment below — the
+      // ledger must sort by entry date, not by insertion order.
+      final laterBill = await bill(DateTime(2026, 1, 10), 1000);
+      await db.ledgerDao.recordPayment(
+        shopId: shopId, amount: 400, paidAt: DateTime(2026, 1, 5), mode: PaymentMode.cash);
+
+      final entries = await db.ledgerDao.watchShopLedger(shopId).first;
+      expect(entries, hasLength(2));
+      expect(entries[0].type, LedgerType.payment);
+      expect(entries[0].date, DateTime(2026, 1, 5));
+      expect(entries[0].runningBalance, closeTo(-400, 0.001));
+      expect(entries[1].type, LedgerType.bill);
+      expect(entries[1].date, DateTime(2026, 1, 10));
+      expect(entries[1].runningBalance, closeTo(600, 0.001));
+      expect(await db.ledgerDao.getBillStatus(laterBill), BillStatus.partial);
+    });
+
     test('status filter and date filter combine correctly', () async {
       await bill(DateTime(2025, 1, 1), 500); // unpaid, but outside the date range below
       final recentUnpaid = await bill(DateTime(2026, 8, 20), 300);

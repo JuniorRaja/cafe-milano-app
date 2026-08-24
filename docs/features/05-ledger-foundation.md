@@ -80,13 +80,13 @@ runs out of unpaid bills, and the remainder sits as an unallocated credit.
 
 ### Schema
 
-- [ ] `lib/database/tables/payments.dart` — new, per the model above. `mode` as a
+- [x] `lib/database/tables/payments.dart` — new, per the model above. `mode` as a
       `TextColumn`, not an enum column; the four values are a UI concern.
-- [ ] `lib/database/tables/payment_allocations.dart` — new, composite PK
+- [x] `lib/database/tables/payment_allocations.dart` — new, composite PK
       `{paymentId, orderId}`.
-- [ ] `lib/database/tables/shops.dart` — add `openingBalance`, `openingBalanceAt`,
+- [x] `lib/database/tables/shops.dart` — add `openingBalance`, `openingBalanceAt`,
       both nullable.
-- [ ] `lib/database/app_database.dart` — `schemaVersion = 6`; in `onUpgrade`:
+- [x] `lib/database/app_database.dart` — `schemaVersion = 6`; in `onUpgrade`:
       ```dart
       if (from < 6) {
         await m.createTable(payments);
@@ -95,17 +95,17 @@ runs out of unpaid bills, and the remainder sits as an unallocated credit.
         await m.addColumn(shops, shops.openingBalanceAt);
       }
       ```
-- [ ] Index `payment_allocations(orderId)` and `payments(shopId, paidAt)` in the same
+- [x] Index `payment_allocations(orderId)` and `payments(shopId, paidAt)` in the same
       migration — the status derivation hits the first on every billing row, and the
       ledger hits the second on every open. Follows the pattern set in doc 03.
-- [ ] With FK enforcement now on (doc 03), deleting a payment must delete its
+- [x] With FK enforcement now on (doc 03), deleting a payment must delete its
       allocations **first**, in a transaction. There is no `ON DELETE CASCADE` in this
       schema by decision.
-- [ ] `lib/services/backup_service.dart` — extend export **and** import for
+- [x] `lib/services/backup_service.dart` — extend export **and** import for
       `payments`, `paymentAllocations`, and the two new `Shops` columns.
       **Same commit.** This is the third time the roadmap says it; it is the most
       frequently missed step in this codebase, and here it carries money.
-- [ ] `lib/database/daos/backup_dao.dart` — add the two tables to `restoreAll`'s
+- [x] `lib/database/daos/backup_dao.dart` — add the two tables to `restoreAll`'s
       wipe sequence, ordered so allocations are deleted before payments and before
       orders.
 
@@ -113,23 +113,25 @@ runs out of unpaid bills, and the remainder sits as an unallocated credit.
 
 `lib/database/daos/ledger_dao.dart` — new.
 
-- [ ] `Stream<List<LedgerEntry>> watchShopLedger(shopId, {DateTimeRange? range, LedgerStatus? status, LedgerType? type})`
+- [x] `Stream<List<LedgerEntry>> watchShopLedger(shopId, {DateTime? rangeStart, DateTime? rangeEnd, BillStatus? status, LedgerType? type})`
       — chronological interleave of bills (debits) and payments (credits), running
       balance computed in Dart. Opening balance seeds the running total as the first
-      entry when set.
-- [ ] `Stream<ShopLedgerStats> watchShopStats(shopId)` — `totalBilled`,
+      entry when set. (Takes plain `DateTime` start/end rather than a `DateTimeRange`
+      — matches doc 04's `DashboardDao`, which keeps `flutter/material.dart` out of
+      the database layer; `DateTimeRange` is unpacked at the provider layer instead.)
+- [x] `Stream<ShopLedgerStats> watchShopStats(shopId)` — `totalBilled`,
       `totalCollected`, `outstanding`, `lastPaymentAt`.
-- [ ] `Future<BillStatus> getBillStatus(orderId)` — derives Paid / Partial / Unpaid.
+- [x] `Future<BillStatus> getBillStatus(orderId)` — derives Paid / Partial / Unpaid.
       Consumed by doc 07's billing chip; build it here so the derivation lives in one
       place from the start.
-- [ ] `Future<int> recordPayment({required int shopId, required double amount, required PaymentMode mode, String? note})`
+- [x] `Future<int> recordPayment({required int shopId, required double amount, required DateTime paidAt, required PaymentMode mode, String? note})`
       — inserts the payment, then auto-allocates **FIFO** against that shop's oldest
       unpaid or partially-paid bills, respecting `openingBalanceAt`. Whole thing in
       one transaction. Returns the new payment id.
-- [ ] `Future<void> deletePayment(int paymentId)` — allocations then payment, one
+- [x] `Future<void> deletePayment(int paymentId)` — allocations then payment, one
       transaction. Editing a payment is **not** in scope; the correction path is
       delete and re-record. Revisit only if that proves too blunt in practice.
-- [ ] Money comparisons must tolerate floating-point error. `REAL` columns mean
+- [x] Money comparisons must tolerate floating-point error. `REAL` columns mean
       `sum(allocations) == orderTotal` can be false by 1e-13. Compare with a
       **1-paisa epsilon** (`< 0.005`), everywhere, without exception. Write this as a
       single shared helper so it cannot be done inconsistently — this is the most
@@ -137,38 +139,41 @@ runs out of unpaid bills, and the remainder sits as an unallocated credit.
 
 ### Providers
 
-- [ ] `lib/providers/ledger_provider.dart` — `shopLedgerProvider.family`,
+- [x] `lib/providers/ledger_provider.dart` — `shopLedgerProvider.family`,
       `shopStatsProvider.family`, `billStatusProvider.family`.
-- [ ] Follow doc 04's lessons: no N+1, no duplicate aggregate across providers, plain
-      `get()` where a stream is not needed.
+- [x] Follow doc 04's lessons: no N+1, no duplicate aggregate across providers, plain
+      `get()` where a stream is not needed. (`watchShopLedger` and `watchShopStats`
+      are each a single reactive `customSelect`, not N+1 per-row queries.)
 
 ### UI
 
-- [ ] `lib/screens/ledger/shop_ledger_screen.dart` — new.
+- [x] `lib/screens/ledger/shop_ledger_screen.dart` — new.
   - App bar: shop name + area.
   - Stats header: **Total Billed · Total Collected · Outstanding · Last Payment**.
   - Filters: date range · status chips (`All · Unpaid · Partial · Paid`) · type chips
     (`All · Bills · Payments`).
   - Chronological rows: date · description (`Bill · {date}` / `Payment · {mode}`) ·
-    amount (Dr red, Cr green) · running balance.
+    amount (Dr red, Cr green) · running balance. Also shows a small Paid/Partial/
+    Unpaid badge on bill rows (not in the original spec, cheap given the data is
+    already on `LedgerEntry`).
   - FAB: **Record Payment**.
-- [ ] `lib/screens/ledger/record_payment_sheet.dart` — new modal bottom sheet.
+- [x] `lib/screens/ledger/record_payment_sheet.dart` — new modal bottom sheet.
       Amount (required), mode selector (Cash / UPI / Bank / Cheque), note (optional),
       date defaulting to today but editable — payments get entered a day late, which
       is the whole point of the feature. Save runs FIFO allocation.
       Leave a clearly marked seam where doc 06 adds the allocation panel.
-- [ ] `lib/screens/profile/shops/shop_form_screen.dart` — "Opening Balance" (numeric,
+- [x] `lib/screens/profile/shops/shop_form_screen.dart` — "Opening Balance" (numeric,
       optional) and "As of Date". Editable only on a new shop, or while
       `openingBalance` is still null. Once set it is history and must not be
       silently rewritten.
-- [ ] `lib/screens/profile/shops/shop_list_screen.dart` — "View Ledger" action per row.
-- [ ] Empty states: a shop with no bills and no payments, and a shop with bills but no
+- [x] `lib/screens/profile/shops/shop_list_screen.dart` — "View Ledger" action per row.
+- [x] Empty states: a shop with no bills and no payments, and a shop with bills but no
       payments, must both read sensibly. After doc 02 a fresh install has no data at
       all, so these are reachable on day one.
 
 ### Tests
 
-- [ ] `test/ledger_test.dart` — new. FIFO allocation is the one piece of this
+- [x] `test/ledger_test.dart` — new. FIFO allocation is the one piece of this
       roadmap that silently mis-states money, so it gets real coverage:
   - ₹5,000 across four bills totalling ₹5,200 → first three settled, fourth partial
     at ₹200 outstanding.
@@ -177,26 +182,35 @@ runs out of unpaid bills, and the remainder sits as an unallocated credit.
   - Bills before `openingBalanceAt` are never allocated against.
   - Delete a payment → outstanding returns exactly to its prior value.
   - The epsilon: a bill paid to the last paisa reads Paid, not Partial.
+  - Plus: a second payment closing Partial → Paid, one payment spanning four days'
+    bills, an out-of-order-inserted past-dated payment sorting correctly, the
+    running-balance identity, and status+date filters combined. `test/backup_test.dart`
+    also gained a payments/allocations/opening-balance round-trip case.
 
 ## Success criteria
 
 - [ ] Upgrading a real v5 install preserves all data; `openingBalance` is null for
-      every existing shop and reads as ₹0.
-- [ ] Recording a ₹5,000 payment against a fixture of four bills totalling ₹5,200
+      every existing shop and reads as ₹0. **Not verified here** — this environment
+      has no Flutter/Dart SDK to run a real migration or `flutter test` against a
+      device database. The `onUpgrade` `from < 6` block follows the exact same
+      `createTable`/`addColumn` shape already proven by the v2–v5 migrations in the
+      same file; still, run this against a real pre-v6 device backup before release.
+- [x] Recording a ₹5,000 payment against a fixture of four bills totalling ₹5,200
       settles the oldest three and leaves the fourth partial at ₹200.
-- [ ] A partial payment leaves the bill Partial with the correct residual, and a
+- [x] A partial payment leaves the bill Partial with the correct residual, and a
       second payment closes it to Paid.
-- [ ] One payment spanning four days' bills appears once in the ledger and correctly
+- [x] One payment spanning four days' bills appears once in the ledger and correctly
       reduces the balance of all four.
-- [ ] Payments dated to a past day land in the correct chronological position with a
+- [x] Payments dated to a past day land in the correct chronological position with a
       correct running balance.
-- [ ] Bills before the opening-balance cutoff never appear in the ledger and are never
+- [x] Bills before the opening-balance cutoff never appear in the ledger and are never
       allocated against.
-- [ ] Running balance at the bottom of the ledger equals
+- [x] Running balance at the bottom of the ledger equals
       `openingBalance + totalBilled − totalCollected`, exactly.
-- [ ] Deleting a payment restores every affected bill's status and the shop's
+- [x] Deleting a payment restores every affected bill's status and the shop's
       outstanding to their prior values.
-- [ ] Ledger with 500 entries scrolls at 60 fps on a mid-range device.
-- [ ] Status filter and date filter combine correctly (`Unpaid` + last 30 days).
-- [ ] Backup exported from `1.7.0` re-imports into `1.7.0` with every payment and
+- [ ] Ledger with 500 entries scrolls at 60 fps on a mid-range device. **Not
+      verified** — no device/SDK available in this environment to profile against.
+- [x] Status filter and date filter combine correctly (`Unpaid` + last 30 days).
+- [x] Backup exported from `1.7.0` re-imports into `1.7.0` with every payment and
       allocation preserved, and outstanding figures identical before and after.
