@@ -10,6 +10,7 @@ import 'screens/kitchen/kitchen_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/profile/shops/shop_list_screen.dart';
 import 'screens/profile/shops/shop_form_screen.dart';
+import 'screens/ledger/shop_ledger_screen.dart';
 import 'screens/profile/products/product_list_screen.dart';
 import 'screens/profile/products/product_form_screen.dart';
 import 'screens/profile/prices/price_matrix_screen.dart';
@@ -40,6 +41,7 @@ class AppRoutes {
   static const shops         = '/profile/shops';
   static const shopNew       = '/profile/shops/new';
   static const shopEdit      = '/profile/shops/:id/edit';
+  static const shopLedger    = '/profile/shops/:id/ledger';
   static const products      = '/profile/products';
   static const productNew    = '/profile/products/new';
   static const productEdit   = '/profile/products/:id/edit';
@@ -98,6 +100,12 @@ final _router = GoRouter(
                   GoRoute(
                     path: ':id/edit',
                     builder: (context, state) => ShopFormScreen(
+                      shopId: int.parse(state.pathParameters['id']!),
+                    ),
+                  ),
+                  GoRoute(
+                    path: ':id/ledger',
+                    builder: (context, state) => ShopLedgerScreen(
                       shopId: int.parse(state.pathParameters['id']!),
                     ),
                   ),
