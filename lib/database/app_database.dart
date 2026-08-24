@@ -12,6 +12,8 @@ import 'tables/standing_orders.dart';
 import 'tables/daily_orders.dart';
 import 'tables/order_lines.dart';
 import 'tables/business_info.dart';
+import 'tables/payments.dart';
+import 'tables/payment_allocations.dart';
 import 'seed_data.dart';
 
 export 'tables/shops.dart';
@@ -22,6 +24,8 @@ export 'tables/standing_orders.dart';
 export 'tables/daily_orders.dart';
 export 'tables/order_lines.dart';
 export 'tables/business_info.dart';
+export 'tables/payments.dart';
+export 'tables/payment_allocations.dart';
 
 part 'app_database.g.dart';
 part 'daos/shop_dao.dart';
@@ -32,10 +36,11 @@ part 'daos/price_dao.dart';
 part 'daos/business_info_dao.dart';
 part 'daos/backup_dao.dart';
 part 'daos/dashboard_dao.dart';
+part 'daos/ledger_dao.dart';
 
 @DriftDatabase(
-  tables: [Categories, Shops, Products, ShopPrices, StandingOrders, DailyOrders, OrderLines, BusinessInfo],
-  daos: [CategoryDao, ShopDao, ProductDao, OrderDao, PriceDao, BusinessInfoDao, BackupDao, DashboardDao],
+  tables: [Categories, Shops, Products, ShopPrices, StandingOrders, DailyOrders, OrderLines, BusinessInfo, Payments, PaymentAllocations],
+  daos: [CategoryDao, ShopDao, ProductDao, OrderDao, PriceDao, BusinessInfoDao, BackupDao, DashboardDao, LedgerDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
@@ -43,13 +48,14 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) async {
           await m.createAll();
           await _createIndexes();
+          await _createLedgerIndexes();
         },
         onUpgrade: (m, from, to) async {
           if (from < 2) {
@@ -66,6 +72,13 @@ class AppDatabase extends _$AppDatabase {
           if (from < 5) {
             await _cleanOrphans();
             await _createIndexes();
+          }
+          if (from < 6) {
+            await m.createTable(payments);
+            await m.createTable(paymentAllocations);
+            await m.addColumn(shops, shops.openingBalance);
+            await m.addColumn(shops, shops.openingBalanceAt);
+            await _createLedgerIndexes();
           }
         },
         beforeOpen: (details) async {
@@ -111,6 +124,15 @@ class AppDatabase extends _$AppDatabase {
         'CREATE INDEX IF NOT EXISTS idx_order_lines_order ON order_lines(order_id)');
     await customStatement(
         'CREATE INDEX IF NOT EXISTS idx_order_lines_product ON order_lines(product_id)');
+  }
+
+  // Serves the ledger's per-order allocation lookup and the shop-scoped
+  // payment history it's built on (05-ledger-foundation).
+  Future<void> _createLedgerIndexes() async {
+    await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_payment_allocations_order ON payment_allocations(order_id)');
+    await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_payments_shop_paid_at ON payments(shop_id, paid_at)');
   }
 }
 
