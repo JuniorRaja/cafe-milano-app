@@ -196,11 +196,15 @@ use a catch-up payment instead, and leave the opening balance null.
       what is active (`Bills · Unpaid · 24 Jul – 23 Aug`), and a clear button. The
       sheet groups Date range / Status / Type with Reset and Apply, and edits a draft
       so nothing re-queries until Apply.
-- [x] Payment rows on the History tab carry a delete action (icon, and long-press),
-      confirming before it runs. Editing a payment stays out of scope as decided
-      below, but with no delete in the UI the documented correction path did not
-      actually exist — the DAO method was unreachable. The dialog states plainly that
-      settled bills return to unpaid and that correcting means delete-and-re-record.
+- [x] Payment rows on the History tab delete on **long-press**, confirming first.
+      Editing a payment stays out of scope as decided below, but with no delete in
+      the UI the documented correction path did not actually exist — the DAO method
+      was unreachable. The dialog states plainly that settled bills return to unpaid
+      and that correcting means delete-and-re-record.
+      No trailing delete icon: rendering one only on payment rows shifted their
+      amount and balance out of column with the bill rows above and below. In a
+      money list the figures must form a straight right-hand column, which outweighs
+      the discoverability of a visible affordance.
 - [x] `lib/screens/ledger/record_payment_sheet.dart` — new modal bottom sheet.
       Amount (required), mode selector (Cash / UPI / Bank / Cheque), note (optional),
       date defaulting to today but editable — payments get entered a day late, which

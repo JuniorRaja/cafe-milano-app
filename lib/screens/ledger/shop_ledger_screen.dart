@@ -809,16 +809,6 @@ class _LedgerRow extends StatelessWidget {
                 ),
               ],
             ),
-            if (onDelete != null)
-              Padding(
-                padding: const EdgeInsets.only(left: 4),
-                child: IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 18),
-                  color: Colors.grey.shade500,
-                  visualDensity: VisualDensity.compact,
-                  onPressed: onDelete,
-                ),
-              ),
           ],
         ),
       ),
