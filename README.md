@@ -1,24 +1,14 @@
-# cafe_milano
+# Milano Orders
 
-A new Flutter project.
+An offline-first Flutter app for running a bakery's daily orders on Android.
 
-## Getting Started
+Orders are taken against a catalogue of items and customers, sent to a kitchen
+view that tracks what still has to be made, and settled through a ledger that
+records payments, outstanding balances, and per-customer statements as PDFs.
+A dashboard summarises sales, item movement, and receivables over time.
 
-This project is a starting point for a Flutter application.
+Everything lives in a local SQLite database (drift) on the device — no server,
+no account, no network needed. Data moves between devices through JSON backup
+files exported and imported from the profile screen.
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
-
-## Seeding dev data
-
-A debug build with no seed data starts empty. To work with realistic data,
-export a backup from your own device (Profile → Backup & Restore) and save it
-as `dev/seed.json` — it's git-ignored and loaded automatically on the next
-debug run.
+State is Riverpod; navigation is go_router.
