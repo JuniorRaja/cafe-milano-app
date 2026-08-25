@@ -55,8 +55,8 @@ give the second half its own doc and its own version — do not let a release gr
 | [03](features/03-db-integrity.md) | FK enforcement + indexes | `1.6.1+7` | fix | v4→v5 | Ready |
 | [04](features/04-dashboard-performance.md) | Dashboard query cleanup | `1.6.2+8` | fix | — | Ready |
 | [05](features/05-ledger-foundation.md) | Ledger — payments & balances | `1.7.0+9` | feature | v5→v6 | Ready |
-| [06](features/06-ledger-manual-allocation.md) | Ledger — manual allocation | `1.8.0+10` | feature | — | Ready |
-| [07](features/07-ledger-statements.md) | Ledger — statements & outstanding | `1.9.0+11` | feature | — | Ready |
+| [06](features/06-ledger-manual-allocation.md) | Ledger — manual allocation | `1.9.0+11` | feature | — | Deferred |
+| [07](features/07-ledger-statements.md) | Ledger — statements & outstanding | `1.8.0+10` | feature | — | Done |
 | [08](features/08-order-entry-swipe.md) | Swipe-by-5 order entry | `1.10.0+12` | feature | — | Ready |
 | [09](features/09-shop-exclusion.md) | Exclude shops from grand total | `1.11.0+13` | feature | v6→v7 | Ready |
 | [10](features/10-nav-restructure.md) | Navigation + settings restructure | `1.12.0+14` | feature | — | Outline |

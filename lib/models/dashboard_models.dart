@@ -218,6 +218,7 @@ class AttentionFlag {
 
 class DashboardSettings {
   final bool showPulse;
+  final bool showOutstanding;
   final bool showCategoryCards;
   final bool showRevenueAnatomy;
   final bool showOperationalPatterns;
@@ -230,6 +231,7 @@ class DashboardSettings {
 
   const DashboardSettings({
     this.showPulse = true,
+    this.showOutstanding = true,
     this.showCategoryCards = true,
     this.showRevenueAnatomy = true,
     this.showOperationalPatterns = true,
@@ -243,6 +245,7 @@ class DashboardSettings {
 
   DashboardSettings copyWith({
     bool? showPulse,
+    bool? showOutstanding,
     bool? showCategoryCards,
     bool? showRevenueAnatomy,
     bool? showOperationalPatterns,
@@ -255,6 +258,7 @@ class DashboardSettings {
   }) {
     return DashboardSettings(
       showPulse: showPulse ?? this.showPulse,
+      showOutstanding: showOutstanding ?? this.showOutstanding,
       showCategoryCards: showCategoryCards ?? this.showCategoryCards,
       showRevenueAnatomy: showRevenueAnatomy ?? this.showRevenueAnatomy,
       showOperationalPatterns: showOperationalPatterns ?? this.showOperationalPatterns,
@@ -269,7 +273,7 @@ class DashboardSettings {
 
   /// Number of enabled sections (main only).
   int get enabledSectionCount =>
-      [showPulse, showCategoryCards, showRevenueAnatomy, showOperationalPatterns, showAttentionFlags]
+      [showPulse, showOutstanding, showCategoryCards, showRevenueAnatomy, showOperationalPatterns, showAttentionFlags]
           .where((v) => v)
           .length;
 }

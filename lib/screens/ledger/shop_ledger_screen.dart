@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../app.dart';
 import '../../database/app_database.dart';
+import '../../providers/business_info_provider.dart';
 import '../../providers/database_provider.dart';
 import '../../providers/ledger_provider.dart';
 import '../../providers/shop_provider.dart';
+import '../../services/ledger_statement_service.dart';
 import 'record_payment_sheet.dart';
 
 final _dateFmt = DateFormat('dd MMM yyyy');
@@ -58,6 +60,7 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
   DateTimeRange? _range;
   BillStatus? _statusFilter;
   LedgerType? _typeFilter;
+  bool _exporting = false;
 
   @override
   void initState() {
@@ -94,6 +97,60 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
       isScrollControlled: true,
       builder: (_) => RecordPaymentSheet(shopId: widget.shopId),
     );
+  }
+
+  /// Pick a period, then build and share that period's statement.
+  ///
+  /// The rows come from the same unfiltered ledger stream this screen renders
+  /// and are cut to the period by the same rule the History filter uses, so
+  /// the PDF and the screen cannot report different figures for one period.
+  Future<void> _exportStatement() async {
+    final now = DateTime.now();
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: now,
+      initialDateRange: _range ??
+          DateTimeRange(start: DateTime(now.year, now.month, 1), end: now),
+      helpText: 'Statement period',
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme:
+              Theme.of(context).colorScheme.copyWith(primary: kBrandBrown),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked == null || !mounted) return;
+
+    setState(() => _exporting = true);
+    try {
+      final shop = await ref.read(shopByIdProvider(widget.shopId).future);
+      if (shop == null) return;
+      final business = await ref.read(businessInfoProvider.future);
+      final entries = await ref.read(shopLedgerProvider((
+        shopId: widget.shopId,
+        range: null,
+        status: null,
+        type: null,
+      )).future);
+
+      await shareLedgerStatement(
+        shop: shop,
+        business: business,
+        entries: entries,
+        from: picked.start,
+        to: picked.end,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not build the statement: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
   }
 
   Future<void> _openFilterSheet() async {
@@ -175,6 +232,19 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
               ),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: _exporting
+                ? const SizedBox(
+                    height: 18,
+                    width: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.picture_as_pdf_outlined),
+            tooltip: 'Export Statement',
+            onPressed: _exporting ? null : _exportStatement,
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: const [

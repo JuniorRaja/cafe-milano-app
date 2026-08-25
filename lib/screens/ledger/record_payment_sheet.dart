@@ -5,10 +5,18 @@ import '../../database/app_database.dart';
 import '../../providers/database_provider.dart';
 import '../../providers/ledger_provider.dart';
 
+/// A specific bill this payment is being recorded *for*, rather than "oldest
+/// first". Set by Mark-as-Paid on the billing screen, where the shop has paid
+/// a named bill on the day it was delivered.
+typedef PinnedBill = ({int orderId, DateTime date, double amountDue});
+
 class RecordPaymentSheet extends ConsumerStatefulWidget {
-  const RecordPaymentSheet({super.key, required this.shopId});
+  const RecordPaymentSheet({super.key, required this.shopId, this.pinned});
 
   final int shopId;
+
+  /// Null for an ordinary payment, which allocates FIFO as before.
+  final PinnedBill? pinned;
 
   @override
   ConsumerState<RecordPaymentSheet> createState() => _RecordPaymentSheetState();
@@ -21,6 +29,15 @@ class _RecordPaymentSheetState extends ConsumerState<RecordPaymentSheet> {
   PaymentMode _mode = PaymentMode.cash;
   DateTime _paidAt = DateTime.now();
   bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final pinned = widget.pinned;
+    if (pinned != null) {
+      _amountCtrl.text = pinned.amountDue.toStringAsFixed(2);
+    }
+  }
 
   @override
   void dispose() {
@@ -52,12 +69,14 @@ class _RecordPaymentSheetState extends ConsumerState<RecordPaymentSheet> {
           paidAt: _paidAt,
           mode: _mode,
           note: note.isEmpty ? null : note,
+          priorityOrderId: widget.pinned?.orderId,
         );
     if (mounted) Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
+    final pinned = widget.pinned;
     final outstanding =
         ref.watch(shopStatsProvider(widget.shopId)).value?.outstanding;
 
@@ -78,7 +97,28 @@ class _RecordPaymentSheetState extends ConsumerState<RecordPaymentSheet> {
               'Record Payment',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
-            if (outstanding != null && outstanding > 0.005) ...[
+            if (pinned != null) ...[
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.shade100),
+                ),
+                child: Text(
+                  'Settling the ${DateFormat('dd MMM yyyy').format(pinned.date)} bill '
+                  '· ₹${pinned.amountDue.toStringAsFixed(2)} due',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.green.shade800,
+                  ),
+                ),
+              ),
+            ],
+            if (pinned == null && outstanding != null && outstanding > 0.005) ...[
               const SizedBox(height: 10),
               Row(
                 children: [

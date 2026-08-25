@@ -4,6 +4,7 @@ import '../models/dashboard_models.dart';
 
 // SharedPreferences keys
 const kDashPulse = 'dash_pulse';
+const kDashOutstanding = 'dash_outstanding';
 const kDashCategoryCards = 'dash_category_cards';
 const kDashRevenueAnatomy = 'dash_revenue_anatomy';
 const kDashOperationalPatterns = 'dash_operational_patterns';
@@ -30,6 +31,7 @@ class DashboardSettingsNotifier extends StateNotifier<DashboardSettings> {
     _prefs = await SharedPreferences.getInstance();
     state = DashboardSettings(
       showPulse: _prefs!.getBool(kDashPulse) ?? true,
+      showOutstanding: _prefs!.getBool(kDashOutstanding) ?? true,
       showCategoryCards: _prefs!.getBool(kDashCategoryCards) ?? true,
       showRevenueAnatomy: _prefs!.getBool(kDashRevenueAnatomy) ?? true,
       showOperationalPatterns: _prefs!.getBool(kDashOperationalPatterns) ?? true,
@@ -55,6 +57,8 @@ class DashboardSettingsNotifier extends StateNotifier<DashboardSettings> {
     switch (key) {
       case kDashPulse:
         return state.copyWith(showPulse: value);
+      case kDashOutstanding:
+        return state.copyWith(showOutstanding: value);
       case kDashCategoryCards:
         return state.copyWith(showCategoryCards: value);
       case kDashRevenueAnatomy:
