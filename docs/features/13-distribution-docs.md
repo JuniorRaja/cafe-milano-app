@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Target version** | `1.15.0+17` |
+| **Target version** | `1.15.0+19` |
 | **Type** | Feature |
 | **Schema** | No change |
 | **Requires** | [01](01-in-app-update.md) — shares its release-lookup logic |

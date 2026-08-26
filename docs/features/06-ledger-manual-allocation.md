@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Target version** | `1.8.0+10` |
+| **Target version** | `1.9.0+13` |
 | **Type** | Feature |
 | **Schema** | No change |
 | **Requires** | [05 — Ledger foundation](05-ledger-foundation.md) |
