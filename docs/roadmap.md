@@ -41,6 +41,10 @@ give the second half its own doc and its own version — do not let a release gr
 - A release containing both a feature and fixes takes the **minor** bump — the
   highest-order change in the release decides.
 - `2.0.0` is reserved. Nothing reaches it before the Supabase migration.
+- `3.0.0` is reserved for [17](features/17-white-label.md), which changes the Android
+  `applicationId` — a build that cannot upgrade over an existing install, and the end of
+  the single `releases/latest` feed [01](features/01-in-app-update.md) and
+  [13](features/13-distribution-docs.md) both depend on.
 
 ## Status legend
 
@@ -70,6 +74,9 @@ give the second half its own doc and its own version — do not let a release gr
 | [12](features/12-dashboard-tabs.md) | Dashboard tabs + reports | `1.14.0+18` | feature | — | Outline |
 | [13](features/13-distribution-docs.md) | Download page, agent docs, tests | `1.15.0+19` | feature | — | Outline |
 | [14](features/14-supabase-auth.md) | Supabase, auth & roles | `2.0.0+20` | major | port v8 | Outline |
+| [15](features/15-auto-order-suggestions.md) | Auto order suggestions | `2.1.0+21` | feature | — | Outline |
+| [16](features/16-weekly-ai-report.md) | Weekly AI business report | `2.2.0+22` | feature | pg: `weekly_reports` | Outline |
+| [17](features/17-white-label.md) | White-label | `3.0.0+23` | major | pg: `tenant_config` | Outline |
 
 **01 and 02 shipped together as `1.6.0+6`** — one release, two docs. Everything after
 that is one doc per release.
@@ -120,6 +127,8 @@ Order after the 10 block is adjustable — the ledger docs depend only on 03, an
 | v6 | *shipped* | current — payments, allocations, shop opening balance |
 | v7 | [09](features/09-shop-exclusion.md) | `shops.count_in_total` |
 | v8 | [11](features/11-counter-stock.md) | `counter_stock` |
+| pg | [16](features/16-weekly-ai-report.md) | `weekly_reports` — post-port, Postgres only |
+| pg | [17](features/17-white-label.md) | `tenant_config` — post-port, one row per tenant project |
 
 > These schema numbers are **reassigned** relative to the archived v5 roadmap,
 > which had planned v5 for `countInTotal`. Ignore the archived numbering.
@@ -127,6 +136,11 @@ Order after the 10 block is adjustable — the ledger docs depend only on 03, an
 > The [10](features/10-ui-overhaul.md) block adds **no schema hop at all** — it is
 > entirely above the DAO line, which is also the line
 > [14](features/14-supabase-auth.md) promises not to cross.
+
+The Drift chain genuinely ends at **v8**. The two `pg` rows are created in Postgres
+after [14](features/14-supabase-auth.md)'s port, and **neither is a
+`backup_service.dart` obligation** — by then Drift and the JSON backup path are gone,
+and `weekly_reports` is server-written and reconstructible.
 
 **`lib/services/backup_service.dart` must be extended in the same commit as any
 schema change.** It is the recurring trap in this codebase — it has to round-trip

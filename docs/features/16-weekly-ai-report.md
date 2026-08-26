@@ -216,6 +216,12 @@ does not need more — structured outputs via `output_config.format` so the sect
 come back as fixed keys rather than prose the function has to parse, and
 `max_tokens: 4000` non-streaming.
 
+Deliberately **not** using the server-side `fallbacks` parameter, which the Claude API
+docs otherwise recommend by default on `claude-opus-5`. A refusal on a payload of
+aggregated bakery figures means something has gone wrong with the request, and quietly
+re-running it on a weaker model produces a report the owner cannot tell apart from a
+good one. Fail visibly and retry — the table below.
+
 ## Failure behaviour
 
 | Situation | Behaviour |
