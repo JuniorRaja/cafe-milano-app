@@ -27,49 +27,51 @@ class RevenueMixCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final mixAsync = ref.watch(categoryMixProvider);
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Text('🍩', style: TextStyle(fontSize: 16)),
-              SizedBox(width: 6),
-              Text(
-                'Category Revenue Mix',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: kBrandBrown,
+    return RepaintBoundary(
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Text('🍩', style: TextStyle(fontSize: 16)),
+                SizedBox(width: 6),
+                Text(
+                  'Category Revenue Mix',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: kBrandBrown,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          mixAsync.when(
-            data: (rows) {
-              if (rows.isEmpty) return _emptyState();
-              return _buildContent(rows);
-            },
-            loading: () => const SizedBox(
-              height: 200,
-              child: Center(
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: kBrandBrown,
-                ),
-              ),
+              ],
             ),
-            error: (_, _) => _emptyState(),
-          ),
-        ],
+            const SizedBox(height: 16),
+            mixAsync.when(
+              data: (rows) {
+                if (rows.isEmpty) return _emptyState();
+                return _buildContent(rows);
+              },
+              loading: () => const SizedBox(
+                height: 200,
+                child: Center(
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: kBrandBrown,
+                  ),
+                ),
+              ),
+              error: (_, _) => _emptyState(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -115,10 +117,7 @@ class RevenueMixCard extends ConsumerWidget {
                   ),
                   Text(
                     'Total',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.grey.shade500,
-                    ),
+                    style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
                   ),
                 ],
               ),
@@ -147,7 +146,11 @@ class RevenueMixCard extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.pie_chart_outline, size: 32, color: Colors.grey.shade300),
+            Icon(
+              Icons.pie_chart_outline,
+              size: 32,
+              color: Colors.grey.shade300,
+            ),
             const SizedBox(height: 8),
             Text(
               'No revenue data for this period',
@@ -170,11 +173,7 @@ class RevenueMixCard extends ConsumerWidget {
 }
 
 class _MixRow extends StatelessWidget {
-  const _MixRow({
-    required this.rank,
-    required this.color,
-    required this.row,
-  });
+  const _MixRow({required this.rank, required this.color, required this.row});
 
   final int rank;
   final Color color;
@@ -190,10 +189,7 @@ class _MixRow extends StatelessWidget {
           Container(
             width: 10,
             height: 10,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 8),
           // Emoji + Name
@@ -202,10 +198,7 @@ class _MixRow extends StatelessWidget {
           Expanded(
             child: Text(
               row.categoryName,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -213,10 +206,7 @@ class _MixRow extends StatelessWidget {
           // Revenue
           Text(
             '₹${NumberFormat('#,##,###').format(row.revenue.round())}',
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
           ),
           const SizedBox(width: 8),
           // Share %
@@ -224,19 +214,13 @@ class _MixRow extends StatelessWidget {
             width: 40,
             child: Text(
               '${row.sharePercent.toStringAsFixed(0)}%',
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey.shade600,
-              ),
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
               textAlign: TextAlign.right,
             ),
           ),
           const SizedBox(width: 8),
           // Trend arrow
-          SizedBox(
-            width: 44,
-            child: _buildTrend(row.trendPercent),
-          ),
+          SizedBox(width: 44, child: _buildTrend(row.trendPercent)),
         ],
       ),
     );

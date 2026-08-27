@@ -13,7 +13,7 @@ void main() async {
   final db = container.read(databaseProvider);
   if (kDebugMode) {
     await seedFromBackup(db);
-  } 
-  runApp(UncontrolledProviderScope(container: container, child: const MilanoOrdersApp()));
+  }
+  runApp(UncontrolledProviderScope(container: container, child: const OrdersApp()));
   FlutterNativeSplash.remove();
 }

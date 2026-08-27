@@ -6,6 +6,7 @@ import '../../database/app_database.dart';
 import '../../providers/business_info_provider.dart';
 import '../../providers/database_provider.dart';
 import '../../providers/ledger_provider.dart';
+import '../../providers/read_once.dart';
 import '../../providers/shop_provider.dart';
 import '../../services/ledger_statement_service.dart';
 import 'record_payment_sheet.dart';
@@ -125,15 +126,15 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
 
     setState(() => _exporting = true);
     try {
-      final shop = await ref.read(shopByIdProvider(widget.shopId).future);
+      final shop = await ref.readFutureOnce(shopByIdProvider(widget.shopId));
       if (shop == null) return;
       final business = await ref.read(businessInfoProvider.future);
-      final entries = await ref.read(shopLedgerProvider((
+      final entries = await ref.readStreamOnce(shopLedgerProvider((
         shopId: widget.shopId,
         range: null,
         status: null,
         type: null,
-      )).future);
+      )));
 
       await shareLedgerStatement(
         shop: shop,

@@ -1,50 +1,32 @@
 import 'package:flutter/material.dart';
 
-/// Fades and slides [child] in, staggered by [index] within a list.
-class StaggeredFadeIn extends StatefulWidget {
-  const StaggeredFadeIn({super.key, required this.index, required this.child});
+/// Fades a list in. **No longer staggers** — the name and the file stay so the
+/// diff at the ~6 call sites is legible; doc 10c renames them.
+///
+/// The old version gave each row `30ms * index` (capped at 12) plus a 250 ms
+/// fade, so the last visible row of an 18-shop list appeared **360 ms after the
+/// data was ready** and the list animated for ~600 ms. Each row was also its
+/// own `StatefulWidget` with its own `Future.delayed` and `setState`.
+///
+/// One 150 ms fade, one implicit animation, no timers, no per-row state.
+/// [index] is ignored and kept only so call sites need not change.
+class StaggeredFadeIn extends StatelessWidget {
+  const StaggeredFadeIn({super.key, this.index = 0, required this.child});
 
+  /// Ignored. Retained so the existing call sites compile unchanged.
   final int index;
+
   final Widget child;
 
   @override
-  State<StaggeredFadeIn> createState() => _StaggeredFadeInState();
-}
-
-class _StaggeredFadeInState extends State<StaggeredFadeIn> {
-  bool _visible = false;
-  bool _scheduled = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // MediaQuery.of(context) isn't safe in initState (dependency isn't
-    // wired up yet), so schedule once here instead.
-    if (_scheduled) return;
-    _scheduled = true;
-    if (MediaQuery.of(context).disableAnimations) {
-      _visible = true;
-      return;
-    }
-    // Cap the stagger so long lists don't take seconds to finish appearing.
-    final delayMs = 30 * widget.index.clamp(0, 12);
-    Future.delayed(Duration(milliseconds: delayMs), () {
-      if (mounted) setState(() => _visible = true);
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return AnimatedSlide(
-      offset: _visible ? Offset.zero : const Offset(0, 0.06),
-      duration: const Duration(milliseconds: 250),
+    if (MediaQuery.of(context).disableAnimations) return child;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 150),
       curve: Curves.easeOut,
-      child: AnimatedOpacity(
-        opacity: _visible ? 1 : 0,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-        child: widget.child,
-      ),
+      builder: (context, value, child) => Opacity(opacity: value, child: child),
+      child: child,
     );
   }
 }

@@ -41,7 +41,7 @@ flutter:
   uses-material-design: true
   assets:
     - mobile-app-logo-trasnsp.png
-    - bg-vector.png
+    - bg-vector-blurred.png
   fonts:
     - family: Quicksand
       fonts:

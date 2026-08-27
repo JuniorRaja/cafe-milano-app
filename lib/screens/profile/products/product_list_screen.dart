@@ -44,7 +44,7 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             Text(
-              'Manage bakery product catalog',
+              'Manage product catalog',
               style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey.shade500,

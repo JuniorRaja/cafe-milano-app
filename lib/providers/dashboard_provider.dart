@@ -41,14 +41,14 @@ final todayProvider = Provider<DateTime>((ref) {
 // getShopConcentration and getCategoryScores each feed two cards; keyed on
 // range so both consumers share one execution instead of running it twice.
 
-final shopConcentrationDataProvider =
-    FutureProvider.family<List<Map<String, dynamic>>, DateTimeRange>((ref, range) {
+final shopConcentrationDataProvider = FutureProvider.autoDispose
+    .family<List<Map<String, dynamic>>, DateTimeRange>((ref, range) {
   final db = ref.watch(databaseProvider);
   return db.dashboardDao.getShopConcentration(range.start, range.end);
 });
 
-final categoryScoresDataProvider =
-    FutureProvider.family<List<Map<String, dynamic>>, DateTimeRange>((ref, range) {
+final categoryScoresDataProvider = FutureProvider.autoDispose
+    .family<List<Map<String, dynamic>>, DateTimeRange>((ref, range) {
   final db = ref.watch(databaseProvider);
   return db.dashboardDao.getCategoryScores(range.start, range.end);
 });

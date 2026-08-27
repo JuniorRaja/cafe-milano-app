@@ -12,52 +12,56 @@ class ProductLeaderboardCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final leaderAsync = ref.watch(productLeaderboardProvider);
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Text('🏆', style: TextStyle(fontSize: 16)),
-              SizedBox(width: 6),
-              Text(
-                'Product Leaderboard',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: kBrandBrown,
+    return RepaintBoundary(
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Text('🏆', style: TextStyle(fontSize: 16)),
+                SizedBox(width: 6),
+                Text(
+                  'Product Leaderboard',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: kBrandBrown,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Top 10 products by revenue',
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+            ),
+            const SizedBox(height: 14),
+            leaderAsync.when(
+              data: (rows) {
+                if (rows.isEmpty) return _emptyState();
+                return _buildTable(rows);
+              },
+              loading: () => const SizedBox(
+                height: 100,
+                child: Center(
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: kBrandBrown,
+                  ),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Top 10 products by revenue',
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-          ),
-          const SizedBox(height: 14),
-          leaderAsync.when(
-            data: (rows) {
-              if (rows.isEmpty) return _emptyState();
-              return _buildTable(rows);
-            },
-            loading: () => const SizedBox(
-              height: 100,
-              child: Center(
-                child: CircularProgressIndicator(
-                    strokeWidth: 2, color: kBrandBrown),
-              ),
+              error: (_, _) => _emptyState(),
             ),
-            error: (_, _) => _emptyState(),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -137,8 +141,11 @@ class ProductLeaderboardCard extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.emoji_events_outlined,
-                size: 28, color: Colors.grey.shade300),
+            Icon(
+              Icons.emoji_events_outlined,
+              size: 28,
+              color: Colors.grey.shade300,
+            ),
             const SizedBox(height: 6),
             Text(
               'No product data for this period',
@@ -184,10 +191,7 @@ class _ProductRow extends StatelessWidget {
           Expanded(
             child: Text(
               row.productName,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -197,10 +201,7 @@ class _ProductRow extends StatelessWidget {
             width: 60,
             child: Text(
               '₹${NumberFormat.compact().format(row.revenue)}',
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
               textAlign: TextAlign.right,
             ),
           ),
@@ -209,10 +210,7 @@ class _ProductRow extends StatelessWidget {
             width: 40,
             child: Text(
               NumberFormat.compact().format(row.qty),
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey.shade600,
-              ),
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
               textAlign: TextAlign.right,
             ),
           ),
@@ -221,10 +219,7 @@ class _ProductRow extends StatelessWidget {
             width: 36,
             child: Text(
               '${row.shopCount}',
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey.shade600,
-              ),
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
               textAlign: TextAlign.right,
             ),
           ),

@@ -2,6 +2,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../database/app_database.dart';
+import '../theme/brand_config.dart';
 
 // Everything that makes a generated PDF look like this business rather than a
 // default pdf-package document, in one place so the catalogue and the shop
@@ -29,7 +30,7 @@ pw.Widget pdfWhiteBackground(pw.Context context) => pw.FullPage(
 // missing glyph as nothing at all — so the footer says "Ph" rather than
 // shipping an invisible ☎ on every page of every document.
 pw.Widget pdfPageFooter(pw.Context context, BusinessInfoData? business) {
-  final name  = business?.name ?? 'Cafe Milano';
+  final name  = business?.name ?? BrandConfig.milano.appName;
   final phone = business?.phone;
   final label = (phone != null && phone.isNotEmpty)
       ? '$name · Ph $phone   ·   Page ${context.pageNumber} of ${context.pagesCount}'

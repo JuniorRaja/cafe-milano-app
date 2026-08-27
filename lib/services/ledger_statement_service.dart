@@ -4,6 +4,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import '../database/app_database.dart';
+import '../theme/brand_config.dart';
 import 'pdf_brand.dart';
 
 final _dateFmt = DateFormat('dd MMM yyyy');
@@ -154,7 +155,7 @@ pw.Widget _statementHeader(
             crossAxisAlignment: pw.CrossAxisAlignment.end,
             children: [
               pw.Text(
-                business?.name ?? 'Cafe Milano',
+                business?.name ?? BrandConfig.milano.appName,
                 style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
               ),
               if (address != null && address.isNotEmpty)

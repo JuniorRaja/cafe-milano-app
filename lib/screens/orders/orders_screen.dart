@@ -6,6 +6,7 @@ import '../../app.dart';
 import '../../database/app_database.dart';
 import '../../providers/date_provider.dart';
 import '../../providers/ledger_provider.dart';
+import '../../providers/read_once.dart';
 import '../../providers/order_provider.dart';
 import '../../providers/shop_provider.dart';
 import '../../providers/product_provider.dart';
@@ -242,7 +243,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   ) async {
     final date = ref.read(selectedDateProvider);
     final owl =
-        await ref.read(orderWithLinesProvider(summary.order.id).future);
+        await ref.readStreamOnce(orderWithLinesProvider(summary.order.id));
     final text = _buildBillText(shop?.name ?? 'Unknown', owl, productMap, date);
     await Share.share(text);
   }
