@@ -8,8 +8,9 @@ Future<void> seedDefaultCategories(AppDatabase db) async {
     'Bread', 'Sweets', 'Snacks', 'Beverages',
   ];
   for (var i = 0; i < defaults.length; i++) {
-    await db.into(db.categories).insertOnConflictUpdate(
+    await db.into(db.categories).insert(
           CategoriesCompanion.insert(name: defaults[i], sortOrder: Value(i)),
+          mode: InsertMode.insertOrIgnore,
         );
   }
 }

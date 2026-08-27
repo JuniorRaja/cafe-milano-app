@@ -4,7 +4,6 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app.dart';
 import 'database/dev_seed.dart';
-import 'database/seed_data.dart';
 import 'providers/database_provider.dart';
 
 void main() async {
@@ -14,9 +13,7 @@ void main() async {
   final db = container.read(databaseProvider);
   if (kDebugMode) {
     await seedFromBackup(db);
-  } else {
-    await seedDefaultCategories(db);
-  }
+  } 
   runApp(UncontrolledProviderScope(container: container, child: const MilanoOrdersApp()));
   FlutterNativeSplash.remove();
 }
