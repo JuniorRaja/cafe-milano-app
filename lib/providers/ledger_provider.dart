@@ -29,7 +29,18 @@ final shopStatsProvider = StreamProvider.family<ShopLedgerStats, int>((ref, shop
   return db.ledgerDao.watchShopStats(shopId);
 });
 
-final billStatusProvider = FutureProvider.family<BillStatus, int>((ref, orderId) {
+/// Payment status for every bill on one date, keyed by order id. One query
+/// for the whole billing list rather than one per row, and a stream so the
+/// chips repaint when a payment is recorded from anywhere else in the app.
+final billDuesForDateProvider =
+    StreamProvider.family<Map<int, BillDue>, DateTime>((ref, date) {
   final db = ref.watch(databaseProvider);
-  return db.ledgerDao.getBillStatus(orderId);
+  return db.ledgerDao.watchBillDuesForDate(date);
+});
+
+/// Shops that still owe money, largest first. The dashboard card sums this
+/// same list, so the headline figure and the list behind it are one number.
+final outstandingByShopProvider = StreamProvider<List<ShopOutstanding>>((ref) {
+  final db = ref.watch(databaseProvider);
+  return db.ledgerDao.watchOutstandingByShop();
 });

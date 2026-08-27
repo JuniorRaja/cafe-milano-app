@@ -195,6 +195,27 @@ void main() {
       expect(orders.length, 1);
     });
 
+    test('an order with no lines is not a day summary', () async {
+      // Opening the order-entry screen and backing out leaves a line-less
+      // order row. Home must still say "Tap to add order" rather than
+      // "0 items", and Daily Billing must not list it as a bill.
+      final started = await db.orderDao.getOrCreateOrder(shopId, today);
+      expect(await db.orderDao.watchOrderSummariesForDate(today).first, isEmpty);
+
+      await db.orderDao.replaceOrderLines(started.id, [
+        OrderLinesCompanion.insert(
+            orderId: started.id, productId: productId, qty: 2, unitPrice: 25),
+      ]);
+      final withLines =
+          await db.orderDao.watchOrderSummariesForDate(today).first;
+      expect(withLines, hasLength(1));
+      expect(withLines.single.itemCount, 1);
+
+      // Emptying it again takes it back out.
+      await db.orderDao.replaceOrderLines(started.id, []);
+      expect(await db.orderDao.watchOrderSummariesForDate(today).first, isEmpty);
+    });
+
     test('upsertOrderWithLines skips zero-qty lines', () async {
       final order = await db.orderDao.getOrCreateOrder(shopId, today);
       final p2 = await db.productDao.upsertProduct(ProductsCompanion.insert(name: 'Puff'));

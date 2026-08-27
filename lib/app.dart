@@ -10,6 +10,7 @@ import 'screens/kitchen/kitchen_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/profile/shops/shop_list_screen.dart';
 import 'screens/profile/shops/shop_form_screen.dart';
+import 'screens/ledger/outstanding_list_screen.dart';
 import 'screens/ledger/shop_ledger_screen.dart';
 import 'screens/profile/products/product_list_screen.dart';
 import 'screens/profile/products/product_form_screen.dart';
@@ -42,6 +43,7 @@ class AppRoutes {
   static const shopNew       = '/profile/shops/new';
   static const shopEdit      = '/profile/shops/:id/edit';
   static const shopLedger    = '/profile/shops/:id/ledger';
+  static const outstanding   = '/outstanding';
   static const products      = '/profile/products';
   static const productNew    = '/profile/products/new';
   static const productEdit   = '/profile/products/:id/edit';
@@ -172,6 +174,28 @@ final _router = GoRouter(
     GoRoute(
       path: AppRoutes.dashboard,
       builder: (context, state) => const DashboardScreen(),
+    ),
+    // Receivables list, pushed from the dashboard's Outstanding card.
+    //
+    // The ledger is registered again as a child here, rather than reusing
+    // AppRoutes.shopLedger inside the shell. A route under the
+    // StatefulShellRoute cannot be pushed from a top-level route: the shell's
+    // page key is derived from the shell route object itself, so re-entering
+    // it puts two pages with the same key into the root navigator and trips
+    // Navigator's duplicate-page-key assertion. Dashboard and Outstanding both
+    // live outside the shell, so the path into a shop's ledger from here has
+    // to stay outside it too.
+    GoRoute(
+      path: AppRoutes.outstanding,
+      builder: (context, state) => const OutstandingListScreen(),
+      routes: [
+        GoRoute(
+          path: ':id/ledger',
+          builder: (context, state) => ShopLedgerScreen(
+            shopId: int.parse(state.pathParameters['id']!),
+          ),
+        ),
+      ],
     ),
     GoRoute(
       path: '/order/:shopId',

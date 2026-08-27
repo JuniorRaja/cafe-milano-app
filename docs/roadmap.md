@@ -1,7 +1,7 @@
 # Milano Orders — Roadmap
 
 > Last updated: 2026-08-26
-> Current shipped version: **1.7.0+9** · schema v6
+> Current shipped version: **1.8.0+10** · schema v6
 
 This is the index. Every feature has its own self-contained plan in `docs/features/`,
 sized to ship as **one release**. Build one, bump `pubspec.yaml`, push to `master`,
@@ -63,11 +63,11 @@ give the second half its own doc and its own version — do not let a release gr
 | [03](features/03-db-integrity.md) | FK enforcement + indexes | `1.6.1+7` | fix | v4→v5 | Done |
 | [04](features/04-dashboard-performance.md) | Dashboard query cleanup | `1.6.2+8` | fix | — | Done |
 | [05](features/05-ledger-foundation.md) | Ledger — payments & balances | `1.7.0+9` | feature | v5→v6 | Done |
-| [10a](features/10a-design-system.md) | Design system & UI foundation | `1.7.1+10` | foundation | — | Ready |
-| [10b](features/10b-navigation.md) | Navigation & settings restructure | `1.8.0+11` | feature | — | Ready |
-| [10c](features/10c-screen-restyle.md) | Screen restyle | `1.8.1+12` | foundation | — | Ready |
-| [06](features/06-ledger-manual-allocation.md) | Ledger — manual allocation | `1.9.0+13` | feature | — | Ready |
-| [07](features/07-ledger-statements.md) | Ledger — statements & outstanding | `1.10.0+14` | feature | — | Ready |
+| [07](features/07-ledger-statements.md) | Ledger — statements & outstanding | `1.8.0+10` | feature | — | Done |
+| [10a](features/10a-design-system.md) | Design system & UI foundation | `1.8.1+11` | foundation | — | Ready |
+| [10b](features/10b-navigation.md) | Navigation & settings restructure | `1.9.0+12` | feature | — | Ready |
+| [10c](features/10c-screen-restyle.md) | Screen restyle | `1.9.1+13` | foundation | — | Ready |
+| [06](features/06-ledger-manual-allocation.md) | Ledger — manual allocation | `1.10.0+14` | feature | — | Deferred |
 | [08](features/08-order-entry-swipe.md) | Swipe-by-5 order entry | `1.11.0+15` | feature | — | Ready |
 | [09](features/09-shop-exclusion.md) | Exclude shops from grand total | `1.12.0+16` | feature | v6→v7 | Ready |
 | [11](features/11-counter-stock.md) | Counter stock (Cafe Milano) | `1.13.0+17` | feature | v7→v8 | Outline |
@@ -90,7 +90,7 @@ carries the reasoning and the four decisions taken 2026-08-26.
 
 ## Why this order
 
-**Docs 05 and everything before it have shipped.** The sequence from here is set by one
+**Docs 01–05 and 07 have shipped.** The sequence from here is set by one
 decision, taken 2026-08-26: **the UI foundation goes in before the remaining feature
 work.** Docs 06–13 each add screens; building them on the current UI means restyling
 every one of them later. Building them after [10a](features/10a-design-system.md) and

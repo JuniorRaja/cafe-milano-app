@@ -49,6 +49,15 @@ class DashboardSettingsScreen extends ConsumerWidget {
                 ),
                 const Divider(height: 1, indent: 16),
                 _ToggleTile(
+                  title: 'Outstanding Receivables',
+                  subtitle: 'Total owed across all shops',
+                  value: settings.showOutstanding,
+                  onChanged: (v) => notifier.toggle(kDashOutstanding, v),
+                  onInfo: () => context.push('/profile/dashboard-settings/help',
+                      extra: 'today_revenue'),
+                ),
+                const Divider(height: 1, indent: 16),
+                _ToggleTile(
                   title: 'Category Scorecards',
                   subtitle: 'Per-category health cards',
                   value: settings.showCategoryCards,

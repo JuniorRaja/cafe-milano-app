@@ -108,6 +108,13 @@ class OrderDao extends DatabaseAccessor<AppDatabase> with _$OrderDaoMixin {
         }
       }
       return acc.values
+          // Opening the order-entry screen inserts the order row before
+          // anything is typed, so backing out leaves a line-less order behind.
+          // That is not an order anyone placed: it must not read as "0 items ·
+          // Rs 0" on Home, or as a no-items bill on Daily Billing. The ledger
+          // already refuses to treat these as bills; this is the same rule for
+          // the two screens that show orders.
+          .where((e) => e.items > 0)
           .map((e) => OrderDaySummary(
                 order: e.order,
                 itemCount: e.items,

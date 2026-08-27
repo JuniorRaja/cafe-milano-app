@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| **Target version** | `1.9.0+13` |
+| **Target version** | `1.10.0+14` |
 | **Type** | Feature |
 | **Schema** | No change |
 | **Requires** | [05 — Ledger foundation](05-ledger-foundation.md) |
-| **Status** | Ready |
+| **Status** | **Deferred** — 07 ships first; pick this up after |
 
 ## Why
 

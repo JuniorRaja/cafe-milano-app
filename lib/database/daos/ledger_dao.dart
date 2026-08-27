@@ -13,6 +13,27 @@ enum LedgerType { bill, payment }
 
 enum BillStatus { unpaid, partial, paid }
 
+/// The one rule for "is this entry inside the requested period", shared by the
+/// ledger screen's date filter and the PDF statement so the two can never
+/// disagree about an entry on a boundary day.
+///
+/// Both ends are inclusive whole days. The end matters: a bill is dated at
+/// midnight but a payment carries the wall-clock time it was recorded, so
+/// comparing against the end day's midnight would drop a payment made on the
+/// last day of the period — and a statement that quietly loses today's payment
+/// is worse than useless in front of a shop.
+bool ledgerEntryInRange(LedgerEntry entry, DateTime? start, DateTime? end) {
+  if (start != null) {
+    final startDay = DateTime(start.year, start.month, start.day);
+    if (entry.date.isBefore(startDay)) return false;
+  }
+  if (end != null) {
+    final endDay = DateTime(end.year, end.month, end.day, 23, 59, 59, 999);
+    if (entry.date.isAfter(endDay)) return false;
+  }
+  return true;
+}
+
 class LedgerEntry {
   final LedgerType type;
   final DateTime date;
@@ -58,6 +79,37 @@ class ShopLedgerStats {
   });
 }
 
+/// One bill's money position — status plus the amounts behind it, so a caller
+/// that needs "what is still due on this bill" does not have to re-query for it.
+class BillDue {
+  final double total;
+  final double allocated;
+  final BillStatus status;
+
+  const BillDue({
+    required this.total,
+    required this.allocated,
+    required this.status,
+  });
+
+  double get amountDue => total - allocated;
+}
+
+/// What one shop still owes, for the receivables list and its dashboard total.
+class ShopOutstanding {
+  final int shopId;
+  final String shopName;
+  final String? area;
+  final double outstanding;
+
+  const ShopOutstanding({
+    required this.shopId,
+    required this.shopName,
+    required this.outstanding,
+    this.area,
+  });
+}
+
 @DriftAccessor(tables: [Payments, PaymentAllocations, DailyOrders, OrderLines, Shops])
 class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
   LedgerDao(super.db);
@@ -100,6 +152,90 @@ class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
     final total = await _getOrderTotal(orderId);
     final allocated = await _getAllocatedAmount(orderId);
     return _billStatusFor(total, allocated);
+  }
+
+  /// Every real bill on one date with its status, in a single query.
+  ///
+  /// The billing screen is a list, so a per-row status lookup would be an N+1
+  /// of exactly the kind doc 04 removed from the dashboard. Callers fetch this
+  /// map once per date and look up each row.
+  ///
+  /// Orders with no payment status are simply absent, and the caller shows no
+  /// chip for them. Two kinds never have one: a zero-line order (opening the
+  /// order-entry screen creates the row before anything is typed) is not a
+  /// bill, and an order before its shop's opening-balance cutoff is pre-ledger
+  /// history already folded into that shop's opening balance. Neither can ever
+  /// be allocated against, so neither is Unpaid — they are simply not bills
+  /// this ledger tracks, exactly as [watchShopLedger] treats them.
+  Stream<Map<int, BillDue>> watchBillDuesForDate(DateTime date) {
+    final dayStart = DateTime(date.year, date.month, date.day);
+    final query = customSelect(
+      'SELECT o.id AS order_id, '
+      '(SELECT COALESCE(SUM(ol.qty * ol.unit_price), 0.0) FROM order_lines ol WHERE ol.order_id = o.id) AS total, '
+      '(SELECT COALESCE(SUM(pa.amount), 0.0) FROM payment_allocations pa WHERE pa.order_id = o.id) AS allocated '
+      'FROM daily_orders o '
+      'INNER JOIN shops s ON s.id = o.shop_id '
+      'WHERE o.order_date = ? '
+      'AND (s.opening_balance_at IS NULL OR o.order_date >= s.opening_balance_at)',
+      variables: [Variable.withDateTime(dayStart)],
+      readsFrom: {dailyOrders, orderLines, paymentAllocations, shops},
+    );
+
+    return query.watch().map((rows) {
+      final dues = <int, BillDue>{};
+      for (final row in rows) {
+        final total = row.read<double>('total');
+        if (total <= _moneyEpsilon) continue;
+        final allocated = row.read<double>('allocated');
+        dues[row.read<int>('order_id')] = BillDue(
+          total: total,
+          allocated: allocated,
+          status: _billStatusFor(total, allocated),
+        );
+      }
+      return dues;
+    });
+  }
+
+  /// Every shop that still owes money, largest first, in one query.
+  ///
+  /// The dashboard total is the sum of exactly these rows, so the card and the
+  /// list cannot disagree — they are one computation, not two.
+  ///
+  /// "Outstanding" is the same figure [watchShopStats] derives per shop:
+  /// opening balance, plus bills on or after that shop's cutoff, minus
+  /// everything collected. So opening balances count, bills before a shop's
+  /// cutoff do not (they are inside its opening balance already), and an
+  /// unallocated payment still reduces the total — it is money in hand
+  /// whether or not it has been pointed at a specific bill yet.
+  ///
+  /// A shop in credit is left out rather than netted off: a credit is not a
+  /// receivable, and subtracting it would understate what is collectable.
+  /// Inactive shops stay in — money owed is owed whether or not the shop is
+  /// still being delivered to.
+  Stream<List<ShopOutstanding>> watchOutstandingByShop() {
+    final query = customSelect(
+      'SELECT s.id AS shop_id, s.name AS name, s.area AS area, '
+      'COALESCE(s.opening_balance, 0.0) '
+      '+ (SELECT COALESCE(SUM(ol.qty * ol.unit_price), 0.0) '
+      '   FROM order_lines ol INNER JOIN daily_orders o ON ol.order_id = o.id '
+      '   WHERE o.shop_id = s.id '
+      '   AND (s.opening_balance_at IS NULL OR o.order_date >= s.opening_balance_at)) '
+      '- (SELECT COALESCE(SUM(p.amount), 0.0) FROM payments p WHERE p.shop_id = s.id) '
+      'AS outstanding '
+      'FROM shops s ORDER BY outstanding DESC',
+      readsFrom: {shops, dailyOrders, orderLines, payments},
+    );
+
+    return query.watch().map((rows) => rows
+        .map((row) => ShopOutstanding(
+              shopId: row.read<int>('shop_id'),
+              shopName: row.read<String>('name'),
+              area: row.read<String?>('area'),
+              outstanding: row.read<double>('outstanding'),
+            ))
+        .where((s) => s.outstanding > _moneyEpsilon)
+        .toList());
   }
 
   /// Chronological interleave of bills (debits) and payments (credits) for
@@ -188,15 +324,7 @@ class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
           return false;
         }
         if (type != null && e.type != type) return false;
-        if (rangeStart != null) {
-          final startDay = DateTime(rangeStart.year, rangeStart.month, rangeStart.day);
-          if (e.date.isBefore(startDay)) return false;
-        }
-        if (rangeEnd != null) {
-          final endDay = DateTime(rangeEnd.year, rangeEnd.month, rangeEnd.day);
-          if (e.date.isAfter(endDay)) return false;
-        }
-        return true;
+        return ledgerEntryInRange(e, rangeStart, rangeEnd);
       }).toList();
     });
   }
@@ -231,17 +359,44 @@ class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
     });
   }
 
+  /// Writes at most [available] against one bill, never more than that bill
+  /// still owes, and returns what it actually allocated. Every allocation this
+  /// DAO makes goes through here, so the "never over-allocate a bill" rule has
+  /// exactly one home regardless of which path asked for it.
+  Future<double> _allocate(int paymentId, int orderId, double available) async {
+    if (available <= _moneyEpsilon) return 0.0;
+    final total = await _getOrderTotal(orderId);
+    if (total <= _moneyEpsilon) return 0.0;
+    final due = total - await _getAllocatedAmount(orderId);
+    if (due <= _moneyEpsilon) return 0.0;
+
+    final toAllocate = available < due ? available : due;
+    await into(paymentAllocations).insert(PaymentAllocationsCompanion.insert(
+      paymentId: paymentId,
+      orderId: orderId,
+      amount: toAllocate,
+    ));
+    return toAllocate;
+  }
+
   /// Inserts the payment, then auto-allocates FIFO against this shop's
   /// oldest unpaid/partially-paid bills (respecting the opening-balance
   /// cutoff). Whole thing in one transaction. Any amount left over after all
   /// outstanding bills are settled sits unallocated — an overpayment or
   /// advance, surfaced by doc 06, not an error here.
+  ///
+  /// [priorityOrderId] settles that one bill before FIFO runs — the
+  /// Mark-as-Paid path from the billing screen, where the money is for a named
+  /// bill rather than for "whatever is oldest". Anything left after that bill
+  /// is settled still flows FIFO across the rest, so raising the amount above
+  /// the named bill's due behaves the way an ordinary payment would.
   Future<int> recordPayment({
     required int shopId,
     required double amount,
     required DateTime paidAt,
     required PaymentMode mode,
     String? note,
+    int? priorityOrderId,
   }) {
     return transaction(() async {
       final paymentId = await into(payments).insert(PaymentsCompanion.insert(
@@ -264,21 +419,14 @@ class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
       final orders = await ordersQuery.get();
 
       var remaining = amount;
+      if (priorityOrderId != null) {
+        remaining -= await _allocate(paymentId, priorityOrderId, remaining);
+      }
       for (final order in orders) {
         if (remaining <= _moneyEpsilon) break;
-        final total = await _getOrderTotal(order.id);
-        if (total <= _moneyEpsilon) continue;
-        final allocated = await _getAllocatedAmount(order.id);
-        final due = total - allocated;
-        if (due <= _moneyEpsilon) continue;
-
-        final toAllocate = remaining < due ? remaining : due;
-        await into(paymentAllocations).insert(PaymentAllocationsCompanion.insert(
-          paymentId: paymentId,
-          orderId: order.id,
-          amount: toAllocate,
-        ));
-        remaining -= toAllocate;
+        // A priority bill already settled above is skipped here for free —
+        // it now owes nothing, so _allocate returns 0.
+        remaining -= await _allocate(paymentId, order.id, remaining);
       }
 
       return paymentId;

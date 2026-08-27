@@ -5,11 +5,13 @@ import 'package:share_plus/share_plus.dart';
 import '../../app.dart';
 import '../../database/app_database.dart';
 import '../../providers/date_provider.dart';
+import '../../providers/ledger_provider.dart';
 import '../../providers/order_provider.dart';
 import '../../providers/shop_provider.dart';
 import '../../providers/product_provider.dart';
 import '../../widgets/date_selector.dart';
 import '../../widgets/staggered_fade_in.dart';
+import '../ledger/record_payment_sheet.dart';
 
 class OrdersScreen extends ConsumerStatefulWidget {
   const OrdersScreen({super.key});
@@ -32,6 +34,12 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     final productMap = ref.watch(allProductsProvider).maybeWhen(
       data: (products) => {for (final p in products) p.id: p},
       orElse: () => <int, Product>{},
+    );
+    // One watched query for every bill on this date. Per-row lookups would be
+    // an N+1, and a one-shot read would leave the chips stale until restart.
+    final billDues = ref.watch(billDuesForDateProvider(date)).maybeWhen(
+      data: (dues) => dues,
+      orElse: () => <int, BillDue>{},
     );
 
     return Scaffold(
@@ -121,6 +129,8 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                                 shop: shop,
                                 index: i + 1,
                                 productMap: productMap,
+                                billDue: billDues[s.order.id],
+                                onMarkPaid: () => _markPaid(s, billDues[s.order.id]),
                                 isExpanded: isExpanded,
                                 onToggle: () => setState(() {
                                   _expandedOrderId =
@@ -202,6 +212,29 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     );
   }
 
+  /// Opens the payment sheet for one bill, prefilled with what that bill still
+  /// owes and pinned to it, so a shop paying its bill on the day is two taps
+  /// rather than a trip through the ledger screen.
+  void _markPaid(OrderDaySummary summary, BillDue? due) {
+    if (due == null || due.status == BillStatus.paid) return;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      // Daily Billing sits inside the shell, which draws the nav bar and the
+      // dashboard FAB above its body — so a sheet on the branch navigator comes
+      // up *under* that FAB. The root navigator puts it above everything.
+      useRootNavigator: true,
+      builder: (_) => RecordPaymentSheet(
+        shopId: summary.order.shopId,
+        pinned: (
+          orderId: summary.order.id,
+          date: summary.order.orderDate,
+          amountDue: due.amountDue,
+        ),
+      ),
+    );
+  }
+
   Future<void> _shareOne(
     OrderDaySummary summary,
     Shop? shop,
@@ -274,6 +307,8 @@ class _OrderCard extends StatelessWidget {
     required this.shop,
     required this.index,
     required this.productMap,
+    required this.billDue,
+    required this.onMarkPaid,
     required this.isExpanded,
     required this.onToggle,
     required this.onShare,
@@ -283,6 +318,11 @@ class _OrderCard extends StatelessWidget {
   final Shop? shop;
   final int index;
   final Map<int, Product> productMap;
+
+  /// Null when this order is not a bill the ledger tracks — an empty order, or
+  /// one dated before its shop's opening-balance cutoff. No chip for those.
+  final BillDue? billDue;
+  final VoidCallback onMarkPaid;
   final bool isExpanded;
   final VoidCallback onToggle;
   final VoidCallback onShare;
@@ -290,6 +330,8 @@ class _OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isConfirmed = summary.order.isConfirmed;
+    final due = billDue;
+    final settled = due == null || due.status == BillStatus.paid;
     return Card(
       color: Colors.white,
       margin: const EdgeInsets.only(bottom: 8),
@@ -301,6 +343,7 @@ class _OrderCard extends StatelessWidget {
                 ? const BorderRadius.vertical(top: Radius.circular(12))
                 : BorderRadius.circular(12),
             onTap: onToggle,
+            onLongPress: settled ? null : onMarkPaid,
             child: Padding(
               padding: const EdgeInsets.symmetric(
                   horizontal: 16, vertical: 14),
@@ -344,22 +387,49 @@ class _OrderCard extends StatelessWidget {
                                   fontWeight: FontWeight.bold, fontSize: 15),
                             ),
                             const Spacer(),
-                            _StatusChip(
-                              label: isConfirmed ? 'Confirmed' : 'Pending',
-                              color: isConfirmed ? Colors.green : Colors.grey,
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.share, size: 20),
-                              onPressed: onShare,
-                              visualDensity: VisualDensity.compact,
-                              tooltip: 'Share bill',
-                            ),
-                            Icon(
-                              isExpanded
-                                  ? Icons.expand_less
-                                  : Icons.expand_more,
-                              color: Colors.grey,
-                              size: 20,
+                            // Two chips, a share button and a caret is more
+                            // than a narrow phone fits beside a five-digit
+                            // total, so the trailing cluster shrinks to fit
+                            // rather than overflowing the card.
+                            Flexible(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerRight,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (due != null) ...[
+                                      _StatusChip(
+                                        label: _payLabel(due.status),
+                                        color: _payColor(due.status),
+                                        // The chip is the discoverable half of
+                                        // Mark-as-Paid; long-pressing the card
+                                        // is the same action for anyone who
+                                        // reaches for that instead.
+                                        onTap: settled ? null : onMarkPaid,
+                                      ),
+                                      const SizedBox(width: 6),
+                                    ],
+                                    _StatusChip(
+                                      label: isConfirmed ? 'Confirmed' : 'Pending',
+                                      color: isConfirmed ? Colors.green : Colors.grey,
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.share, size: 20),
+                                      onPressed: onShare,
+                                      visualDensity: VisualDensity.compact,
+                                      tooltip: 'Share bill',
+                                    ),
+                                    Icon(
+                                      isExpanded
+                                          ? Icons.expand_less
+                                          : Icons.expand_more,
+                                      color: Colors.grey,
+                                      size: 20,
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -549,14 +619,27 @@ class _BillingDetail extends ConsumerWidget {
   }
 }
 
+String _payLabel(BillStatus status) => switch (status) {
+      BillStatus.paid => 'Paid',
+      BillStatus.partial => 'Partial',
+      BillStatus.unpaid => 'Unpaid',
+    };
+
+Color _payColor(BillStatus status) => switch (status) {
+      BillStatus.paid => Colors.green,
+      BillStatus.partial => Colors.orange,
+      BillStatus.unpaid => Colors.red,
+    };
+
 class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.label, required this.color});
+  const _StatusChip({required this.label, required this.color, this.onTap});
   final String label;
   final Color color;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final chip = Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: color.withAlpha(30),
@@ -568,6 +651,13 @@ class _StatusChip extends StatelessWidget {
         style: TextStyle(
             color: color, fontSize: 11, fontWeight: FontWeight.w600),
       ),
+    );
+
+    if (onTap == null) return chip;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: chip,
     );
   }
 }

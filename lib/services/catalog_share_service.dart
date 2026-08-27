@@ -8,10 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import '../app.dart' show kDefaultLogoAsset;
 import '../database/app_database.dart';
 import 'category_emoji.dart';
-
-// Brand colours as PDF equivalents of kBrandGold / kBrandBrown from app.dart
-const _kGold  = PdfColor(1.0, 192 / 255, 0.0);         // 0xFFFFC000
-const _kBrown = PdfColor(74 / 255, 44 / 255, 42 / 255); // 0xFF4A2C2A
+import 'pdf_brand.dart';
 
 enum CatalogShareFormat { pdf, text }
 
@@ -29,15 +26,6 @@ String _formatPrice(Product product) {
       ? price.toStringAsFixed(0)
       : price.toStringAsFixed(2);
   return product.unit != null ? '₹$text / ${product.unit}' : '₹$text';
-}
-
-Future<pw.ThemeData> _loadTheme() async {
-  final regular = await rootBundle.load('assets/fonts/Quicksand-Regular.ttf');
-  final bold    = await rootBundle.load('assets/fonts/Quicksand-Bold.ttf');
-  return pw.ThemeData.withFont(
-    base: pw.Font.ttf(regular),
-    bold: pw.Font.ttf(bold),
-  );
 }
 
 Future<pw.MemoryImage?> _loadLogo(BusinessInfoData? business) async {
@@ -64,11 +52,6 @@ Future<Map<int, pw.MemoryImage>> _loadProductPhotos(List<Product> products) asyn
   }
   return result;
 }
-
-pw.Widget _whiteBackground(pw.Context context) => pw.FullPage(
-  ignoreMargins: true,
-  child: pw.Container(color: PdfColors.white),
-);
 
 // ---------------------------------------------------------------------------
 // Groups products by active category (in sortOrder), then uncategorised last.
@@ -131,7 +114,7 @@ pw.Widget _buildCoverPage(BusinessInfoData? business, pw.MemoryImage? logo) {
           ),
         pw.Text(
           name,
-          style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: _kBrown),
+          style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: kPdfBrown),
         ),
         if (address != null && address.isNotEmpty)
           pw.Padding(
@@ -146,7 +129,7 @@ pw.Widget _buildCoverPage(BusinessInfoData? business, pw.MemoryImage? logo) {
         pw.SizedBox(height: 20),
         pw.Text(
           'Product Catalog',
-          style: pw.TextStyle(fontSize: 14, fontStyle: pw.FontStyle.italic, color: _kGold),
+          style: pw.TextStyle(fontSize: 14, fontStyle: pw.FontStyle.italic, color: kPdfGold),
         ),
       ],
     ),
@@ -159,11 +142,11 @@ pw.Widget _buildCategoryHeader(String label, String emoji) {
     child: pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Container(height: 3, color: _kGold),
+        pw.Container(height: 3, color: kPdfGold),
         pw.SizedBox(height: 6),
         pw.Text(
           '$emoji $label',
-          style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: _kBrown),
+          style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: kPdfBrown),
         ),
       ],
     ),
@@ -187,7 +170,7 @@ pw.Widget _buildPhotoBox(Product product, pw.MemoryImage? photo, {double size = 
     width: size,
     height: size,
     decoration: pw.BoxDecoration(
-      color: _kBrown,
+      color: kPdfBrown,
       borderRadius: pw.BorderRadius.circular(6),
     ),
     child: pw.Center(
@@ -227,7 +210,7 @@ pw.Widget _buildProductCard(Product product, pw.MemoryImage? photo, String? cate
         ),
         pw.Text(
           _formatPrice(product),
-          style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: _kBrown),
+          style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: kPdfBrown),
         ),
       ],
     ),
@@ -244,21 +227,6 @@ pw.Widget _buildProductList(
   );
 }
 
-pw.Widget _buildContentFooter(pw.Context context, BusinessInfoData? business) {
-  final name  = business?.name ?? 'Cafe Milano';
-  final phone = business?.phone;
-  final label = (phone != null && phone.isNotEmpty)
-      ? '$name · ☎ $phone   ·   Page ${context.pageNumber} of ${context.pagesCount}'
-      : '$name   ·   Page ${context.pageNumber} of ${context.pagesCount}';
-  return pw.Column(
-    children: [
-      pw.Divider(thickness: 0.5, color: _kGold),
-      pw.SizedBox(height: 2),
-      pw.Text(label, style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
-    ],
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -268,7 +236,7 @@ Future<Uint8List> _buildPdfBytes({
   required List<Product> products,
   required List<Category> categories,
 }) async {
-  final theme  = await _loadTheme();
+  final theme  = await loadPdfTheme();
   final logo   = await _loadLogo(business);
   final photos = await _loadProductPhotos(products);
   final groups = _groupProducts(products, categories);
@@ -280,7 +248,7 @@ Future<Uint8List> _buildPdfBytes({
     pw.Page(
       pageTheme: pw.PageTheme(
         pageFormat: PdfPageFormat.a4,
-        buildBackground: _whiteBackground,
+        buildBackground: pdfWhiteBackground,
       ),
       build: (context) => _buildCoverPage(business, logo),
     ),
@@ -292,9 +260,9 @@ Future<Uint8List> _buildPdfBytes({
       pw.MultiPage(
         pageTheme: pw.PageTheme(
           pageFormat: PdfPageFormat.a4,
-          buildBackground: _whiteBackground,
+          buildBackground: pdfWhiteBackground,
         ),
-        footer: (context) => _buildContentFooter(context, business),
+        footer: (context) => pdfPageFooter(context, business),
         build: (context) {
           final widgets = <pw.Widget>[];
           for (final group in groups) {

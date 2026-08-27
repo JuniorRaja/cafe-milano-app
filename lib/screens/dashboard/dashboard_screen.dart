@@ -14,6 +14,7 @@ import '../../widgets/dashboard/shop_concentration_card.dart';
 import '../../widgets/dashboard/product_leaderboard_card.dart';
 import '../../widgets/dashboard/weekday_heatmap.dart';
 import '../../widgets/dashboard/attention_flags.dart';
+import '../../widgets/dashboard/outstanding_card.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -106,7 +107,13 @@ class DashboardScreen extends ConsumerWidget {
                       const SizedBox(height: 16),
                     ],
 
-                    // Section 2 — Category Scorecards
+                    // Section 2 — Outstanding Receivables
+                    if (settings.showOutstanding) ...[
+                      const OutstandingCard(),
+                      const SizedBox(height: 16),
+                    ],
+
+                    // Section 3 — Category Scorecards
                     if (settings.showCategoryCards) ...[
                       const CategoryScorecardsWidget(),
                       const SizedBox(height: 16),
