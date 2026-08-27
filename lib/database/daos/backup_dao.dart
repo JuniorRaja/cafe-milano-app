@@ -88,15 +88,38 @@ class BackupDao extends DatabaseAccessor<AppDatabase> with _$BackupDaoMixin {
           mode: InsertMode.insertOrReplace,
         );
       }
+      // Backups from pre-FK builds (schema < 5) can carry shop_prices /
+      // standing_orders rows that point at a since-deleted shop or product.
+      // An in-place v4->v5 upgrade scrubs these in _cleanOrphans(); a restore
+      // bypasses migrations, so drop them here the same way or the insert
+      // trips FOREIGN KEY constraint (SqliteException 787).
+      final shopIds = {
+        for (final j in (data['shops'] as List? ?? []))
+          (j as Map)['id'] as int,
+      };
+      final productIds = {
+        for (final j in (data['products'] as List? ?? []))
+          (j as Map)['id'] as int,
+      };
       for (final json in data['shopPrices'] as List) {
+        final m = json as Map<String, dynamic>;
+        if (!shopIds.contains(m['shopId']) ||
+            !productIds.contains(m['productId'])) {
+          continue;
+        }
         await into(shopPrices).insert(
-          ShopPrice.fromJson(json as Map<String, dynamic>),
+          ShopPrice.fromJson(m),
           mode: InsertMode.insertOrReplace,
         );
       }
       for (final json in data['standingOrders'] as List) {
+        final m = json as Map<String, dynamic>;
+        if (!shopIds.contains(m['shopId']) ||
+            !productIds.contains(m['productId'])) {
+          continue;
+        }
         await into(standingOrders).insert(
-          StandingOrder.fromJson(json as Map<String, dynamic>),
+          StandingOrder.fromJson(m),
           mode: InsertMode.insertOrReplace,
         );
       }

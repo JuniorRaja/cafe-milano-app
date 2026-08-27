@@ -117,6 +117,9 @@ Future<void> importBackup(AppDatabase db, File file) async {
     throw InvalidBackupException('This file is not a valid backup.');
   }
 
+  // payments / paymentAllocations are intentionally not required: backups from
+  // pre-ledger builds (schema < 6) don't carry them, and restoreAll reads both
+  // as `as List? ?? []`.
   const requiredKeys = [
     'schemaVersion',
     'categories',
@@ -126,15 +129,17 @@ Future<void> importBackup(AppDatabase db, File file) async {
     'standingOrders',
     'dailyOrders',
     'orderLines',
-    'payments',
-    'paymentAllocations',
   ];
   if (requiredKeys.any((key) => !backup.containsKey(key))) {
     throw InvalidBackupException('This file is not a valid Cafe Milano backup.');
   }
-  if (backup['schemaVersion'] != db.schemaVersion) {
+  // ponytail: accepts any older schema because every migration to date is purely
+  // additive (new tables / nullable columns). A future migration that adds a
+  // NOT NULL column, renames, or transforms data needs a per-version coercion
+  // block here keyed off backup['schemaVersion'].
+  if ((backup['schemaVersion'] as num) > db.schemaVersion) {
     throw InvalidBackupException(
-      'This backup is from an incompatible app version and cannot be restored here.',
+      'This backup is from a newer app version. Update the app, then restore.',
     );
   }
 

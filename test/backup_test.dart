@@ -121,6 +121,51 @@ void main() {
       await target.close();
     });
 
+    test('restoreAll skips orphan shop_prices / standing_orders rows', () async {
+      // A pre-FK (schema < 5) export can carry config rows pointing at a
+      // since-deleted shop or product. Restore must drop them, not throw 787.
+      final db = _freshDb();
+      final backup = {
+        'categories': [],
+        'shops': [
+          {'id': 1, 'name': 'Shop A', 'area': null, 'phone': null, 'isActive': true},
+        ],
+        'products': [
+          {
+            'id': 1,
+            'name': 'Bun',
+            'unit': null,
+            'photoPath': null,
+            'isActive': true,
+            'price': null,
+            'categoryId': null,
+          },
+        ],
+        'shopPrices': [
+          {'shopId': 1, 'productId': 1, 'price': 10.0},
+          {'shopId': 1, 'productId': 99, 'price': 5.0}, // orphan product
+        ],
+        'standingOrders': [
+          {'shopId': 1, 'productId': 1, 'defaultQty': 2},
+          {'shopId': 99, 'productId': 1, 'defaultQty': 0}, // orphan shop
+        ],
+        'dailyOrders': [],
+        'orderLines': [],
+        'businessInfo': null,
+      };
+
+      await db.backupDao.restoreAll(backup);
+
+      expect((await db.priceDao.getPrice(1, 1))?.price, 10.0);
+      expect(await db.priceDao.getPrice(1, 99), isNull);
+
+      final standing = await db.priceDao.watchStandingOrdersForShop(1).first;
+      expect(standing, hasLength(1));
+      expect(standing.first.productId, 1);
+
+      await db.close();
+    });
+
     test('restoreAll replaces existing data rather than merging', () async {
       final db = _freshDb();
       await db.shopDao.upsertShop(ShopsCompanion.insert(name: 'Old Shop'));
