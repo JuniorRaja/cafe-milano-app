@@ -2,12 +2,12 @@
 
 | | |
 |---|---|
-| **Target version** | `1.7.1+10` |
-| **Type** | Foundation (patch — no new capability, per the [roadmap](../roadmap.md) bump table) |
+| **Target version** | `1.10.0+14` — **ships with [18](18-foundation-guardrails.md)** |
+| **Type** | Foundation (minor — the owner opens a different-looking app) |
 | **Schema** | No change |
 | **Part of** | [10 — UI overhaul](10-ui-overhaul.md) |
 | **Followed by** | [10b — Navigation](10b-navigation.md), [10c — Screen restyle](10c-screen-restyle.md) |
-| **Status** | Ready |
+| **Status** | **Built, awaiting commit** — see *Build notes* at the end |
 
 ## Why
 
@@ -193,38 +193,38 @@ about it. An empty shop list should offer "Add your first shop", not sympathy.
 
 ### Tokens and theme
 
-- [ ] `lib/theme/tokens.dart` — colour, type, spacing, radius, shadow, exactly as
+- [x] `lib/theme/tokens.dart` — colour, type, spacing, radius, shadow, exactly as
       specified above. Plain `const`s and a `TextTheme` builder; no code generation.
-- [ ] `lib/theme/app_theme.dart` — build `ThemeData` from tokens. Move the four
+- [x] `lib/theme/app_theme.dart` — build `ThemeData` from tokens. Move the four
       button themes, `listTileTheme`, `navigationBarTheme` and `tabBarTheme` out of
       `lib/app.dart`, which currently holds ~90 lines of theme inline.
-- [ ] `lib/app.dart` — keep `kBrandGold` / `kBrandBrown` / `kSurface` as
+- [x] `lib/app.dart` — keep `kBrandGold` / `kBrandBrown` / `kSurface` as
       **`@Deprecated` aliases** onto the new tokens. 60+ files import them; removing
       them in this release turns a foundation change into a 60-file diff.
       [10c](10c-screen-restyle.md) deletes them once nothing imports them.
-- [ ] Set `ColorScheme` fields properly so Material's own widgets (dialogs, pickers,
+- [x] Set `ColorScheme` fields properly so Material's own widgets (dialogs, pickers,
       snackbars) inherit the palette. Today they fall back to `fromSeed` defaults and
       look like a different app — most visible in `showDatePicker`, which the date
       selector opens constantly.
 
 ### Brand seam
 
-- [ ] `lib/theme/brand_config.dart` + `brandProvider`, per above.
-- [ ] Replace all **19** hardcoded brand strings. Enumerate them from
+- [x] `lib/theme/brand_config.dart` + `brandProvider`, per above.
+- [x] Replace all **19** hardcoded brand strings. Enumerate them from
       `grep -rn "Milano\|MILANO" lib/ --include=*.dart`; do not sample.
-- [ ] `MaterialApp.router(title:)` reads `BrandConfig.appName`.
-- [ ] Currency formatting goes through one helper reading `BrandConfig.currencySymbol`
+- [x] `MaterialApp.router(title:)` reads `BrandConfig.appName`.
+- [x] Currency formatting goes through one helper reading `BrandConfig.currencySymbol`
       and `locale`. `NumberFormat('#,##0')` with a literal `₹` is written out at
       ~30 call sites today, and Indian digit grouping is a real formatting difference,
       not a symbol swap.
 
 ### Component kit
 
-- [ ] Build the 14 components above in `lib/widgets/ui/`, each with a `///` doc comment
+- [x] Build the 14 components above in `lib/widgets/ui/`, each with a `///` doc comment
       naming what it replaces.
-- [ ] `lib/widgets/ui/README.md` — one screenshot-free page: which component to reach
+- [x] `lib/widgets/ui/README.md` — one screenshot-free page: which component to reach
       for, and the rule that new UI composes from the kit rather than from `Container`.
-- [ ] **Do not migrate any screen in this release.** The kit ships unused except by the
+- [x] **Do not migrate any screen in this release.** The kit ships unused except by the
       theme. That is deliberate: a foundation release whose diff also touches 20 screens
       cannot be reviewed, and cannot be reverted if a token turns out wrong.
       The one exception below is the background.
@@ -233,7 +233,7 @@ about it. An empty shop list should offer "Add your first shop", not sympathy.
 
 Four fixes. Each is named in [audit §4](../app-audit.md) with its measurement.
 
-- [ ] **Kill the runtime blur.** `lib/widgets/app_background.dart` currently decodes a
+- [x] **Kill the runtime blur.** `lib/widgets/app_background.dart` currently decodes a
       144 KB PNG at full resolution, scales it to cover, runs a Gaussian blur through
       `ImageFiltered`, and composites at 50% `Opacity` — with no `RepaintBoundary`.
       Both `ImageFiltered` and `Opacity` force `saveLayer`, and it sits under **every
@@ -242,7 +242,7 @@ Four fixes. Each is named in [audit §4](../app-audit.md) with its measurement.
       bake the 50% into the asset, add `cacheWidth`, and wrap the whole thing in a
       `RepaintBoundary`. This is the single largest rendering cost in the app and it is
       decorative.
-- [ ] **`autoDispose` every family provider.** 0 of 35 providers use it today. Every
+- [x] **`autoDispose` every family provider.** 0 of 35 providers use it today. Every
       distinct argument to `orderSummariesForDateProvider(date)`,
       `kitchenLinesForDateProvider(date)`, `orderWithLinesProvider(id)`,
       `pricesForShopProvider(shopId)`, `shopLedgerProvider(...)`,
@@ -254,30 +254,33 @@ Four fixes. Each is named in [audit §4](../app-audit.md) with its measurement.
       Keep `databaseProvider`, `selectedDateProvider`, `dashboardSettingsProvider`,
       `brandProvider` and the unparameterised master lists non-`autoDispose` — they are
       genuinely app-lifetime. Everything keyed on an argument becomes `autoDispose`.
-- [ ] **Unblock the splash.** `splash_screen.dart` runs a fixed 1200 ms
+- [x] **Unblock the splash.** `splash_screen.dart` runs a fixed 1200 ms
       `AnimationController` and navigates on `AnimationStatus.completed`. Nothing is
       being waited on — the animation *is* the wait, on top of the native splash.
       Navigate when the database is open **or** after 400 ms, whichever is later, and
       cap the whole thing at 600 ms. Add `cacheWidth: 320` to the logo: it is a 284 KB
       PNG decoded at full resolution to be drawn at 160×160.
-- [ ] **Fix the stagger.** `StaggeredFadeIn` gives each row `30ms × index` (capped at
+- [x] **Fix the stagger.** `StaggeredFadeIn` gives each row `30ms × index` (capped at
       12) plus a 250 ms fade, so the last visible row of an 18-shop list appears
       **360 ms after the data is ready** and the list animates for ~600 ms. Each row is
       also its own `StatefulWidget`, `Future.delayed` and `setState`.
       Replace it with a single 150 ms fade on the list as a whole. Keep the file and its
       name so the diff stays legible; replace its body.
-- [ ] Convert the **6** eager `ListView(` sites to `ListView.builder` (against 4 already
-      correct). The price matrix and settings lists build every row up front.
-- [ ] `RepaintBoundary` around `ListRow` and around each dashboard chart card.
+- [ ] ~~Convert the **6** eager `ListView(` sites to `ListView.builder` (against 4 already
+      correct). The price matrix and settings lists build every row up front.~~
+      **Not done — see Build notes.** All six pass a static `children:` literal, so
+      `.builder` over that literal is not lazy and buys nothing; the price matrix was
+      already lazy. Deferred to [10c](10c-screen-restyle.md).
+- [x] `RepaintBoundary` around `ListRow` and around each dashboard chart card.
 
 ### Guard rails
 
-- [ ] `tool/check_tokens.sh` — fails if `lib/screens/` or `lib/widgets/` (excluding
+- [x] `tool/check_tokens.sh` — fails if `lib/screens/` or `lib/widgets/` (excluding
       `lib/widgets/ui/`) contains `Colors.grey`, a `fontSize:` literal, or
       `BorderRadius.circular(`. **Expected to fail on day one** — it is a ratchet for
       [10c](10c-screen-restyle.md), not a gate for this release. Wire it into CI as a
       reporting step that prints the count, and flip it to blocking at the end of 10c.
-- [ ] Record the starting counts in the script's header comment so the ratchet is
+- [x] Record the starting counts in the script's header comment so the ratchet is
       visible: 111 greys, 14 font sizes, 8 radii.
 
 ### Tests
@@ -285,25 +288,25 @@ Four fixes. Each is named in [audit §4](../app-audit.md) with its measurement.
 Deliberately light. The kit is presentational; the roadmap's standing position is that
 UI does not need unit tests, and nothing here carries money or counts.
 
-- [ ] `test/widget_test.dart` — extend so the existing smoke tests build under the new
+- [x] `test/widget_test.dart` — extend so the existing smoke tests build under the new
       theme. If it passes unchanged, the theme was wired correctly.
-- [ ] One golden-free widget test per kit component asserting it builds and renders its
+- [x] One golden-free widget test per kit component asserting it builds and renders its
       text. Enough to catch a null token or a bad `TextTheme` key, no more.
-- [ ] **No test asserts a colour value.** Tokens are meant to change — that is the point
+- [x] **No test asserts a colour value.** Tokens are meant to change — that is the point
       of [17](17-white-label.md) — and a test that pins `#FFC000` makes the seam useless.
 
 ## Success criteria
 
-- [ ] `lib/theme/tokens.dart` is the only place any colour, size, radius or shadow is
+- [x] `lib/theme/tokens.dart` is the only place any colour, size, radius or shadow is
       defined. Verified by `tool/check_tokens.sh` against `lib/widgets/ui/`, which must
       be clean even though the screens are not yet.
-- [ ] `Theme.of(context).textTheme` resolves all 8 type steps.
-- [ ] All 14 kit components exist, build, and are documented in
+- [x] `Theme.of(context).textTheme` resolves all 8 type steps.
+- [x] All 14 kit components exist, build, and are documented in
       `lib/widgets/ui/README.md`.
-- [ ] `grep -rn "Milano\|MILANO" lib/ --include=*.dart` returns **zero** UI-string hits.
+- [x] `grep -rn "Milano\|MILANO" lib/ --include=*.dart` returns **zero** UI-string hits.
       Non-UI hits (the Drift `milano_orders` database name, backup file naming) are
       listed explicitly in the doc as permitted.
-- [ ] Changing `BrandConfig.milano.primary` to an obviously wrong colour restyles the
+- [x] Changing `BrandConfig.milano.primary` to an obviously wrong colour restyles the
       whole app, including the FAB, buttons, chips and active nav state, with no other
       edit. This is the test that the seam is real.
 - [ ] Cold start to first interactive frame drops from ~1.2 s + native splash to
@@ -315,21 +318,78 @@ UI does not need unit tests, and nothing here carries money or counts.
 - [ ] Visiting 14 consecutive dates on the home screen, then returning to today, leaves
       **one** live `watchOrderSummaries` subscription. Verified with a counter in the
       DAO or the Riverpod observer, not by inspection.
-- [ ] `flutter test` passes. `flutter analyze` is clean apart from the intentional
+- [~] `flutter test` passes. `flutter analyze` is clean apart from the intentional
       `@Deprecated` alias warnings, whose count is recorded in the PR description so
       [10c](10c-screen-restyle.md) can drive it to zero.
+      **131 pass, 84 deprecation warnings, 0 other analyzer issues.** One test still
+      fails — `migration_test.dart`, `v4 -> v5 upgrade` — and failed identically on
+      `60b9662` before this work started. It is a schema-migration bug, the one area
+      10a does not touch, so it is left for its own fix.
 - [ ] Every screen still renders and every route still works. Nothing was rebuilt in
       this release, so anything that changed shape is a bug.
 
 ## Notes
 
-- **Why patch and not minor.** The [roadmap](../roadmap.md) reserves minor bumps for
-  new user-facing capability. This adds none — it is foundation, performance and
-  restyling. The visible change is large, but the rule is the rule, and
-  [10b](10b-navigation.md) takes the minor bump for the navigation it genuinely adds.
+- **Why minor, not patch.** This doc originally argued for a patch: no new capability,
+  so no minor bump. The [roadmap](../roadmap.md) rule changed on 2026-08-28. The test is
+  now what the owner sees when he opens the app, and the whole app changes colour, type
+  and speed here. That is a minor bump.
+- **It does not ship alone.** [18](18-foundation-guardrails.md) rides in the same
+  release: the guardrails, the agent docs, the red migration test, and the order-entry
+  data-loss fix. 10a on its own is a look change with a failing test and no ratchet.
 - **Why the kit ships unused.** Reviewing a diff that introduces tokens *and* rewrites
   20 screens is not possible, and reverting it is worse. Ship the layer, prove the
   theme did not break anything, then migrate screens against a fixed target.
 - **The deprecated aliases are load-bearing.** 60+ files import `kBrandGold` and
   friends from `lib/app.dart`. They stay until [10c](10c-screen-restyle.md) empties
   them, and the analyzer warning count is the progress bar.
+
+## Build notes
+
+Written when this doc was implemented. The four items below are the only places the
+build departs from the plan above, or leaves something for a device.
+
+- **The 6 eager `ListView(` sites were deliberately not converted.** All six —
+  `backup_restore`, `business_info_form`, `dashboard_settings`, `product_form`,
+  `profile_screen`, `shop_form` — pass a *static* `children:` literal of six to
+  fifteen heterogeneous widgets. `ListView.builder` over a `<Widget>[...]` literal
+  constructs every child exactly as eagerly, so the conversion buys nothing and costs
+  six screens of readability in a release whose own rule is "do not migrate any
+  screen". The audit's example, the price matrix, was already `ListView.separated`
+  before this work. Reopen this in [10c](10c-screen-restyle.md), where the screens are
+  being rebuilt anyway and the children become data-driven.
+- **Four success criteria need the owner's device** and are left unticked: cold start
+  under 600 ms, the 18-shop list visible within 200 ms, 60 fps with a clean `saveLayer`
+  overlay, and one live `watchOrderSummaries` subscription after fourteen dates. The
+  code changes they measure are all in (`app_background.dart`, `staggered_fade_in.dart`,
+  `splash_screen.dart`, 12 `autoDispose` families); the numbers are not.
+- **The version was retargeted after the build.** The header originally read `1.7.1+10`.
+  By the time this work finished the app had reached `1.9.2+13`, and the bump rule had
+  changed, so 10a ships as **`1.10.0+14`** together with [18](18-foundation-guardrails.md).
+  `pubspec.yaml` takes that bump at the end of the release branch, not at first commit.
+- **Permitted non-UI "Milano" hits**, per the success criterion. Four `debugPrint`
+  log tags (`[MilanoOrders]` in `app_database.dart` and `seed_data.dart`), the Drift
+  database filename `milano_orders.db`, the backup filename prefix
+  `cafe-milano-backup-` (changing it would orphan every backup already on the owner's
+  device — the restore scan matches on it), and `BrandConfig.milano` itself, which is
+  where the string is supposed to live.
+
+### Also landed, not in the plan
+
+- `lib/providers/read_once.dart` — `ref.readStreamOnce` / `ref.readFutureOnce`.
+  `autoDispose` turned three existing `ref.read(provider.future)` calls into hangs: a
+  bare `read` registers no listener, so the provider is disposed on the next tick and
+  the future never completes. The three call sites are the ledger statement export and
+  the two bill shares.
+- `deprecated_member_use_from_same_package: true` in `analysis_options.yaml`. Without
+  it the `@Deprecated` aliases are invisible to `flutter analyze` and there is no
+  progress bar for 10c. Current count: **84**.
+- `tool/blur_background.py` — regenerates `bg-vector-blurred.png` from `bg-vector.png`.
+  The source art stays in the repo but is no longer bundled, which also drops 145 KB
+  from the build.
+- Five stale assertions in `test/widget_test.dart`, red before this work started: the
+  home header is two `Text`s rather than `Shops · N shops`, `ShopOrderCard` draws its
+  Pending chip even for a shop with no order, and the kitchen share control is now an
+  always-present disabled `IconButton` rather than a conditional FAB. The harness also
+  now builds under `buildAppTheme` instead of an ad-hoc orange seed, which is what
+  makes them a theme smoke test at all.
