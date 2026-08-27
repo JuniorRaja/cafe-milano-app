@@ -1,7 +1,7 @@
 # Milano Orders — Roadmap
 
-> Last updated: 2026-08-26
-> Current shipped version: **1.8.0+10** · schema v6
+> Last updated: 2026-08-27
+> Current shipped version: **1.9.0+11** · schema v6
 
 This is the index. Every feature has its own self-contained plan in `docs/features/`,
 sized to ship as **one release**. Build one, bump `pubspec.yaml`, push to `master`,
@@ -64,11 +64,11 @@ give the second half its own doc and its own version — do not let a release gr
 | [04](features/04-dashboard-performance.md) | Dashboard query cleanup | `1.6.2+8` | fix | — | Done |
 | [05](features/05-ledger-foundation.md) | Ledger — payments & balances | `1.7.0+9` | feature | v5→v6 | Done |
 | [07](features/07-ledger-statements.md) | Ledger — statements & outstanding | `1.8.0+10` | feature | — | Done |
-| [10a](features/10a-design-system.md) | Design system & UI foundation | `1.8.1+11` | foundation | — | Ready |
-| [10b](features/10b-navigation.md) | Navigation & settings restructure | `1.9.0+12` | feature | — | Ready |
-| [10c](features/10c-screen-restyle.md) | Screen restyle | `1.9.1+13` | foundation | — | Ready |
-| [06](features/06-ledger-manual-allocation.md) | Ledger — manual allocation | `1.10.0+14` | feature | — | Deferred |
-| [08](features/08-order-entry-swipe.md) | Swipe-by-5 order entry | `1.11.0+15` | feature | — | Ready |
+| [08](features/08-order-entry-swipe.md) | Digit-wheel quantity entry | `1.9.0+11` | feature | — | Done |
+| [10a](features/10a-design-system.md) | Design system & UI foundation | `1.9.1+12` | foundation | — | Ready |
+| [10b](features/10b-navigation.md) | Navigation & settings restructure | `1.10.0+13` | feature | — | Ready |
+| [10c](features/10c-screen-restyle.md) | Screen restyle | `1.10.1+14` | foundation | — | Ready |
+| [06](features/06-ledger-manual-allocation.md) | Ledger — manual allocation | `1.11.0+15` | feature | — | Deferred |
 | [09](features/09-shop-exclusion.md) | Exclude shops from grand total | `1.12.0+16` | feature | v6→v7 | Ready |
 | [11](features/11-counter-stock.md) | Counter stock (Cafe Milano) | `1.13.0+17` | feature | v7→v8 | Outline |
 | [12](features/12-dashboard-tabs.md) | Dashboard tabs + reports | `1.14.0+18` | feature | — | Outline |
@@ -90,7 +90,7 @@ carries the reasoning and the four decisions taken 2026-08-26.
 
 ## Why this order
 
-**Docs 01–05 and 07 have shipped.** The sequence from here is set by one
+**Docs 01–05, 07, and 08 have shipped.** The sequence from here is set by one
 decision, taken 2026-08-26: **the UI foundation goes in before the remaining feature
 work.** Docs 06–13 each add screens; building them on the current UI means restyling
 every one of them later. Building them after [10a](features/10a-design-system.md) and
@@ -98,9 +98,14 @@ every one of them later. Building them after [10a](features/10a-design-system.md
 releases now cost less than eight restyles later.
 
 [10c](features/10c-screen-restyle.md) is the movable one — nothing depends on it, so it
-can slide behind 06 and 07 if feature work is more urgent. It must not slide behind
-[08](features/08-order-entry-swipe.md), which adds a swipe gesture to the order-entry
-screen whose per-tap rebuild 10c fixes.
+can slide behind 06 and 07 if feature work is more urgent. **The plan said it must not
+slide behind [08](features/08-order-entry-swipe.md)**, since 08 adds a repeating
+long-press to the order-entry screen whose per-tap full-list rebuild 10c fixes — but
+08 shipped 2026-08-27, ahead of the whole 10 block, on direct request. 10c's rebuild
+fix is now a retrofit onto a screen already taking a rebuild seven times a second in
+production, not a preventive one. Manual testing on a physical device confirmed the
+feature works; no fps profiling was done, so the rebuild cost 10c is meant to fix has
+not actually been measured under 08's long-press load. 10c should not slide further.
 
 The original reasoning for the first four releases, kept because it still explains the
 shape of what shipped:
@@ -116,9 +121,9 @@ shape of what shipped:
   round of work. Order entry, navigation and counter stock are improvements to
   things that already work.
 
-Order after the 10 block is adjustable — the ledger docs depend only on 03, and
-[08](features/08-order-entry-swipe.md) depends on nothing. Rearrange freely, but keep
-10a ahead of 10b ahead of 10c, and keep 10c ahead of 08.
+Order after the 10 block is adjustable — the ledger docs depend only on 03.
+[08](features/08-order-entry-swipe.md) depended on nothing and has already shipped
+ahead of the block. Rearrange the rest freely, but keep 10a ahead of 10b ahead of 10c.
 
 ## Schema migration chain
 
@@ -158,7 +163,7 @@ hop. `drift_dev` schema-snapshot tests are worth the setup at doc 05.
 - **Backup service drift.** See above. Every schema doc restates it; that repetition
   is deliberate.
 - **Money arithmetic is untested.** Three things carry real money or real counts:
-  FIFO allocation (05), the swipe quantity clamp (08), stock derivation (11). Each
+  FIFO allocation (05), the quantity wheel and its clamp (08), stock derivation (11). Each
   of those docs adds tests. The rest of the UI does not need them.
 - **APK is ~60 MB universal.** Split-per-ABI was rejected deliberately (archived
   release planner, Q4) so users never have to pick a file. Doc 02 removes ~1.7 MB

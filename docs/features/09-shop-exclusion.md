@@ -22,8 +22,8 @@ One nullable-free boolean, defaulting true so nothing changes for existing shops
 until the owner says otherwise.
 
 Carried forward from the archived v5 roadmap Phase 1, split out here as its own
-release because it is a data-model change with no relationship to the swipe gesture
-it was originally bundled with.
+release because it is a data-model change with no relationship to the order-entry
+input work it was originally bundled with.
 
 ## Interaction with the ledger
 

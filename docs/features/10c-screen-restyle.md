@@ -73,11 +73,13 @@ reference screens:
 Every quantity tap calls `setState`, rebuilding **all 28 product rows to change one
 number**, then debouncing a 500 ms full `replaceOrderLines`. It is the most-used screen
 in the app, used at 5 a.m. under time pressure, and
-[doc 08](08-order-entry-swipe.md) is about to add a swipe gesture to it — which makes
-the per-tap cost matter considerably more than it does today.
+[doc 08](08-order-entry-swipe.md) has already added a long-press repeat that fires
+every 400 ms — shipped 2026-08-27, ahead of this restyle block, on direct request.
 
-**This must land before doc 08.** Doc 08 should not be built on a screen that rebuilds
-28 rows per gesture frame.
+**This was meant to land before doc 08; it didn't.** The rebuild now happens live in
+production roughly two and a half times a second while a stepper is held, not just
+hypothetically. See [roadmap.md](../roadmap.md) for the reordering. Land this next —
+it is no longer preventive, it is a fix for something already shipped.
 
 - [ ] Hold quantities in a `ValueNotifier<int>` per row (or a scoped family provider) so
       a tap rebuilds **one** row. Keep the 500 ms debounce and the existing save path
@@ -178,8 +180,8 @@ current-generation screen rather than restyling one.
 - **This is the movable part of the block.** Nothing depends on it, so it can slide
   behind [06](06-ledger-manual-allocation.md) and [07](07-ledger-statements.md) if
   feature work is more urgent. It must **not** slide behind
-  [08](08-order-entry-swipe.md), which adds a swipe gesture to the order-entry screen
-  whose per-tap rebuild this release fixes.
+  [08](08-order-entry-swipe.md), which adds a repeating long-press to the order-entry
+  screen whose per-tap rebuild this release fixes.
 - **The ratchet is the reason this release is not optional.** Tokens that only half the
   app uses are worse than no tokens, because the next person cannot tell which half is
   correct.

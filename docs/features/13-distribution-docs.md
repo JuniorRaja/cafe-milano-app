@@ -56,5 +56,5 @@ be legible to someone (or something) that did not write it.
       it lands.
 - [ ] The testing checklist can be followed end to end by someone who has not used the
       app, and every step has an unambiguous pass/fail.
-- [ ] `flutter test` passes, and covers FIFO allocation, the swipe clamp, and stock
-      derivation.
+- [ ] `flutter test` passes, and covers FIFO allocation, the quantity-wheel
+      composition, and stock derivation.

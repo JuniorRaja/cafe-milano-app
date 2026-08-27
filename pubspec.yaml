@@ -1,7 +1,7 @@
 name: milano_orders
 description: "Milano Orders — Daily bakery order management"
 publish_to: 'none'
-version: 1.8.0+10
+version: 1.9.0+11
 
 environment:
   sdk: ^3.12.2

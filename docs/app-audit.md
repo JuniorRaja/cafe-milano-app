@@ -298,8 +298,9 @@ Every quantity change calls `setState`, rebuilding **all 28 product rows** to ch
 number, then debounces a 500 ms full `replaceOrderLines` write.
 
 This is the screen used most, at 5 a.m., under time pressure. It is also the screen
-[doc 08](features/08-order-entry-swipe.md) is about to add a swipe gesture to, which
-makes the per-tap rebuild cost matter considerably more than it does today.
+[doc 08](features/08-order-entry-swipe.md) has already added a 400 ms long-press
+repeat to (shipped 2026-08-27, ahead of this restyle block), which makes the per-tap
+rebuild cost matter more than it did when this audit was written.
 
 ### 4.6 Secondary, worth fixing while nearby
 
@@ -394,7 +395,7 @@ Three things are already committed and change what "good structure" means:
 | 5 | Ledger 4 taps deep; all-shops outstanding unreachable | **High** | [10b](features/10b-navigation.md) |
 | 6 | Two competing header idioms (5 hand-rolled vs 15 `AppBar`) | Medium | [10a](features/10a-design-system.md) → [10c](features/10c-screen-restyle.md) |
 | 7 | Deliberate 360 ms stagger + 1.2 s splash gate | Medium | [10a](features/10a-design-system.md) |
-| 8 | Order entry rebuilds 28 rows per keystroke, bypasses providers | Medium | [10c](features/10c-screen-restyle.md), before [08](features/08-order-entry-swipe.md) |
+| 8 | Order entry rebuilds 28 rows per keystroke, bypasses providers | Medium | [10c](features/10c-screen-restyle.md) — 08 shipped first; this is now a retrofit, not prevention |
 | 9 | Colour carries no meaning; no semantic tokens | Medium | [10a](features/10a-design-system.md) |
 | 10 | Low-density lists; no summary bands; inert empty states | Medium | [10c](features/10c-screen-restyle.md) |
 | 11 | "Milano" hardcoded throughout the UI | Low now, **High at [17](features/17-white-label.md)** | [10a](features/10a-design-system.md) |

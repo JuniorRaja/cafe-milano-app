@@ -42,9 +42,11 @@ its own numbered sequence rather than attempting it as one."
 **10a and 10b are the foundation and ship first, in that order.** 10c is the only part
 with no downstream dependency; if feature work is more urgent, it can slide behind
 [06](06-ledger-manual-allocation.md) and [07](07-ledger-statements.md) without blocking
-anything. It should not slide behind [08](08-order-entry-swipe.md) — that doc adds a
-swipe gesture to order entry, and 10c fixes the per-tap full-list rebuild on the same
-screen.
+anything. The plan was for it not to slide behind [08](08-order-entry-swipe.md) — that
+doc adds a repeating long-press to order entry, and 10c fixes the per-tap full-list
+rebuild on the same screen — but 08 already shipped (2026-08-27), ahead of this whole
+block. See [roadmap.md](../roadmap.md) for the reordering; 10c is now a retrofit for a
+screen already live in production, not prevention.
 
 **10c migrates every remaining screen, including ones later docs will extend.** That is
 what makes the sequencing decision pay: docs 06–12 then add their features to

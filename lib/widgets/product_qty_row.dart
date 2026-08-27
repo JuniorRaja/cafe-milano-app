@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -14,6 +16,8 @@ class ProductQtyRow extends StatelessWidget {
     this.price,
     this.onDecrement,
     this.onIncrement,
+    this.onDecrementHold,
+    this.onIncrementHold,
     this.onQtySet,
   });
 
@@ -22,6 +26,8 @@ class ProductQtyRow extends StatelessWidget {
   final double? price;
   final VoidCallback? onDecrement;
   final VoidCallback? onIncrement;
+  final VoidCallback? onDecrementHold;
+  final VoidCallback? onIncrementHold;
   final ValueChanged<int>? onQtySet;
 
   @override
@@ -77,7 +83,11 @@ class ProductQtyRow extends StatelessWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _StepperBtn(icon: Icons.remove, onPressed: onDecrement),
+                _StepperBtn(
+                  icon: Icons.remove,
+                  onPressed: onDecrement,
+                  onLongPressTick: onDecrementHold,
+                ),
                 GestureDetector(
                   onTap: onQtySet != null
                       ? () => _showQtyModal(context)
@@ -92,7 +102,11 @@ class ProductQtyRow extends StatelessWidget {
                     ),
                   ),
                 ),
-                _StepperBtn(icon: Icons.add, onPressed: onIncrement),
+                _StepperBtn(
+                  icon: Icons.add,
+                  onPressed: onIncrement,
+                  onLongPressTick: onIncrementHold,
+                ),
               ],
             ),
           ],
@@ -133,11 +147,22 @@ class _QtyEditSheet extends StatefulWidget {
 }
 
 class _QtyEditSheetState extends State<_QtyEditSheet> {
+  bool _useInput = false;
+  int _wheelGeneration = 0;
+  late int _hundreds;
+  late int _tens;
+  late int _ones;
   late final TextEditingController _ctrl;
+
+  int get _wheelValue => _hundreds * 100 + _tens * 10 + _ones;
 
   @override
   void initState() {
     super.initState();
+    final seed = widget.initialQty.clamp(0, 999);
+    _hundreds = seed ~/ 100;
+    _tens = (seed % 100) ~/ 10;
+    _ones = seed % 10;
     _ctrl = TextEditingController(text: widget.initialQty.toString());
   }
 
@@ -147,19 +172,54 @@ class _QtyEditSheetState extends State<_QtyEditSheet> {
     super.dispose();
   }
 
-  int get _value => int.tryParse(_ctrl.text) ?? 0;
-
-  void _nudge(int delta) {
+  void _switchTo(bool useInput) {
     setState(() {
-      final next = (_value + delta).clamp(0, 9999);
-      _ctrl.text = next.toString();
-      _ctrl.selection = TextSelection.collapsed(offset: _ctrl.text.length);
+      if (useInput) {
+        _ctrl.text = _wheelValue.toString();
+        _ctrl.selection = TextSelection.collapsed(offset: _ctrl.text.length);
+      } else {
+        final seed = (int.tryParse(_ctrl.text) ?? 0).clamp(0, 999);
+        _hundreds = seed ~/ 100;
+        _tens = (seed % 100) ~/ 10;
+        _ones = seed % 10;
+        _wheelGeneration++; // forces the wheels to rebuild seeded at the new value
+      }
+      _useInput = useInput;
     });
   }
 
   void _confirm() {
-    widget.onConfirm(_value.clamp(0, 9999));
+    final value = _useInput
+        ? (int.tryParse(_ctrl.text) ?? 0).clamp(0, 9999)
+        : _wheelValue;
+    widget.onConfirm(value);
     Navigator.pop(context);
+  }
+
+  Widget _digitWheel({
+    required Key key,
+    required int initial,
+    required ValueChanged<int> onChanged,
+  }) {
+    return SizedBox(
+      key: key,
+      width: 56,
+      child: CupertinoPicker.builder(
+        itemExtent: 40,
+        scrollController: FixedExtentScrollController(initialItem: initial),
+        onSelectedItemChanged: (i) {
+          HapticFeedback.lightImpact();
+          onChanged(i);
+        },
+        childCount: 10,
+        itemBuilder: (_, i) => Center(
+          child: Text(
+            '$i',
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -179,33 +239,57 @@ class _QtyEditSheetState extends State<_QtyEditSheet> {
             widget.product.name,
             style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
           ),
+          const SizedBox(height: 12),
+          SegmentedButton<bool>(
+            segments: const [
+              ButtonSegment(value: false, label: Text('Wheel')),
+              ButtonSegment(value: true, label: Text('Input')),
+            ],
+            selected: {_useInput},
+            onSelectionChanged: (s) => _switchTo(s.first),
+          ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              _StepperBtn(icon: Icons.remove, onPressed: () => _nudge(-1)),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: TextField(
-                    controller: _ctrl,
-                    autofocus: true,
-                    textAlign: TextAlign.center,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                    ],
-                    style: const TextStyle(
-                        fontSize: 22, fontWeight: FontWeight.bold),
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(vertical: 10),
+          if (_useInput)
+            TextField(
+              controller: _ctrl,
+              autofocus: true,
+              textAlign: TextAlign.center,
+              keyboardType: TextInputType.number,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+              ],
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(vertical: 10),
+              ),
+            )
+          else
+            SizedBox(
+              height: 120,
+              child: Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _digitWheel(
+                      key: ValueKey('h$_wheelGeneration'),
+                      initial: _hundreds,
+                      onChanged: (v) => _hundreds = v,
                     ),
-                  ),
+                    _digitWheel(
+                      key: ValueKey('t$_wheelGeneration'),
+                      initial: _tens,
+                      onChanged: (v) => _tens = v,
+                    ),
+                    _digitWheel(
+                      key: ValueKey('o$_wheelGeneration'),
+                      initial: _ones,
+                      onChanged: (v) => _ones = v,
+                    ),
+                  ],
                 ),
               ),
-              _StepperBtn(icon: Icons.add, onPressed: () => _nudge(1)),
-            ],
-          ),
+            ),
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
@@ -221,10 +305,11 @@ class _QtyEditSheetState extends State<_QtyEditSheet> {
 }
 
 class _StepperBtn extends StatefulWidget {
-  const _StepperBtn({required this.icon, this.onPressed});
+  const _StepperBtn({required this.icon, this.onPressed, this.onLongPressTick});
 
   final IconData icon;
   final VoidCallback? onPressed;
+  final VoidCallback? onLongPressTick;
 
   @override
   State<_StepperBtn> createState() => _StepperBtnState();
@@ -232,35 +317,64 @@ class _StepperBtn extends StatefulWidget {
 
 class _StepperBtnState extends State<_StepperBtn> {
   bool _pressed = false;
+  Timer? _repeatTimer;
+
+  void _startRepeat() {
+    final tick = widget.onLongPressTick;
+    if (tick == null) return;
+    HapticFeedback.lightImpact();
+    tick();
+    _repeatTimer = Timer.periodic(const Duration(milliseconds: 400), (_) {
+      HapticFeedback.lightImpact();
+      widget.onLongPressTick?.call();
+    });
+  }
+
+  void _stopRepeat() {
+    _repeatTimer?.cancel();
+    _repeatTimer = null;
+  }
+
+  @override
+  void dispose() {
+    _stopRepeat();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final isActive = widget.onPressed != null;
     final reduceMotion = MediaQuery.of(context).disableAnimations;
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: isActive
-          ? () {
-              HapticFeedback.lightImpact();
-              widget.onPressed!();
-            }
-          : null,
-      onHighlightChanged:
-          isActive ? (v) => setState(() => _pressed = v) : null,
-      child: AnimatedScale(
-        scale: _pressed ? 0.88 : 1.0,
-        duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 100),
-        child: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: isActive ? kBrandBrown : Colors.grey.withAlpha(40),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            widget.icon,
-            size: 18,
-            color: isActive ? Colors.white : Colors.grey,
+    return GestureDetector(
+      onLongPressStart:
+          isActive && widget.onLongPressTick != null ? (_) => _startRepeat() : null,
+      onLongPressEnd: (_) => _stopRepeat(),
+      onLongPressCancel: _stopRepeat,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: isActive
+            ? () {
+                HapticFeedback.lightImpact();
+                widget.onPressed!();
+              }
+            : null,
+        onHighlightChanged:
+            isActive ? (v) => setState(() => _pressed = v) : null,
+        child: AnimatedScale(
+          scale: _pressed ? 0.88 : 1.0,
+          duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 100),
+          child: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: isActive ? kBrandBrown : Colors.grey.withAlpha(40),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              widget.icon,
+              size: 18,
+              color: isActive ? Colors.white : Colors.grey,
+            ),
           ),
         ),
       ),

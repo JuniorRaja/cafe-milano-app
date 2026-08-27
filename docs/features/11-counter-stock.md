@@ -52,8 +52,8 @@ Two rules that are easy to get backwards:
   `watchStockRange(from, to)` for reports.
 - `lib/screens/counter/counter_stock_screen.dart` — reuses the shared `DateSelector`
   and `selectedDateProvider`. One row per product, four inline numeric cells, derived
-  Sold read-only at the row end. If [doc 08](08-order-entry-swipe.md) has shipped, the
-  swipe-by-5 gesture applies to the focused cell.
+  Sold read-only at the row end. If [doc 08](08-order-entry-swipe.md) has shipped,
+  tapping a cell opens its three-digit wheel rather than the keyboard.
 - Day summary bar: total produced · total sold · total waste · waste %.
 - **Negative-sold guard**: if `opening + inward − waste − closing < 0`, flag the row
   amber inline. Do **not** block saving. The staff member's count is the fact; a

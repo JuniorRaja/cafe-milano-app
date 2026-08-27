@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -162,6 +163,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
     if (!mounted) return;
     await ref.read(databaseProvider).orderDao.setConfirmed(_orderId!, true);
     if (!mounted) return;
+    HapticFeedback.heavyImpact();
     setState(() => _isConfirmed = true);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -455,6 +457,14 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
                             : null,
                         onIncrement: price != null
                             ? () => _setQty(product.id, qty + 1)
+                            : null,
+                        onDecrementHold: price != null
+                            ? () => _setQty(
+                                product.id, (qty - 5).clamp(0, 9999))
+                            : null,
+                        onIncrementHold: price != null
+                            ? () => _setQty(
+                                product.id, (qty + 5).clamp(0, 9999))
                             : null,
                         onQtySet: price != null
                             ? (v) => _setQty(product.id, v.clamp(0, 9999))

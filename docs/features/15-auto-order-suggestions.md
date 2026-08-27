@@ -303,7 +303,7 @@ into this screen as a private class.
       nothing.
 - [ ] **Edit Order** pushes `/order/:shopId?date=…` with the suggested quantities as
       a prefill. `lib/screens/order_entry/order_entry_screen.dart` gains an optional
-      prefill argument; [doc 08](08-order-entry-swipe.md)'s swipe-by-5 applies
+      prefill argument; [doc 08](08-order-entry-swipe.md)'s quantity wheel applies
       normally. If the owner saves there, the shop **drops out** of the createable set
       on return and its card reads "Order already entered" — the order exists, and
       Create must never touch it.
