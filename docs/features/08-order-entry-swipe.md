@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Target version** | `1.10.0+12` |
+| **Target version** | `1.11.0+15` |
 | **Type** | Feature |
 | **Schema** | No change |
 | **Requires** | Nothing |

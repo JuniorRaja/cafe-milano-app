@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Target version** | `1.11.0+13` |
+| **Target version** | `1.12.0+16` |
 | **Type** | Feature |
 | **Schema** | v6 → v7 |
 | **Requires** | Nothing (independent of the ledger) |

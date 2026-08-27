@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Target version** | `1.14.0+16` |
+| **Target version** | `1.14.0+18` |
 | **Type** | Feature |
 | **Schema** | No change |
 | **Requires** | [07](07-ledger-statements.md) and [11](11-counter-stock.md) for their data |
@@ -35,7 +35,7 @@ stock data genuinely requires.
 - Lazy-build tabs — only the visible tab's providers should execute. With four tabs of
   aggregates, eager building would make this release a performance regression, which is
   the opposite of the point.
-- Drawer **REPORTS** section becomes live (see [doc 10](10-nav-restructure.md)):
+- Drawer **REPORTS** section becomes live (see [doc 10b](10b-navigation.md)):
   Daily Sales · Product Movement · Counter Stock · Shop Ledger · Outstanding.
 - Re-apply doc 04's discipline to any query added here: no N+1, no duplicated aggregate
   across two cards, shared providers keyed on the range.

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Target version** | `2.0.0+18` |
+| **Target version** | `2.0.0+20` |
 | **Type** | Major |
 | **Schema** | Port v8 to Postgres |
 | **Requires** | Everything above shipped and stable on Drift |
@@ -54,7 +54,7 @@ authorization has no safe rollback.
 
 - `lib/screens/auth/login_screen.dart` — email + password. No signup link, no in-app
   password reset; the owner resets from the Supabase dashboard.
-- `lib/providers/session_provider.dart` — doc 10's hardcoded `owner` is replaced by the
+- `lib/providers/session_provider.dart` — doc 10b's hardcoded `owner` is replaced by the
   real session role. Every gate written in docs 10–12 becomes live **with no screen
   changes**. If a screen has to change here, the gating was written wrong.
 

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Target version** | `1.13.0+15` |
+| **Target version** | `1.13.0+17` |
 | **Type** | Feature |
 | **Schema** | v7 → v8 |
 | **Status** | **Outline** — expand action items before starting |

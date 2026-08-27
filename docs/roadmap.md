@@ -1,7 +1,7 @@
 # Milano Orders — Roadmap
 
-> Last updated: 2026-08-23
-> Current shipped version: **1.5.0+5** · schema v4
+> Last updated: 2026-08-26
+> Current shipped version: **1.8.0+10** · schema v6
 
 This is the index. Every feature has its own self-contained plan in `docs/features/`,
 sized to ship as **one release**. Build one, bump `pubspec.yaml`, push to `master`,
@@ -9,6 +9,10 @@ let CI cut the release, move to the next.
 
 Superseded plans (v1–v5 roadmaps, the original PRD, the release planner) live in
 `docs/archive/`. They are history — read them for rationale, never for current scope.
+
+[`docs/app-audit.md`](app-audit.md) is the current-state record of the app as of
+`1.7.0+9` — structure, UI, and the five specific causes of slowness. The
+[10](features/10-ui-overhaul.md) block is built from it.
 
 ---
 
@@ -37,6 +41,10 @@ give the second half its own doc and its own version — do not let a release gr
 - A release containing both a feature and fixes takes the **minor** bump — the
   highest-order change in the release decides.
 - `2.0.0` is reserved. Nothing reaches it before the Supabase migration.
+- `3.0.0` is reserved for [17](features/17-white-label.md), which changes the Android
+  `applicationId` — a build that cannot upgrade over an existing install, and the end of
+  the single `releases/latest` feed [01](features/01-in-app-update.md) and
+  [13](features/13-distribution-docs.md) both depend on.
 
 ## Status legend
 
@@ -50,29 +58,52 @@ give the second half its own doc and its own version — do not let a release gr
 
 | # | Feature | Version | Type | Schema | Status |
 |---|---|---|---|---|---|
-| [01](features/01-in-app-update.md) | In-app update check | `1.6.0+6` | feature | — | Ready |
-| [02](features/02-shipped-data-fix.md) | Shipped-data cleanup | `1.6.0+6` | fix | — | Ready |
-| [03](features/03-db-integrity.md) | FK enforcement + indexes | `1.6.1+7` | fix | v4→v5 | Ready |
-| [04](features/04-dashboard-performance.md) | Dashboard query cleanup | `1.6.2+8` | fix | — | Ready |
-| [05](features/05-ledger-foundation.md) | Ledger — payments & balances | `1.7.0+9` | feature | v5→v6 | Ready |
-| [06](features/06-ledger-manual-allocation.md) | Ledger — manual allocation | `1.9.0+11` | feature | — | Deferred |
+| [01](features/01-in-app-update.md) | In-app update check | `1.6.0+6` | feature | — | Done |
+| [02](features/02-shipped-data-fix.md) | Shipped-data cleanup | `1.6.0+6` | fix | — | Done |
+| [03](features/03-db-integrity.md) | FK enforcement + indexes | `1.6.1+7` | fix | v4→v5 | Done |
+| [04](features/04-dashboard-performance.md) | Dashboard query cleanup | `1.6.2+8` | fix | — | Done |
+| [05](features/05-ledger-foundation.md) | Ledger — payments & balances | `1.7.0+9` | feature | v5→v6 | Done |
 | [07](features/07-ledger-statements.md) | Ledger — statements & outstanding | `1.8.0+10` | feature | — | Done |
-| [08](features/08-order-entry-swipe.md) | Swipe-by-5 order entry | `1.10.0+12` | feature | — | Ready |
-| [09](features/09-shop-exclusion.md) | Exclude shops from grand total | `1.11.0+13` | feature | v6→v7 | Ready |
-| [10](features/10-nav-restructure.md) | Navigation + settings restructure | `1.12.0+14` | feature | — | Outline |
-| [11](features/11-counter-stock.md) | Counter stock (Cafe Milano) | `1.13.0+15` | feature | v7→v8 | Outline |
-| [12](features/12-dashboard-tabs.md) | Dashboard tabs + reports | `1.14.0+16` | feature | — | Outline |
-| [13](features/13-distribution-docs.md) | Download page, agent docs, tests | `1.15.0+17` | feature | — | Outline |
-| [14](features/14-supabase-auth.md) | Supabase, auth & roles | `2.0.0+18` | major | port v8 | Outline |
+| [10a](features/10a-design-system.md) | Design system & UI foundation | `1.8.1+11` | foundation | — | Ready |
+| [10b](features/10b-navigation.md) | Navigation & settings restructure | `1.9.0+12` | feature | — | Ready |
+| [10c](features/10c-screen-restyle.md) | Screen restyle | `1.9.1+13` | foundation | — | Ready |
+| [06](features/06-ledger-manual-allocation.md) | Ledger — manual allocation | `1.10.0+14` | feature | — | Deferred |
+| [08](features/08-order-entry-swipe.md) | Swipe-by-5 order entry | `1.11.0+15` | feature | — | Ready |
+| [09](features/09-shop-exclusion.md) | Exclude shops from grand total | `1.12.0+16` | feature | v6→v7 | Ready |
+| [11](features/11-counter-stock.md) | Counter stock (Cafe Milano) | `1.13.0+17` | feature | v7→v8 | Outline |
+| [12](features/12-dashboard-tabs.md) | Dashboard tabs + reports | `1.14.0+18` | feature | — | Outline |
+| [13](features/13-distribution-docs.md) | Download page, agent docs, tests | `1.15.0+19` | feature | — | Outline |
+| [14](features/14-supabase-auth.md) | Supabase, auth & roles | `2.0.0+20` | major | port v8 | Outline |
+| [15](features/15-auto-order-suggestions.md) | Auto order suggestions | `2.1.0+21` | feature | — | Outline |
+| [16](features/16-weekly-ai-report.md) | Weekly AI business report | `2.2.0+22` | feature | pg: `weekly_reports` | Outline |
+| [17](features/17-white-label.md) | White-label | `3.0.0+23` | major | pg: `tenant_config` | Outline |
 
-**01 and 02 ship together as `1.6.0+6`** — one release, two docs. Everything after
+**01 and 02 shipped together as `1.6.0+6`** — one release, two docs. Everything after
 that is one doc per release.
+
+Doc 10 was a single "Navigation + settings restructure" outline. Auditing the app to
+plan it showed navigation was the smallest of three faults, so it became the
+[10](features/10-ui-overhaul.md) block — three releases, foundation first. Its index
+carries the reasoning and the four decisions taken 2026-08-26.
 
 ---
 
 ## Why this order
 
-The first three releases clear ground the ledger has to stand on:
+**Docs 01–05 and 07 have shipped.** The sequence from here is set by one
+decision, taken 2026-08-26: **the UI foundation goes in before the remaining feature
+work.** Docs 06–13 each add screens; building them on the current UI means restyling
+every one of them later. Building them after [10a](features/10a-design-system.md) and
+[10b](features/10b-navigation.md) means no screen is built twice. Three foundation
+releases now cost less than eight restyles later.
+
+[10c](features/10c-screen-restyle.md) is the movable one — nothing depends on it, so it
+can slide behind 06 and 07 if feature work is more urgent. It must not slide behind
+[08](features/08-order-entry-swipe.md), which adds a swipe gesture to the order-entry
+screen whose per-tap rebuild 10c fixes.
+
+The original reasoning for the first four releases, kept because it still explains the
+shape of what shipped:
 
 - **01 + 02 first** because the update channel is what makes every later release
   reach the phone without a manual WhatsApp hand-off, and because the shipped-data
@@ -85,21 +116,31 @@ The first three releases clear ground the ledger has to stand on:
   round of work. Order entry, navigation and counter stock are improvements to
   things that already work.
 
-Order after `1.6.x` is adjustable — the ledger docs depend only on 03, and the UX
-docs (08, 10) depend on nothing. Rearrange freely, but keep 03 ahead of 05.
+Order after the 10 block is adjustable — the ledger docs depend only on 03, and
+[08](features/08-order-entry-swipe.md) depends on nothing. Rearrange freely, but keep
+10a ahead of 10b ahead of 10c, and keep 10c ahead of 08.
 
 ## Schema migration chain
 
 | Version | Introduced by | Change |
 |---|---|---|
-| v4 | *shipped* | current — categories, product category FK |
-| v5 | [03](features/03-db-integrity.md) | four indexes on order/line hot paths |
-| v6 | [05](features/05-ledger-foundation.md) | `payments`, `payment_allocations`, shop opening balance |
+| v6 | *shipped* | current — payments, allocations, shop opening balance |
 | v7 | [09](features/09-shop-exclusion.md) | `shops.count_in_total` |
 | v8 | [11](features/11-counter-stock.md) | `counter_stock` |
+| pg | [16](features/16-weekly-ai-report.md) | `weekly_reports` — post-port, Postgres only |
+| pg | [17](features/17-white-label.md) | `tenant_config` — post-port, one row per tenant project |
 
 > These schema numbers are **reassigned** relative to the archived v5 roadmap,
 > which had planned v5 for `countInTotal`. Ignore the archived numbering.
+>
+> The [10](features/10-ui-overhaul.md) block adds **no schema hop at all** — it is
+> entirely above the DAO line, which is also the line
+> [14](features/14-supabase-auth.md) promises not to cross.
+
+The Drift chain genuinely ends at **v8**. The two `pg` rows are created in Postgres
+after [14](features/14-supabase-auth.md)'s port, and **neither is a
+`backup_service.dart` obligation** — by then Drift and the JSON backup path are gone,
+and `weekly_reports` is server-written and reconstructible.
 
 **`lib/services/backup_service.dart` must be extended in the same commit as any
 schema change.** It is the recurring trap in this codebase — it has to round-trip
@@ -123,6 +164,11 @@ hop. `drift_dev` schema-snapshot tests are worth the setup at doc 05.
   release planner, Q4) so users never have to pick a file. Doc 02 removes ~1.7 MB
   of it. Beyond that, a real `--analyze-size` pass is needed before claiming any
   further reduction is available — no size work is planned on guesswork.
+- **Design-system drift.** [10a](features/10a-design-system.md) adds tokens and
+  [10c](features/10c-screen-restyle.md) makes `tool/check_tokens.sh` blocking in CI.
+  Until 10c ships, that script reports but does not fail, and the app contains both
+  idioms. If 10c is deferred, the ratchet is what stops the codebase sliding back —
+  do not disable it to land something quickly.
 - **Doc 14 touches every DAO.** What makes it survivable is that provider
   signatures do not change. If a screen has to change during the port, the port is
   being done wrong.
