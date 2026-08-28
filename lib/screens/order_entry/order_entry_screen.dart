@@ -35,9 +35,14 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
   bool _loading = true;
   Timer? _debounce;
 
+  // Held rather than read on demand: dispose() flushes a pending save, and
+  // `ref` is already unusable by then.
+  late final AppDatabase _db;
+
   @override
   void initState() {
     super.initState();
+    _db = ref.read(databaseProvider);
     if (widget.date != null) {
       final p = widget.date!.split('-');
       _date = DateTime(int.parse(p[0]), int.parse(p[1]), int.parse(p[2]));
@@ -102,7 +107,16 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
 
   @override
   void dispose() {
-    _debounce?.cancel();
+    // Flush, do not discard. Anything typed in the last 500 ms is otherwise
+    // lost on the way out of this screen. The write goes through _db, not ref:
+    // ref is dead by dispose() and _save() would fail silently, which is the
+    // same data loss wearing a different hat.
+    if (_debounce?.isActive ?? false) {
+      _debounce!.cancel();
+      unawaited(_save().catchError((Object e) {
+        debugPrint('[MilanoOrders] order-entry flush failed: $e');
+      }));
+    }
     super.dispose();
   }
 
@@ -130,10 +144,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
                   0.0),
             ))
         .toList();
-    await ref
-        .read(databaseProvider)
-        .orderDao
-        .replaceOrderLines(_orderId!, lines);
+    await _db.orderDao.replaceOrderLines(_orderId!, lines);
   }
 
   Future<void> _confirmOrder() async {

@@ -56,7 +56,7 @@ Phase 2 — the `OrderDraftController` refactor, the `setState`-wrapped DB write
 
 ### Flush the debounce — the defect
 
-- [ ] `lib/screens/order_entry/order_entry_screen.dart` — in `dispose()`, **before**
+- [x] `lib/screens/order_entry/order_entry_screen.dart` — in `dispose()`, **before**
       `super.dispose()` (where `ref` is still valid), flush instead of discarding:
 
       ```dart
@@ -70,9 +70,9 @@ Phase 2 — the `OrderDraftController` refactor, the `setState`-wrapped DB write
       }
       ```
 
-- [ ] Confirm `_confirmOrder` still cancels-then-saves on its own path, so a confirm
+- [x] Confirm `_confirmOrder` still cancels-then-saves on its own path, so a confirm
       followed by a pop does not write twice.
-- [ ] `test/` — pop order entry 100 ms after a quantity change; assert the quantity is in
+- [x] `test/` — pop order entry 100 ms after a quantity change; assert the quantity is in
       the database.
 
 > **This is deliberately the three-line version, not the right one.** The lifecycle audit
@@ -164,7 +164,7 @@ there is a baseline to regress against.
 
 ## Success criteria
 
-- [ ] A quantity typed and the screen popped 100 ms later is in the database. Covered by
+- [x] A quantity typed and the screen popped 100 ms later is in the database. Covered by
       a test, not by manual checking.
 - [ ] `flutter analyze` is clean under the new rules, apart from the `@Deprecated` alias
       warnings, whose count is recorded.
