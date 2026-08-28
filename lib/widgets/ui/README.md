@@ -25,6 +25,7 @@ here rather than in a screen.
 | Offer an action | `AppButton` |
 | Have nothing to show | `EmptyState` |
 | Be waiting for data | `AppSkeleton` |
+| Have failed to load | `AppErrorView` |
 
 ## Rules that are easy to get backwards
 
@@ -33,6 +34,9 @@ here rather than in a screen.
 - **Semantic colour is never decorative.** If a row is red, something is wrong
   with it. This only holds if it holds everywhere.
 - **`FontWeight.bold` is banned.** Weight comes from an `AppType` step.
+- **`AppErrorView` is not an `EmptyState`.** Empty means there is nothing
+  yet; failed means something broke. A failure shows the cause and a way to
+  retry. Do not dress one up as the other.
 - **`EmptyState` requires an action.** `EmptyState.inert` exists for the genuine
   exception — a past date with no orders — and is the exception.
 - **No brand string is written out.** App name, short name, tagline, logo and

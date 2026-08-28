@@ -428,6 +428,40 @@ void main() {
       expect(find.byType(AppButton), findsNothing);
     });
 
+    testWidgets('AppErrorView shows message, cause and a way out', (
+      tester,
+    ) async {
+      var retried = false;
+      await tester.pumpWidget(
+        host(
+          AppErrorView(
+            message: "Could not load today's orders.",
+            cause: 'DatabaseException: no such table: orders',
+            onRetry: () => retried = true,
+          ),
+        ),
+      );
+
+      expect(find.text("Could not load today's orders."), findsOneWidget);
+      expect(
+        find.text('DatabaseException: no such table: orders'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Try again'));
+      expect(retried, isTrue);
+    });
+
+    testWidgets('AppErrorView without a cause or a retry builds', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        host(const AppErrorView(message: 'That shop is gone.')),
+      );
+
+      expect(find.text('That shop is gone.'), findsOneWidget);
+      expect(find.byType(AppButton), findsNothing);
+    });
+
     testWidgets('AppSkeleton builds alone and as a list', (tester) async {
       await tester.pumpWidget(host(const AppSkeleton()));
       await tester.pump(const Duration(milliseconds: 100));
