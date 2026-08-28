@@ -82,7 +82,8 @@ The read path is already correct. Providers wrap the DAO `watch*` queries. Scree
 8. Do not change a provider signature. This is a decision, not a refactor.
 9. Do not add roles, permissions, or auth code before doc 14.
 10. Use the `AppRoutes` constants. Never write a route string.
-11. Update this file when a rule above changes.
+11. No bare `// ignore:`. Every one names the reason and the doc that removes it.
+12. Update this file when a rule above changes.
 
 ---
 

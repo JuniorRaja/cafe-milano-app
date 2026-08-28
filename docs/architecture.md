@@ -97,6 +97,25 @@ All values come from `lib/theme/tokens.dart`.
 - All money goes through `lib/utils/money.dart`.
 - No dark mode. No screen branches on `Theme.of(context).brightness`.
 
+## Analyzer guardrails
+
+`analysis_options.yaml`, on since [18](features/18-foundation-guardrails.md).
+
+| Rule | Catches |
+|---|---|
+| `discarded_futures` · `unawaited_futures` | A future nobody waits for. A DB write that fails silently reads exactly like one that worked |
+| `use_build_context_synchronously` | `context` used after an `await`, when the widget may be gone |
+| `avoid_void_async` · `cancel_subscriptions` · `close_sinks` · `always_declare_return_types` | Leaks and hygiene. Zero violations today |
+
+- Fire-and-forget is written `unawaited(...)`, never left bare. Haptics, share
+  sheets, modal sheets, animation controllers and `initState` loaders all qualify.
+- Two `// ignore: discarded_futures` remain, both in `order_entry_screen.dart` —
+  DB writes inside `setState`. [10c](features/10c-screen-restyle.md) owns them.
+- `deprecated_member_use_from_same_package` is 10c's progress bar. **84 today.**
+- `riverpod_lint` is deliberately absent. It needs `custom_lint` 0.7.x, which pins
+  analyzer 7.x, which drags drift 2.34 to 2.29 and sqlite3 3.3.3 to 2.9.4.
+  Revisit at riverpod 3.
+
 ## Routes
 
 `AppRoutes` constants in `lib/app.dart`, over a `StatefulShellRoute`.

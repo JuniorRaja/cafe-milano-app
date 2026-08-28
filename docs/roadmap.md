@@ -138,7 +138,7 @@ Step 7 is the one that gets skipped and the one that corrupts real data. Do it.
 | [08](features/08-order-entry-swipe.md) | Digit-wheel quantity entry | `1.9.0+11` | feature | — | Done |
 | — | Backup/import schema compatibility | `1.9.1+12` | fix | — | Done |
 | — | Stop seeding default categories | `1.9.2+13` | fix | — | Done |
-| [10a](features/10a-design-system.md) + [18](features/18-foundation-guardrails.md) | New look, faster, quantities never lost | `1.10.0+14` | feature | — | 10a **built**, 18 Ready |
+| [10a](features/10a-design-system.md) + [18](features/18-foundation-guardrails.md) | New look, faster, quantities never lost | `1.10.0+14` | feature | — | 10a built, 18 built — **awaiting the four device numbers** |
 | [10b](features/10b-navigation.md) | Everything reachable in 2 taps | `1.11.0+15` | feature | — | Ready |
 | [10c](features/10c-screen-restyle.md) | Every screen rebuilt, real error messages | `1.12.0+16` | feature | — | Ready |
 | [12](features/12-dashboard-tabs.md) | Dashboard in tabs, updating live | `1.13.0+17` | feature | — | Outline |
@@ -262,9 +262,13 @@ against a real v4 install before shipping.
 
 ## Standing risks
 
-- **10a is uncommitted.** A 33-file working tree is the least durable place for a
-  foundation release. Get it onto `release/1.10.0-design-system` today. This is the most
-  urgent item in the plan and it is not a technical one.
+- ~~**10a is uncommitted.**~~ Resolved 2026-08-28 — it is on
+  `release/1.10.0-design-system`, together with all of [18](features/18-foundation-guardrails.md)
+  bar the CI gate. **What now blocks the merge is measurement, not code:** the four 10a
+  performance numbers need the owner's phone. See *What is not done* in doc 18.
+- **There is no CI gate.** Deferred by the owner on 2026-08-28, so `flutter analyze` and
+  `flutter test` are run by hand. Steps 2 and 3 of the readiness gate are therefore only
+  as reliable as the person running them.
 - **Money arithmetic is thinly tested.** Two things carry real money: FIFO allocation
   (05) and the quantity wheel with its clamp (08). Both have tests. Nothing else in the
   UI needs them.
@@ -273,6 +277,7 @@ against a real v4 install before shipping.
   at v6 it will not get worse, but it should be fixed in
   [18](features/18-foundation-guardrails.md) before the guardrails make CI blocking —
   a red test that CI is taught to tolerate is a red test forever.
+  **Fixed in `0f08741`.** The chain now runs through v6 and the suite is green.
 - **APK is ~60 MB universal.** Split-per-ABI was rejected deliberately (archived
   release planner, Q4) so users never have to pick a file. Doc 02 removed ~1.7 MB and
   10a a further 145 KB. Beyond that, a real `--analyze-size` pass is needed before

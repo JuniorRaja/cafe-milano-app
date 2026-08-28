@@ -7,7 +7,7 @@
 | **Schema** | No change |
 | **Requires** | [10a — Design system](10a-design-system.md) committed on the same branch |
 | **Followed by** | [10b — Navigation](10b-navigation.md) |
-| **Status** | Ready |
+| **Status** | Built. Two items open, both listed under *What is not done* |
 
 ## Why
 
@@ -86,9 +86,13 @@ Phase 2 — the `OrderDraftController` refactor, the `setState`-wrapped DB write
 
 Straight from [the audit's Phase 0](../flutter-lifecycle-audit.md#phase-0--guardrails--05-day--no-behaviour-change).
 
-- [ ] `riverpod_lint` + `custom_lint` into `dev_dependencies`, enabled in
-      `analysis_options.yaml`.
-- [ ] Turn on the rules the audit found violations of:
+- [x] ~~`riverpod_lint` + `custom_lint` into `dev_dependencies`~~ — **not done, and
+      not coming back until riverpod 3.** `riverpod_lint` on riverpod 2.x requires
+      `custom_lint` 0.7.x, which pins analyzer 7.x, which resolves drift 2.34 → 2.29
+      and sqlite3 3.3.3 → 2.9.4. Downgrading the database engine under a shipping app
+      to gain a lint is the wrong trade. `pub` confirms there is no compatible pair.
+      The reason is written into `analysis_options.yaml` so nobody retries it blind.
+- [x] Turn on the rules the audit found violations of:
 
       ```yaml
       linter:
@@ -102,16 +106,29 @@ Straight from [the audit's Phase 0](../flutter-lifecycle-audit.md#phase-0--guard
           - always_declare_return_types
       ```
 
-- [ ] Every violation that is not fixed in this release carries an `// ignore:` with a
+- [x] Every violation that is not fixed in this release carries an `// ignore:` with a
       reason and a link to the doc that removes it. No bare ignores.
-- [ ] `deprecated_member_use_from_same_package: true` stays on. It is 10c's progress bar.
-      Record the current count in the PR description — it was **84** when 10a landed.
-- [ ] CI runs `flutter analyze` and `flutter test` on every push, and **fails** on either.
+
+      **31 violations, all in `discarded_futures` / `unawaited_futures`.** The other
+      five rules found nothing. 29 were honest fire-and-forget — haptics, share
+      sheets, modal sheets, animation controllers, `initState` loaders — and are now
+      wrapped in `unawaited(...)`, which is the lint's own prescribed form and says
+      *deliberate* where a bare call said nothing. The remaining two are the
+      `setState`-wrapped `setConfirmed` writes in `order_entry_screen.dart`; they
+      carry an `// ignore:` naming [10c](10c-screen-restyle.md), which owns the fix.
+      Wrapping those two in `unawaited()` would have hidden the defect rather than
+      marked it.
+- [x] `deprecated_member_use_from_same_package: true` stays on. It is 10c's progress bar.
+      **Still 84** after this release — the guardrails touched no colour read.
+- [ ] ~~CI runs `flutter analyze` and `flutter test` on every push~~ — **deferred by the
+      owner, 2026-08-28.** The tree is green and would pass it today; the gate stays
+      manual (step 2 and 3 of the readiness gate) until this is picked up. Nothing else
+      in the plan depends on it.
 
 ### Fix the red migration test first
 
-- [ ] `test/migration_test.dart`, `v4 -> v5 upgrade` — fails today and failed before 10a
-      started. Fix it, or delete it with the reason written down.
+- [x] `test/migration_test.dart`, `v4 -> v5 upgrade` — fixed. The fixture was stale;
+      it now runs the chain through v6. Commit `0f08741`.
 
 > CI cannot be made blocking while a test is red. Teaching CI to tolerate one known
 > failure is how a suite stops meaning anything — the exception outlives the reason for
@@ -122,26 +139,26 @@ Straight from [the audit's Phase 0](../flutter-lifecycle-audit.md#phase-0--guard
 
 Three files, split by what goes stale at what rate. One file mixing all three rots fastest.
 
-- [ ] **`AGENTS.md` — the rules.** Working rules, what the app is, the
+- [x] **`AGENTS.md` — the rules.** Working rules, what the app is, the
       DAO → provider → screen layering rule, and the ten conventions that must not be
       broken. Kept short enough to read in full every session, and it ends in a pointer
       table to everything else.
-- [ ] **`docs/architecture.md` — the facts.** Stack, directory map, data model, the
+- [x] **`docs/architecture.md` — the facts.** Stack, directory map, data model, the
       design-token rules, and the routes.
-- [ ] **`docs/development.md` — the procedures.** Setup, seed data, tests, and the release
+- [x] **`docs/development.md` — the procedures.** Setup, seed data, tests, and the release
       steps.
-- [ ] `claude.md` keeps the working philosophy — ask don't assume, simplest thing first,
+- [x] `claude.md` keeps the working philosophy — ask don't assume, simplest thing first,
       don't touch unrelated code, flag uncertainty.
-- [ ] Each file states when it is updated: **the same commit as the thing it describes.**
+- [x] Each file states when it is updated: **the same commit as the thing it describes.**
       A stale architecture doc is worse than none, because it is believed.
-- [ ] Write all three in plain English. Short sentences, one idea each, no jargon. These
+- [x] Write all three in plain English. Short sentences, one idea each, no jargon. These
       files are read under time pressure, by people and by agents.
 
 ### AppErrorView into the kit
 
-- [ ] `lib/widgets/ui/app_error_view.dart` — message, cause, retry callback. Exported
-      from `ui.dart`, documented in the kit README, token-clean.
-- [ ] Do **not** migrate any screen onto it here. [10c](10c-screen-restyle.md) replaces
+- [x] `lib/widgets/ui/app_error_view.dart` — message, cause, retry callback. Exported
+      from `ui.dart`, documented in the kit README, token-clean. Two kit tests.
+- [x] Do **not** migrate any screen onto it here. [10c](10c-screen-restyle.md) replaces
       all sixteen `Text('Error: $e')` sites and all twelve error-swallowing `orElse`
       sites in one reviewable pass. This release only puts the component on the shelf,
       the same way 10a shipped the rest of the kit unused.
@@ -165,18 +182,34 @@ there is a baseline to regress against.
 ## Success criteria
 
 - [x] A quantity typed and the screen popped 100 ms later is in the database. Covered by
-      a test, not by manual checking.
-- [ ] `flutter analyze` is clean under the new rules, apart from the `@Deprecated` alias
-      warnings, whose count is recorded.
-- [ ] `flutter test` is fully green. No skips, no known failures.
-- [ ] CI fails a pull request that introduces an analyzer error or a failing test.
-      Verified by pushing a deliberate violation once and watching it go red.
-- [ ] The three agent docs describe the app as it actually is on the day they land —
+      a test, not by manual checking. `test/order_entry_flush_test.dart`.
+- [x] `flutter analyze` is clean under the new rules, apart from the `@Deprecated` alias
+      warnings, whose count is recorded. **84 issues, all of them aliases.**
+- [x] `flutter test` is fully green. No skips, no known failures. **136 passing.**
+- [ ] ~~CI fails a pull request that introduces an analyzer error or a failing test.~~
+      Deferred with the CI item above.
+- [x] The three agent docs describe the app as it actually is on the day they land —
       schema v6, the module layout after 10a, the token rule, the release procedure.
-- [ ] `AGENTS.md` fits on two screens. If it does not, the overflow belongs in
+      `architecture.md` gained an *Analyzer guardrails* section; `AGENTS.md` gained
+      rule 11, no bare ignores.
+- [x] `AGENTS.md` fits on two screens. If it does not, the overflow belongs in
       `architecture.md` or `development.md`.
 - [ ] All four 10a performance numbers exist as numbers in the PR description.
-- [ ] `AppErrorView` exists, is exported, and `tool/check_tokens.sh` passes on it.
+- [x] `AppErrorView` exists, is exported, and `tool/check_tokens.sh` passes on it.
+      Kit section: 0 violations.
+
+## What is not done
+
+Two items, both deliberate, both recorded so they are not discovered later as surprises.
+
+| Item | Why | Who closes it |
+|---|---|---|
+| **CI analyze + test gate** | Deferred by the owner on 2026-08-28. The tree is green and would pass it today | Whoever picks it up. Nothing in the plan blocks on it |
+| **The four 10a performance numbers** | They need the owner's physical phone. No amount of code substitutes for the measurement | The owner, before this release merges to `master` |
+
+Until the four numbers exist, 10a's performance work is still a claim rather than a
+result — which is the reason this release exists. The checklist above them stays
+unticked on purpose.
 
 ## Notes
 
