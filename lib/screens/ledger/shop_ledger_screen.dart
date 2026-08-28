@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -93,11 +94,11 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
   }
 
   void _openPaymentSheet() {
-    showModalBottomSheet(
+    unawaited(showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (_) => RecordPaymentSheet(shopId: widget.shopId),
-    );
+    ));
   }
 
   /// Pick a period, then build and share that period's statement.

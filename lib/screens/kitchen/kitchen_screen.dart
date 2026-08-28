@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -227,7 +228,7 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
       buf.writeln();
     }
 
-    Share.share(buf.toString().trim());
+    unawaited(Share.share(buf.toString().trim()));
   }
 
   void _shareShop(
@@ -263,7 +264,7 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
       buf.writeln(
           '· ${productMap[entry.key]?.name ?? '#${entry.key}'} × ${entry.value}');
     }
-    Share.share(buf.toString().trim());
+    unawaited(Share.share(buf.toString().trim()));
   }
 
   void _shareAllShops(
@@ -314,7 +315,7 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
     buf.writeln(
       'Total: ${shopOrder.length} shop${shopOrder.length != 1 ? 's' : ''} · $totalPieces pieces',
     );
-    Share.share(buf.toString().trim());
+    unawaited(Share.share(buf.toString().trim()));
   }
 
   void _sortShops(List<int> shopOrder, Map<int, Shop> shopMap) {

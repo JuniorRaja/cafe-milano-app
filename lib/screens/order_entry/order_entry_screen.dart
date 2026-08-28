@@ -50,7 +50,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
       final now = DateTime.now();
       _date = DateTime(now.year, now.month, now.day);
     }
-    _init();
+    unawaited(_init());
   }
 
   Future<void> _init() async {
@@ -125,6 +125,10 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
       _qtys[productId] = qty;
       if (_isConfirmed) {
         _isConfirmed = false;
+        // A DB write inside setState. The OrderDraftController refactor
+        // in doc 10c owns this; wrapping it in unawaited() here would
+        // hide the defect rather than mark it.
+        // ignore: discarded_futures
         ref.read(databaseProvider).orderDao.setConfirmed(_orderId!, false);
       }
     });
@@ -174,7 +178,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
     if (!mounted) return;
     await ref.read(databaseProvider).orderDao.setConfirmed(_orderId!, true);
     if (!mounted) return;
-    HapticFeedback.heavyImpact();
+    unawaited(HapticFeedback.heavyImpact());
     setState(() => _isConfirmed = true);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -237,6 +241,8 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
       }
       if (_isConfirmed) {
         _isConfirmed = false;
+        // Same defect as in _setQty. Doc 10c.
+        // ignore: discarded_futures
         db.orderDao.setConfirmed(_orderId!, false);
       }
     });

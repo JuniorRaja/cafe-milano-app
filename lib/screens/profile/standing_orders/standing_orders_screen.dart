@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -132,7 +133,7 @@ class _StandingOrdersScreenState extends ConsumerState<StandingOrdersScreen> {
                             ))
                         .toList(),
                     onChanged: (id) {
-                      if (id != null) _onShopChanged(id, products);
+                      if (id != null) unawaited(_onShopChanged(id, products));
                     },
                   ),
                 ),

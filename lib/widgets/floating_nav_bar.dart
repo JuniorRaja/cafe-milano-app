@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../app.dart';
 
@@ -57,7 +58,7 @@ class _FloatingNavBarState extends State<FloatingNavBar>
     if (_reducedMotion) {
       _controller.value = 1;
     } else {
-      _controller.forward();
+      unawaited(_controller.forward());
     }
   }
 

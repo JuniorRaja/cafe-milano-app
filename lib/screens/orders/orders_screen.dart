@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -218,7 +219,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   /// rather than a trip through the ledger screen.
   void _markPaid(OrderDaySummary summary, BillDue? due) {
     if (due == null || due.status == BillStatus.paid) return;
-    showModalBottomSheet(
+    unawaited(showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       // Daily Billing sits inside the shell, which draws the nav bar and the
@@ -233,7 +234,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
           amountDue: due.amountDue,
         ),
       ),
-    );
+    ));
   }
 
   Future<void> _shareOne(

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -21,9 +22,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    PackageInfo.fromPlatform().then((info) {
+    unawaited(PackageInfo.fromPlatform().then((info) {
       if (mounted) setState(() => _packageInfo = info);
-    });
+    }));
   }
 
   Future<void> _checkForUpdate() async {
@@ -78,8 +79,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             FilledButton(
               onPressed: () {
                 Navigator.pop(ctx);
-                launchUrl(Uri.parse(update.downloadUrl),
-                    mode: LaunchMode.externalApplication);
+                unawaited(launchUrl(Uri.parse(update.downloadUrl),
+                    mode: LaunchMode.externalApplication));
               },
               child: const Text('Download'),
             ),

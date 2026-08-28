@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -29,7 +30,7 @@ class _PriceMatrixScreenState extends ConsumerState<PriceMatrixScreen> {
   }
 
   void _showAboutDialog(BuildContext context) {
-    showDialog(
+    unawaited(showDialog(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Price Matrix'),
@@ -43,7 +44,7 @@ class _PriceMatrixScreenState extends ConsumerState<PriceMatrixScreen> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Future<void> _onShopChanged(int shopId, List<Product> products) async {
@@ -176,7 +177,7 @@ class _PriceMatrixScreenState extends ConsumerState<PriceMatrixScreen> {
                               ))
                           .toList(),
                       onChanged: (id) {
-                        if (id != null) _onShopChanged(id, products);
+                        if (id != null) unawaited(_onShopChanged(id, products));
                       },
                     ),
                   ),

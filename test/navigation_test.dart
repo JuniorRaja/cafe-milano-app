@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -65,15 +66,15 @@ void main() {
 
     // The real path a user walks: shell → dashboard → outstanding card →
     // a shop's ledger. Every hop after the first is outside the shell.
-    router.push('/dashboard');
+    unawaited(router.push('/dashboard'));
     await tester.pumpAndSettle();
     expect(find.text('dashboard'), findsOneWidget);
 
-    router.push('/outstanding');
+    unawaited(router.push('/outstanding'));
     await tester.pumpAndSettle();
     expect(find.text('outstanding'), findsOneWidget);
 
-    router.push('/outstanding/3/ledger');
+    unawaited(router.push('/outstanding/3/ledger'));
     await tester.pumpAndSettle();
     expect(find.text('ledger'), findsOneWidget);
 

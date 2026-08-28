@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../theme/tokens.dart';
@@ -54,7 +55,7 @@ class _AppSkeletonState extends State<AppSkeleton>
     if (MediaQuery.of(context).disableAnimations) {
       _controller.value = 1;
     } else if (!_controller.isAnimating) {
-      _controller.repeat(reverse: true);
+      unawaited(_controller.repeat(reverse: true));
     }
   }
 
