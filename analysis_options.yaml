@@ -21,6 +21,28 @@ linter:
   # `// ignore_for_file: name_of_lint` syntax on the line or in the file
   # producing the lint.
   rules:
+    # Phase 0 guardrails (doc 18). These go in *before* 10b and 10c rebuild the
+    # screens, so the rebuild is written correctly the first time rather than
+    # arriving as lint noise inside a 3,000-line diff.
+    #
+    # riverpod_lint is deliberately NOT here. It requires custom_lint 0.7.x,
+    # which pins analyzer 7.x, which forces drift 2.34 -> 2.29 and
+    # sqlite3 3.3.3 -> 2.9.4. Downgrading the database engine under a shipping
+    # app to gain a lint is the wrong trade. Revisit when riverpod 3 lands
+    # (riverpod_lint 3.x tracks a current analyzer).
+    use_build_context_synchronously: true
+    discarded_futures: true
+    unawaited_futures: true
+    avoid_void_async: true
+    cancel_subscriptions: true
+    close_sinks: true
+    always_declare_return_types: true
+
+    # The kBrandGold / kBrandBrown / kSurface aliases in lib/app.dart are
+    # @Deprecated on purpose: 60+ files still import them, and doc 10c drives
+    # that count to zero before deleting them. This rule is what makes the
+    # remaining count visible in `flutter analyze` — it is the progress bar.
+    deprecated_member_use_from_same_package: true
     # avoid_print: false  # Uncomment to disable the `avoid_print` rule
     # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
 

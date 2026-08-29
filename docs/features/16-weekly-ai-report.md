@@ -2,13 +2,19 @@
 
 | | |
 |---|---|
-| **Target version** | `2.2.0+22` |
+| **Target version** | `2.2.0+21` |
 | **Type** | Feature |
 | **Schema** | Postgres only — one new table, written server-side |
-| **Requires** | [14 — Supabase, auth & roles](14-supabase-auth.md) |
+| **Requires** | [14 — Supabase, auth & biometric unlock](14-supabase-auth.md) |
 | **Builds on** | [10a — Design system & UI foundation](10a-design-system.md) for the component kit |
-| **Draws on** | [05](05-ledger-foundation.md) · [06](06-ledger-manual-allocation.md) · [07](07-ledger-statements.md) for collections, [11](11-counter-stock.md) for waste, [12](12-dashboard-tabs.md) for the aggregates |
+| **Draws on** | [05](05-ledger-foundation.md) · [07](07-ledger-statements.md) for collections, [12](12-dashboard-tabs.md) for the aggregates |
 | **Status** | **Outline** — expand action items before starting |
+
+> **Revised 2026-08-28, not yet rewritten.** Two things below are stale and go when this
+> doc is expanded: the **counter waste and sell-through** content
+> ([11](11-counter-stock.md) is dropped — this app does not count stock), and every
+> **role gate** ([14](14-supabase-auth.md) now ships one user with full access, so there
+> is nobody to hide a report from). Read past both. The rest stands.
 
 ## Why
 
@@ -17,7 +23,7 @@ tells him something he was not looking for.
 
 By the time [doc 12](12-dashboard-tabs.md) has shipped, the app holds a week of ~18
 shops, six or seven categories, roughly 28 products, every payment and every
-outstanding bill, and counter waste for shop #1. All of it is on screen and none of
+outstanding bill. All of it is on screen and none of
 it is read on a Monday morning, because reading four tabs of charts is work and
 nobody does it while the kitchen is running.
 
@@ -34,8 +40,6 @@ What a week's report contains:
 - **Shop concentration** — the top shops by share, and any shop that moved sharply.
 - **Collection health** — billed, collected, outstanding, shops overdue beyond 14
   days, and the oldest open bill, from [docs 05–07](05-ledger-foundation.md).
-- **Waste and sell-through** at the Cafe Milano counter, from
-  [doc 11](11-counter-stock.md).
 - **Two or three concrete recommended actions**, each naming a shop or a product and
   a number.
 
@@ -134,7 +138,6 @@ Contents, all of it already computed by the dashboard's aggregates:
 | Products | name, category, revenue, qty, Δ% | top **10** by revenue |
 | Shops | name, area, revenue, share %, Δ% | top **8** by revenue |
 | Collections | billed, collected, outstanding, shops overdue > 14d, oldest open bill age | — |
-| Counter | produced, sold, waste, waste %, sell-through % | plus **5** worst products |
 
 **Truncation is by rank, never by sampling, and never silent.** When a list is cut,
 the tail collapses into one `{"name": "other", ...}` row carrying its total, so every

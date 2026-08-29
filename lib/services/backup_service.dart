@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../database/app_database.dart';
+import '../theme/brand_config.dart';
 
 const _backupFilePrefix = 'cafe-milano-backup-';
 
@@ -89,7 +90,7 @@ Future<void> exportAndShareBackup(AppDatabase db) async {
   final file = File(p.join(dir.path, '$_backupFilePrefix$timestamp.json'));
   await file.writeAsString(jsonString);
 
-  await Share.shareXFiles([XFile(file.path)], text: 'Cafe Milano Backup');
+  await Share.shareXFiles([XFile(file.path)], text: '${BrandConfig.milano.appName} Backup');
 }
 
 /// Thrown when a file picked for import isn't a valid/compatible backup.
@@ -131,7 +132,8 @@ Future<void> importBackup(AppDatabase db, File file) async {
     'orderLines',
   ];
   if (requiredKeys.any((key) => !backup.containsKey(key))) {
-    throw InvalidBackupException('This file is not a valid Cafe Milano backup.');
+    throw InvalidBackupException(
+        'This file is not a valid ${BrandConfig.milano.appName} backup.');
   }
   // ponytail: accepts any older schema because every migration to date is purely
   // additive (new tables / nullable columns). A future migration that adds a

@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+import '../utils/haptics.dart';
 import 'package:intl/intl.dart';
 import '../app.dart';
 import '../database/app_database.dart';
@@ -116,7 +118,7 @@ class ProductQtyRow extends StatelessWidget {
   }
 
   void _showQtyModal(BuildContext context) {
-    showModalBottomSheet(
+    unawaited(showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -127,7 +129,7 @@ class ProductQtyRow extends StatelessWidget {
         initialQty: qty,
         onConfirm: onQtySet!,
       ),
-    );
+    ));
   }
 }
 
@@ -208,7 +210,7 @@ class _QtyEditSheetState extends State<_QtyEditSheet> {
         itemExtent: 40,
         scrollController: FixedExtentScrollController(initialItem: initial),
         onSelectedItemChanged: (i) {
-          HapticFeedback.lightImpact();
+          unawaited(AppHaptics.tap());
           onChanged(i);
         },
         childCount: 10,
@@ -322,10 +324,10 @@ class _StepperBtnState extends State<_StepperBtn> {
   void _startRepeat() {
     final tick = widget.onLongPressTick;
     if (tick == null) return;
-    HapticFeedback.lightImpact();
+    unawaited(AppHaptics.tap());
     tick();
     _repeatTimer = Timer.periodic(const Duration(milliseconds: 400), (_) {
-      HapticFeedback.lightImpact();
+      unawaited(AppHaptics.tap());
       widget.onLongPressTick?.call();
     });
   }
@@ -354,7 +356,7 @@ class _StepperBtnState extends State<_StepperBtn> {
         borderRadius: BorderRadius.circular(8),
         onTap: isActive
             ? () {
-                HapticFeedback.lightImpact();
+                unawaited(AppHaptics.tap());
                 widget.onPressed!();
               }
             : null,

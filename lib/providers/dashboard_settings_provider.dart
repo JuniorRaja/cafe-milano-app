@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/dashboard_models.dart';
@@ -22,7 +23,7 @@ final dashboardSettingsProvider =
 
 class DashboardSettingsNotifier extends StateNotifier<DashboardSettings> {
   DashboardSettingsNotifier() : super(const DashboardSettings()) {
-    _load();
+    unawaited(_load());
   }
 
   SharedPreferences? _prefs;

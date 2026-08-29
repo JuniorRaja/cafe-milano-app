@@ -1,27 +1,30 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../app.dart';
+import '../../theme/brand_config.dart';
 import '../../services/update_service.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   PackageInfo? _packageInfo;
   bool _checkingForUpdate = false;
 
   @override
   void initState() {
     super.initState();
-    PackageInfo.fromPlatform().then((info) {
+    unawaited(PackageInfo.fromPlatform().then((info) {
       if (mounted) setState(() => _packageInfo = info);
-    });
+    }));
   }
 
   Future<void> _checkForUpdate() async {
@@ -76,8 +79,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             FilledButton(
               onPressed: () {
                 Navigator.pop(ctx);
-                launchUrl(Uri.parse(update.downloadUrl),
-                    mode: LaunchMode.externalApplication);
+                unawaited(launchUrl(Uri.parse(update.downloadUrl),
+                    mode: LaunchMode.externalApplication));
               },
               child: const Text('Download'),
             ),
@@ -107,6 +110,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final brand = ref.watch(brandProvider);
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: SafeArea(
@@ -175,19 +179,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       RichText(
-                        text: const TextSpan(
+                        text: TextSpan(
                           children: [
                             TextSpan(
-                              text: 'Milano',
-                              style: TextStyle(
+                              text: brand.shortName,
+                              style: const TextStyle(
                                 color: kBrandBrown,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 20,
                               ),
                             ),
                             TextSpan(
-                              text: ' Orders',
-                              style: TextStyle(
+                              text: brand.appNameRest,
+                              style: const TextStyle(
                                 color: Colors.black87,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 20,
@@ -196,9 +200,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ],
                         ),
                       ),
-                      const Text(
-                        'Daily Order Manager',
-                        style: TextStyle(
+                      Text(
+                        brand.tagline,
+                        style: const TextStyle(
                             color: Colors.black54, fontSize: 12),
                       ),
                     ],
@@ -243,7 +247,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _SettingsTile(
                   icon: Icons.bakery_dining_outlined,
                   title: 'Products',
-                  subtitle: 'Manage bakery product catalog',
+                  subtitle: 'Manage product catalog',
                   onTap: () => context.push(AppRoutes.products),
                 ),
                 const Divider(height: 1, indent: 64),
@@ -305,7 +309,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               children: [
                 Text(
-                  'CAFE MILANO',
+                  brand.appName.toUpperCase(),
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,

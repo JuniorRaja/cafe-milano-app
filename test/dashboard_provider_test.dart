@@ -17,9 +17,9 @@ void main() {
       overrides: [databaseProvider.overrideWithValue(db)],
     );
   });
-  tearDown(() {
+  tearDown(() async {
     container.dispose();
-    db.close();
+    await db.close();
   });
 
   test('Pulse providers do not recompute when the date range changes', () async {

@@ -2,10 +2,11 @@
 
 | | |
 |---|---|
-| **Target version** | `1.8.0+11` |
+| **Target version** | `1.11.0+15` |
 | **Type** | Feature |
 | **Schema** | No change |
-| **Requires** | [10a — Design system](10a-design-system.md) |
+| **Requires** | [10a — Design system](10a-design-system.md) · [18 — Guardrails](18-foundation-guardrails.md) |
+| **Absorbs** | Lifecycle audit **Phase 1** — application lifecycle |
 | **Part of** | [10 — UI overhaul](10-ui-overhaul.md) |
 | **Status** | Ready |
 
@@ -52,7 +53,8 @@ taken 2026-08-19 and is binding. These decisions sit inside it.
 | Side menu reach | **Mobile drawer only. Never desktop.** | Owner's call, 2026-08-26. Reference image 4's desktop sidebar is a *styling* reference for the drawer. No rail, no breakpoints, no wide layouts — now or ever |
 | Centre FAB | **Quick-action sheet** — New order · Record payment · Add shop | Owner's call, 2026-08-26. Frees the single most prominent control from being a shortcut to one screen |
 | Dashboard | **Becomes the 4th bottom-bar slot**, a real shell branch | It has to go somewhere once the FAB stops opening it, and the owner uses it daily. As a branch it keeps its bottom bar, keeps its own back stack, and the dead `_topLevelPaths` entry becomes live |
-| Counter stock ([11](11-counter-stock.md)) | Drawer DAILY group + a FAB quick action; a **bottom slot only for the staff role** | Doc 10's original outline gave it slot 4. But it is a staff job, and role-scoping the bar handles that better than spending the owner's fourth slot on it |
+| Counter stock ([11](11-counter-stock.md)) | **Not built.** No drawer entry, no quick action, no slot | Dropped 2026-08-28 with the whole feature — this app does not count inventory |
+| Roles | **None.** One bar, no role badge, no `currentRoleProvider` | Decision 2026-08-28: [14](14-supabase-auth.md) ships a single account with full access. Gating nobody from anything is code with no reader |
 | Unshipped destinations | **Hidden, never shown-disabled** | Doc 10 left this open. A disabled row the user can never enable is noise — there is no unlock path, so it teaches nothing |
 | Notification bell (reference image 4) | **Not built** | No notification system exists. A bell that opens nothing is worse than no bell |
 
@@ -62,16 +64,15 @@ change, and they change because the FAB changed meaning.
 
 ## The structure
 
-### Bottom bar — role-scoped
+### Bottom bar
 
 ```
-owner / manager     Home  ·  Billing   [ + ]   Kitchen  ·  Dashboard
-staff                        Kitchen   ·  Counter          (2 slots, no FAB)
+Home  ·  Billing   [ + ]   Kitchen  ·  Dashboard
 ```
 
 Four daily jobs, and the centre `+`. Nothing that is configured monthly appears here.
-The staff bar is written now and inert until [14](14-supabase-auth.md) makes the role
-real — verified by inspection, since it cannot be exercised.
+One bar for one user — the role-scoped second bar in the original draft went with the
+roles.
 
 ### The `+` sheet
 
@@ -79,7 +80,6 @@ real — verified by inspection, since it cannot be exercised.
   New order          → shop picker → /order/:shopId, on the selected date
   Record payment     → shop picker → record-payment sheet
   Add shop           → /settings/shops/new
-  Count stock        → /counter                         (after doc 11)
 ```
 
 Stated plainly: **the FAB is not the fastest path to a new order.** Home → shop row is
@@ -99,13 +99,11 @@ bottom.
 ```
 ┌──────────────────────────────────┐
 │  [logo]  {BrandConfig.appName}   │   ← brand seam from 10a
-│          Owner                   │   ← role badge, from session_provider
 ├──────────────────────────────────┤
 │  ▸ Dashboard                     │
 │                                  │
 │  DAILY                           │
 │    Today · Billing · Kitchen     │
-│    Counter Stock          (11)   │
 │    Auto Suggestions       (15)   │
 │                                  │
 │  MONEY                           │
@@ -117,8 +115,8 @@ bottom.
 │                                  │
 │  REPORTS                  (12)   │
 │    Daily Sales · Product         │
-│    Movement · Counter Stock ·    │
-│    Shop Ledger · Weekly   (16)   │
+│    Movement · Shop Ledger ·      │
+│    Weekly Report          (16)   │
 ├──────────────────────────────────┤
 │    Settings                      │
 ├──────────────────────────────────┤
@@ -126,7 +124,7 @@ bottom.
 │  ₹1,16,717              →        │
 │  Owed by 16 shops                │
 └──────────────────────────────────┘
-        v1.8.0 (build 11)
+        v1.11.0 (build 15)
 ```
 
 Entries marked with a doc number are **hidden until that doc ships**. At this release
@@ -194,7 +192,7 @@ app's destinations, not just settings rows.
       `app.dart` is left holding routing only. It is currently 300 lines of routing,
       theme and shell in one file; [10a](10a-design-system.md) takes the theme out and
       this takes the shell.
-- [ ] `lib/widgets/floating_nav_bar.dart` — 4 slots, role-scoped, built from a
+- [ ] `lib/widgets/floating_nav_bar.dart` — 4 slots, built from a
       destination list rather than a hardcoded `_icons` tuple array. Person icon out,
       dashboard icon in. The 2 + gap + 2 layout and the entry animation are unchanged.
 - [ ] Drawer opens from a hamburger in `AppScaffold`'s leading slot
@@ -204,12 +202,12 @@ app's destinations, not just settings rows.
 ### Drawer
 
 - [ ] `lib/widgets/shell/app_drawer.dart` — new. Sections per the structure above,
-      brand header from `brandProvider`, role badge, version footer.
+      brand header from `brandProvider`, version footer.
 - [ ] `lib/widgets/shell/drawer_destinations.dart` — the destination list as **data**:
-      label, icon, route, group, minimum role, and a `shipped` flag. The drawer, the
+      label, icon, route, group, and a `shipped` flag. The drawer, the
       bottom bar and the settings search all read from this one list. Adding a
-      destination in [11](11-counter-stock.md), [12](12-dashboard-tabs.md) or
-      [15](15-auto-order-suggestions.md) must be a one-line edit here, not three.
+      destination in [12](12-dashboard-tabs.md) or [15](15-auto-order-suggestions.md)
+      must be a one-line edit here, not three.
 - [ ] Back from a drawer destination returns to the **originating tab**, not to the
       drawer and not to Home.
 - [ ] Active-item highlighting reads the current route, and stays correct for nested
@@ -217,8 +215,8 @@ app's destinations, not just settings rows.
 
 ### FAB quick actions
 
-- [ ] `lib/widgets/shell/quick_action_sheet.dart` — new. Three actions now, a fourth
-      after [11](11-counter-stock.md). Reads the same role gate.
+- [ ] `lib/widgets/shell/quick_action_sheet.dart` — new. Three actions: New order,
+      Record payment, Add shop.
 - [ ] `lib/widgets/shell/shop_picker_sheet.dart` — new, reusable: search field, recents
       row, full list. Used by New order and Record payment, and by
       [07](07-ledger-statements.md) later.
@@ -265,14 +263,43 @@ app's destinations, not just settings rows.
 - [ ] `lib/screens/settings/shops/shop_list_screen.dart` — "Owes" mode: sorted by
       outstanding descending, amount and age per row, reached from the drawer card.
 
-### Role gating
+### Application lifecycle — absorbed Phase 1
 
-- [ ] `lib/providers/session_provider.dart` — new, one line:
-      `currentRoleProvider` returns `AppRole.owner`, hardcoded.
-      [Doc 14](14-supabase-auth.md) swaps the body for the real session and **no screen
-      changes**. If a screen has to change there, the gating was written wrong here.
-- [ ] Bottom bar, drawer and quick actions all gate off it. No local login screen — a
-      fake auth built now is thrown away in doc 14.
+**Phase 1** of [`docs/flutter-lifecycle-audit.md`](../flutter-lifecycle-audit.md) lands
+here because it rewrites `main.dart` and `app.dart`, which this release is already holding
+open. It is the highest-value phase in that document and it closes a live defect: **an app
+left open overnight reports yesterday as today, on every screen, forever.**
+
+- [ ] **Own the container.** Drop the hand-built `ProviderContainer` in `main.dart`; use
+      `ProviderScope` with `overrides`. Today `databaseProvider`'s
+      `ref.onDispose(db.close)` can never fire, and the SQLite handle is released only by
+      process death.
+- [ ] **Move seeding off the startup path.** `runApp` first; seed inside an
+      `AsyncNotifier` bootstrap provider that the root widget watches, wrapped in a `try`,
+      rendering a real error screen on failure — which is only possible once a first frame
+      exists. Today a throw during seeding means `runApp` is never called and the user
+      gets a held splash that never resolves.
+- [ ] **Remove the splash route.** `flutter_native_splash` already covers cold start.
+      Delete `SplashScreen`, make `/` the initial location, and call
+      `FlutterNativeSplash.remove()` from the bootstrap provider's first successful data
+      state — not from the line after `runApp`, where it currently tears the native splash
+      down before the first frame is rasterised.
+- [ ] **One `AppLifecycleListener`** at the root. On `resumed`: invalidate `todayProvider`
+      and, if the date rolled over, `selectedDateProvider`. On `paused`: flush the pending
+      order-entry write. [Doc 14](14-supabase-auth.md)'s biometric gate hangs off this same
+      listener later, which is a second reason to put it in properly now.
+- [ ] **Make "today" self-correcting.** `todayProvider` becomes a `Notifier` that
+      invalidates itself on a timer scheduled for the next local midnight, *in addition* to
+      the resume hook. The timer covers an app left foregrounded; the hook covers one that
+      was not.
+- [ ] **Error observability.** `FlutterError.onError`,
+      `PlatformDispatcher.instance.onError`, and a `ProviderObserver` logging
+      `providerDidFail`. Local logging is enough to start — the seam is the point, and
+      [10c](10c-screen-restyle.md)'s error views report into it.
+
+**No auth, no roles, no session provider.** [14](14-supabase-auth.md) brings a single
+account with full access. There is nothing to gate, and a fake gate built here is thrown
+away there.
 
 ### Tests
 
@@ -304,10 +331,15 @@ app's destinations, not just settings rows.
 - [ ] Opening the Dashboard keeps the bottom bar, and back returns to the previous tab
       with its scroll position intact. Both are broken today.
 - [ ] No unshipped destination appears anywhere in the UI.
-- [ ] Role gating is present and inert, verified by inspection — it cannot be exercised
-      until [14](14-supabase-auth.md).
 - [ ] Adding a destination is a one-line change to `drawer_destinations.dart`. Prove it
-      by adding Counter Stock behind a flag and removing it again.
+      by adding a throwaway entry behind a flag and removing it again.
+- [ ] An integration test that advances the clock across midnight and fires
+      `AppLifecycleState.resumed` sees Home report the new date. This is Phase 1's
+      done-when, and the reason Phase 1 is in this release.
+- [ ] Cold start reaches the first interactive frame with **no blank flash** between the
+      native splash and the first screen.
+- [ ] A deliberate throw inside the bootstrap seed renders an error screen with a retry,
+      not a held splash.
 
 ## Notes
 
@@ -317,8 +349,11 @@ app's destinations, not just settings rows.
 - **`drawer_destinations.dart` is the point of the release.** The reason navigation
   needed restructuring is that adding a destination previously meant editing a
   hardcoded tuple array, a hardcoded `_topLevelPaths` set, and a hand-written settings
-  list. Six more destinations arrive in docs 11, 12, 15 and 16. If they each still cost
+  list. Four more destinations arrive in docs 12, 15 and 16. If they each still cost
   three edits, this release did not fix anything.
-- **This is where the role becomes visible**, which is why doc 14's gating is written
-  now and left inert. Doc 14's own success criterion — "no screen file changed as part
-  of the DAO port" — depends on it.
+- **Doc 14's "no screen file changed as part of the DAO port" criterion** is carried by
+  [14a](14a-repository-seam.md)'s repository seam, not by role gating written here.
+  Nothing in this release needs to anticipate auth.
+- **Phase 1 roughly doubles this release.** It is still the right place for it: both
+  halves rewrite `app.dart` and `main.dart`, and splitting them means writing the shell
+  twice.

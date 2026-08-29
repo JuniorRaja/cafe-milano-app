@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -6,6 +7,7 @@ import '../../app.dart';
 import '../../database/app_database.dart';
 import '../../providers/date_provider.dart';
 import '../../providers/ledger_provider.dart';
+import '../../providers/read_once.dart';
 import '../../providers/order_provider.dart';
 import '../../providers/shop_provider.dart';
 import '../../providers/product_provider.dart';
@@ -217,7 +219,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   /// rather than a trip through the ledger screen.
   void _markPaid(OrderDaySummary summary, BillDue? due) {
     if (due == null || due.status == BillStatus.paid) return;
-    showModalBottomSheet(
+    unawaited(showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       // Daily Billing sits inside the shell, which draws the nav bar and the
@@ -232,7 +234,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
           amountDue: due.amountDue,
         ),
       ),
-    );
+    ));
   }
 
   Future<void> _shareOne(
@@ -242,7 +244,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   ) async {
     final date = ref.read(selectedDateProvider);
     final owl =
-        await ref.read(orderWithLinesProvider(summary.order.id).future);
+        await ref.readStreamOnce(orderWithLinesProvider(summary.order.id));
     final text = _buildBillText(shop?.name ?? 'Unknown', owl, productMap, date);
     await Share.share(text);
   }

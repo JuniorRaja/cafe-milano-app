@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../app.dart';
 import '../../providers/dashboard_settings_provider.dart';
 
 class DashboardSettingsScreen extends ConsumerWidget {
@@ -213,11 +212,10 @@ class _ToggleTile extends StatelessWidget {
             icon: Icon(Icons.info_outline, size: 20, color: Colors.grey.shade400),
             onPressed: onInfo,
           ),
-          Switch.adaptive(
-            value: value,
-            onChanged: onChanged,
-            activeTrackColor: kBrandBrown,
-          ),
+          // No colour override. switchTheme in app_theme.dart already gives
+          // this a brown thumb on a gold track; the override painted the track
+          // brown too, so "on" was a brown blob on brown.
+          Switch.adaptive(value: value, onChanged: onChanged),
         ],
       ),
     );

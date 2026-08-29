@@ -14,51 +14,53 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
     final heatmapAsync = ref.watch(weekdayHeatmapProvider);
     final scorecardsAsync = ref.watch(categoryScorecardsProvider);
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Text('📅', style: TextStyle(fontSize: 16)),
-              SizedBox(width: 6),
-              Text(
-                'Day-of-Week Heatmap',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: kBrandBrown,
+    return RepaintBoundary(
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Text('📅', style: TextStyle(fontSize: 16)),
+                SizedBox(width: 6),
+                Text(
+                  'Day-of-Week Heatmap',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: kBrandBrown,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Average demand per category per weekday (4 weeks)',
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-          ),
-          const SizedBox(height: 16),
-          heatmapAsync.when(
-            data: (heatmap) {
-              if (heatmap.isEmpty) return _emptyState();
-              return scorecardsAsync.when(
-                data: (scorecards) =>
-                    _buildHeatmap(heatmap, scorecards, context),
-                loading: () => _loading(),
-                error: (_, _) => _emptyState(),
-              );
-            },
-            loading: () => _loading(),
-            error: (_, _) => _emptyState(),
-          ),
-        ],
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Average demand per category per weekday (4 weeks)',
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+            ),
+            const SizedBox(height: 16),
+            heatmapAsync.when(
+              data: (heatmap) {
+                if (heatmap.isEmpty) return _emptyState();
+                return scorecardsAsync.when(
+                  data: (scorecards) =>
+                      _buildHeatmap(heatmap, scorecards, context),
+                  loading: () => _loading(),
+                  error: (_, _) => _emptyState(),
+                );
+              },
+              loading: () => _loading(),
+              error: (_, _) => _emptyState(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -80,10 +82,8 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
     // Sort categories by their heatmap total (descending)
     final sortedCatIds = heatmap.keys.toList()
       ..sort((a, b) {
-        final totalA =
-            heatmap[a]!.values.fold<double>(0, (sum, v) => sum + v);
-        final totalB =
-            heatmap[b]!.values.fold<double>(0, (sum, v) => sum + v);
+        final totalA = heatmap[a]!.values.fold<double>(0, (sum, v) => sum + v);
+        final totalB = heatmap[b]!.values.fold<double>(0, (sum, v) => sum + v);
         return totalB.compareTo(totalA);
       });
 
@@ -100,17 +100,19 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
           padding: const EdgeInsets.only(left: 70),
           child: Row(
             children: _dayLabels
-                .map((d) => Expanded(
-                      child: Text(
-                        d,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade500,
-                        ),
+                .map(
+                  (d) => Expanded(
+                    child: Text(
+                      d,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade500,
                       ),
-                    ))
+                    ),
+                  ),
+                )
                 .toList(),
           ),
         ),
@@ -158,7 +160,8 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
                         margin: const EdgeInsets.symmetric(horizontal: 2),
                         decoration: BoxDecoration(
                           color: kBrandGold.withValues(
-                              alpha: 0.1 + (intensity * 0.8)),
+                            alpha: 0.1 + (intensity * 0.8),
+                          ),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Center(

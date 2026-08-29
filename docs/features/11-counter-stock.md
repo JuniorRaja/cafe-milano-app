@@ -1,11 +1,26 @@
-# 11 — Counter stock (Cafe Milano only)
+# 11 — Counter stock (Cafe Milano only) — DROPPED
 
 | | |
 |---|---|
-| **Target version** | `1.13.0+17` |
+| **Target version** | — |
 | **Type** | Feature |
-| **Schema** | v7 → v8 |
-| **Status** | **Outline** — expand action items before starting |
+| **Schema** | None — v7 and v8 were never created |
+| **Status** | **DROPPED** — owner's call, 2026-08-28 |
+
+> **This feature will not be built.**
+>
+> Scope was revised on 2026-08-28. Milano Orders is a production, supply, billing and
+> collection app. **It does not count inventory.** Stock counting is out here and
+> everywhere it leaked into other docs — [12](12-dashboard-tabs.md) loses its waste card,
+> [16](16-weekly-ai-report.md) its waste section, [17](17-white-label.md) its
+> counter-stock module toggle, and [10b](10b-navigation.md) its Counter destination.
+>
+> The largest consequence is in the schema: **the Drift chain freezes at v6.** There is
+> no v7 and no v8, which also retires `backup_service.dart` as a recurring trap. See the
+> [roadmap](../roadmap.md).
+>
+> Everything below is kept as the record of what was designed and declined. Do not build
+> from it without a fresh decision written into the roadmap's dropped-features table.
 
 ## Why
 

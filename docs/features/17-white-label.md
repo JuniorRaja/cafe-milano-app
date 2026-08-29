@@ -2,12 +2,19 @@
 
 | | |
 |---|---|
-| **Target version** | `3.0.0+23` |
+| **Target version** | `3.0.0+22` |
 | **Type** | Major |
 | **Schema** | Postgres only — one config table per tenant project |
-| **Requires** | [14 — Supabase, auth & roles](14-supabase-auth.md) |
+| **Requires** | [14 — Supabase, auth & biometric unlock](14-supabase-auth.md) |
 | **Builds on** | [10a — Design system & UI foundation](10a-design-system.md) — extends its `BrandConfig` seam |
 | **Status** | **Outline** — expand into its own numbered sequence before starting |
+
+> **Revised 2026-08-28, not yet rewritten.** Two assumptions below are stale and go when
+> this doc is expanded: the **`counter_stock` module toggle**
+> ([11](11-counter-stock.md) is dropped, so there is no module to gate), and the
+> **three-tier role matrix** ([14](14-supabase-auth.md) now ships one user with full
+> access). The `BrandConfig` seam, the terminology work and the per-customer packaging —
+> the substance of this doc — are unaffected.
 
 ## Why
 
@@ -40,8 +47,6 @@ What 10a deliberately left:
   `NumberFormat.currency`.
 - **The package id is `com.cafemilano.cafe_milano`**, in `android/app/build.gradle.kts`,
   along with the app label, the launcher icon and the splash.
-- **Counter stock ([doc 11](11-counter-stock.md)) exists because Cafe Milano owns one
-  of its own outlets.** Almost no other customer will, and it must be switchable off.
 
 ### What this is not
 
@@ -63,7 +68,7 @@ decision** below changes and the decision gets reopened. Not before.
 | App name, logo, splash, launcher icon, package id | The data model |
 | Brand colour tokens (the 10a `BRAND` block) | Order entry, kitchen list, billing flow |
 | Terminology — "shop" may be outlet / dealer / route / client; "kitchen" may be production / plant | FIFO allocation and the ledger rules ([05](05-ledger-foundation.md)–[07](07-ledger-statements.md)) |
-| Enabled modules — counter stock, ledger, suggestions, weekly report | The three-tier role matrix ([14](14-supabase-auth.md)) |
+| Enabled modules — ledger, suggestions, weekly report | Roles — [14](14-supabase-auth.md) ships one user with full access |
 | Currency symbol, code and locale | Backup format, release pipeline, update mechanism |
 | Supabase project URL and anon key | Everything in 10a's `SURFACE`, `TEXT` and `SEMANTIC` token blocks |
 
@@ -314,7 +319,7 @@ into its own sequence, exactly as [doc 14](14-supabase-auth.md) does and as
 
 - **`17a` — the config seam.** `BrandConfig` extension, `Terms`, the currency change,
   module gating, `tenant_config`, `tenant_provider`. Ships to Milano as an ordinary
-  release and changes nothing visible. Takes `3.0.0+23`.
+  release and changes nothing visible. Takes `3.0.0+22`.
 - **`17b` — build and distribution.** Flavors, `--dart-define-from-file`, per-tenant
   assets, tenant-tagged releases, the `update_service.dart` change, the download-page
   filter.

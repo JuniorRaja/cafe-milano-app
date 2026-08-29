@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../app.dart';
 import '../../database/app_database.dart';
 import '../../providers/database_provider.dart';
+import '../../utils/haptics.dart';
 import '../../widgets/product_qty_row.dart';
 
 class OrderEntryScreen extends ConsumerStatefulWidget {
@@ -35,9 +35,14 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
   bool _loading = true;
   Timer? _debounce;
 
+  // Held rather than read on demand: dispose() flushes a pending save, and
+  // `ref` is already unusable by then.
+  late final AppDatabase _db;
+
   @override
   void initState() {
     super.initState();
+    _db = ref.read(databaseProvider);
     if (widget.date != null) {
       final p = widget.date!.split('-');
       _date = DateTime(int.parse(p[0]), int.parse(p[1]), int.parse(p[2]));
@@ -45,7 +50,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
       final now = DateTime.now();
       _date = DateTime(now.year, now.month, now.day);
     }
-    _init();
+    unawaited(_init());
   }
 
   Future<void> _init() async {
@@ -102,7 +107,16 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
 
   @override
   void dispose() {
-    _debounce?.cancel();
+    // Flush, do not discard. Anything typed in the last 500 ms is otherwise
+    // lost on the way out of this screen. The write goes through _db, not ref:
+    // ref is dead by dispose() and _save() would fail silently, which is the
+    // same data loss wearing a different hat.
+    if (_debounce?.isActive ?? false) {
+      _debounce!.cancel();
+      unawaited(_save().catchError((Object e) {
+        debugPrint('[MilanoOrders] order-entry flush failed: $e');
+      }));
+    }
     super.dispose();
   }
 
@@ -111,6 +125,10 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
       _qtys[productId] = qty;
       if (_isConfirmed) {
         _isConfirmed = false;
+        // A DB write inside setState. The OrderDraftController refactor
+        // in doc 10c owns this; wrapping it in unawaited() here would
+        // hide the defect rather than mark it.
+        // ignore: discarded_futures
         ref.read(databaseProvider).orderDao.setConfirmed(_orderId!, false);
       }
     });
@@ -130,10 +148,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
                   0.0),
             ))
         .toList();
-    await ref
-        .read(databaseProvider)
-        .orderDao
-        .replaceOrderLines(_orderId!, lines);
+    await _db.orderDao.replaceOrderLines(_orderId!, lines);
   }
 
   Future<void> _confirmOrder() async {
@@ -142,16 +157,16 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
     if (totalQty == 0) {
       final ok = await showDialog<bool>(
         context: context,
-        builder: (_) => AlertDialog(
+        builder: (dialogContext) => AlertDialog(
           title: const Text('All quantities are 0'),
           content: const Text('Confirm this order with no items?'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () => Navigator.pop(dialogContext, false),
               child: const Text('Cancel'),
             ),
             TextButton(
-              onPressed: () => Navigator.pop(context, true),
+              onPressed: () => Navigator.pop(dialogContext, true),
               child: const Text('Confirm'),
             ),
           ],
@@ -163,7 +178,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
     if (!mounted) return;
     await ref.read(databaseProvider).orderDao.setConfirmed(_orderId!, true);
     if (!mounted) return;
-    HapticFeedback.heavyImpact();
+    unawaited(AppHaptics.success());
     setState(() => _isConfirmed = true);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -189,6 +204,10 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
         ),
       ),
     );
+    // Confirming is the end of this shop. Going back was a second tap on every
+    // shop, every morning. The snackbar lives on the app's ScaffoldMessenger,
+    // so it survives the pop and is read on the list.
+    context.pop();
   }
 
   Future<void> _loadStandingOrder() async {
@@ -196,18 +215,18 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
     if (hasEntries) {
       final ok = await showDialog<bool>(
         context: context,
-        builder: (_) => AlertDialog(
+        builder: (dialogContext) => AlertDialog(
           title: const Text('Load Standing Order'),
           content: const Text(
             'Replace current entries with standing order quantities? This cannot be undone.',
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () => Navigator.pop(dialogContext, false),
               child: const Text('Cancel'),
             ),
             TextButton(
-              onPressed: () => Navigator.pop(context, true),
+              onPressed: () => Navigator.pop(dialogContext, true),
               child: const Text('Confirm'),
             ),
           ],
@@ -226,6 +245,8 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
       }
       if (_isConfirmed) {
         _isConfirmed = false;
+        // Same defect as in _setQty. Doc 10c.
+        // ignore: discarded_futures
         db.orderDao.setConfirmed(_orderId!, false);
       }
     });

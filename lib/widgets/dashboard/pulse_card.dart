@@ -14,122 +14,123 @@ class PulseCard extends ConsumerWidget {
     final shopsAsync = ref.watch(shopsServedTodayProvider);
     final pendingAsync = ref.watch(pendingConfirmationsProvider);
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text(
-                '❤️',
-                style: TextStyle(fontSize: 18),
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'The Pulse',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: kBrandBrown,
+    return RepaintBoundary(
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Text('❤️', style: TextStyle(fontSize: 18)),
+                const SizedBox(width: 8),
+                const Text(
+                  'The Pulse',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: kBrandBrown,
+                  ),
                 ),
-              ),
-              const Spacer(),
-              Text(
-                'Today',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey.shade500,
+                const Spacer(),
+                Text(
+                  'Today',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey.shade500,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // 2×2 metric grid
-          Row(
-            children: [
-              // Revenue
-              Expanded(
-                child: _MetricTile(
-                  label: "Today's Revenue",
-                  child: revenueAsync.when(
-                    data: (rev) => Text(
-                      '₹${_formatCurrency(rev)}',
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: kBrandBrown,
+              ],
+            ),
+            const SizedBox(height: 16),
+            // 2×2 metric grid
+            Row(
+              children: [
+                // Revenue
+                Expanded(
+                  child: _MetricTile(
+                    label: "Today's Revenue",
+                    child: revenueAsync.when(
+                      data: (rev) => Text(
+                        '₹${_formatCurrency(rev)}',
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: kBrandBrown,
+                        ),
                       ),
+                      loading: () => _shimmer(),
+                      error: (_, _) => const Text('—'),
                     ),
-                    loading: () => _shimmer(),
-                    error: (_, _) => const Text('—'),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              // Delta
-              Expanded(
-                child: _MetricTile(
-                  label: 'vs Same Day Last Week',
-                  child: deltaAsync.when(
-                    data: (delta) => _buildDelta(delta),
-                    loading: () => _shimmer(),
-                    error: (_, _) => const Text('—'),
+                const SizedBox(width: 12),
+                // Delta
+                Expanded(
+                  child: _MetricTile(
+                    label: 'vs Same Day Last Week',
+                    child: deltaAsync.when(
+                      data: (delta) => _buildDelta(delta),
+                      loading: () => _shimmer(),
+                      error: (_, _) => const Text('—'),
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              // Shops served
-              Expanded(
-                child: _MetricTile(
-                  label: 'Shops Served',
-                  child: shopsAsync.when(
-                    data: (data) => Text(
-                      '${data.$1} / ${data.$2} shops',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: kBrandBrown,
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                // Shops served
+                Expanded(
+                  child: _MetricTile(
+                    label: 'Shops Served',
+                    child: shopsAsync.when(
+                      data: (data) => Text(
+                        '${data.$1} / ${data.$2} shops',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: kBrandBrown,
+                        ),
                       ),
+                      loading: () => _shimmer(),
+                      error: (_, _) => const Text('—'),
                     ),
-                    loading: () => _shimmer(),
-                    error: (_, _) => const Text('—'),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              // Pending
-              Expanded(
-                child: _MetricTile(
-                  label: 'Pending Confirmations',
-                  child: pendingAsync.when(
-                    data: (count) => Text(
-                      '$count pending',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: count > 0 ? Colors.amber.shade700 : kBrandBrown,
+                const SizedBox(width: 12),
+                // Pending
+                Expanded(
+                  child: _MetricTile(
+                    label: 'Pending Confirmations',
+                    child: pendingAsync.when(
+                      data: (count) => Text(
+                        '$count pending',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: count > 0
+                              ? Colors.amber.shade700
+                              : kBrandBrown,
+                        ),
                       ),
+                      loading: () => _shimmer(),
+                      error: (_, _) => const Text('—'),
                     ),
-                    loading: () => _shimmer(),
-                    error: (_, _) => const Text('—'),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

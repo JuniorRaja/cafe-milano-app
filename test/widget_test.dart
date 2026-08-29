@@ -1,4 +1,6 @@
 import 'package:milano_orders/database/app_database.dart';
+import 'package:milano_orders/theme/app_theme.dart';
+import 'package:milano_orders/theme/brand_config.dart';
 import 'package:milano_orders/providers/order_provider.dart';
 import 'package:milano_orders/providers/product_provider.dart';
 import 'package:milano_orders/providers/shop_provider.dart';
@@ -45,10 +47,9 @@ void main() {
         ),
       ],
       child: MaterialApp.router(
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFF57C00)),
-        ),
+        // The real theme, so these smoke tests fail if a token or a TextTheme
+        // slot is wrong. If they pass unchanged, the theme was wired correctly.
+        theme: buildAppTheme(BrandConfig.milano),
         routerConfig: GoRouter(
           initialLocation: '/',
           routes: [
@@ -85,7 +86,9 @@ void main() {
       ]));
       await tester.pumpAndSettle();
 
-      expect(find.text('Shops · 2 shops'), findsOneWidget);
+      // The header is two Texts, not one: a 'Shops' title and a count.
+      expect(find.text('Shops'), findsOneWidget);
+      expect(find.text('2 shops'), findsOneWidget);
     });
 
     testWidgets('active shops appear as cards with area subtitle', (tester) async {
@@ -163,7 +166,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Confirmed'), findsOneWidget);
-      expect(find.text('Pending'), findsOneWidget);
+      // Two: the unconfirmed order, and the shop with no order at all —
+      // ShopOrderCard draws the Pending chip either way. 'Tap to add order' is
+      // what distinguishes them.
+      expect(find.text('Pending'), findsNWidgets(2));
       expect(find.text('Tap to add order'), findsOneWidget);
     });
 
@@ -171,7 +177,8 @@ void main() {
       await tester.pumpWidget(buildApp());
       await tester.pumpAndSettle();
 
-      expect(find.text('Shops · 0 shops'), findsOneWidget);
+      expect(find.text('Shops'), findsOneWidget);
+      expect(find.text('0 shops'), findsOneWidget);
     });
 
     testWidgets('< button navigates to previous day', (tester) async {
@@ -211,13 +218,12 @@ void main() {
 
       // Today — no order
       expect(find.text('Tap to add order'), findsOneWidget);
-      expect(find.text('Pending'), findsNothing);
 
       // Tap < to go to yesterday
       await tester.tap(find.byIcon(Icons.chevron_left));
       await tester.pumpAndSettle();
 
-      // Yesterday — pending chip visible, hint gone
+      // Yesterday — the order exists, so the hint is gone
       expect(find.text('Pending'), findsOneWidget);
       expect(find.text('Tap to add order'), findsNothing);
     });
@@ -257,7 +263,10 @@ void main() {
           allShopsProvider.overrideWith((ref) => Stream.value(shops)),
           allProductsProvider.overrideWith((ref) => Stream.value(products)),
         ],
-        child: const MaterialApp(home: KitchenScreen()),
+        child: MaterialApp(
+          theme: buildAppTheme(BrandConfig.milano),
+          home: const KitchenScreen(),
+        ),
       );
     }
 
@@ -276,14 +285,19 @@ void main() {
       expect(find.text('No orders for this date'), findsOneWidget);
     });
 
-    testWidgets('share FAB hidden when no orders exist', (tester) async {
+    testWidgets('share button disabled when no orders exist', (tester) async {
       await tester.pumpWidget(buildKitchen());
       await tester.pumpAndSettle();
 
-      expect(find.byTooltip('Share kitchen list'), findsNothing);
+      // The share control is a header IconButton, always present and disabled
+      // when there is nothing to share.
+      final button = tester.widget<IconButton>(
+        find.widgetWithIcon(IconButton, Icons.share_rounded),
+      );
+      expect(button.onPressed, isNull);
     });
 
-    testWidgets('share FAB visible when orders exist', (tester) async {
+    testWidgets('share button enabled when orders exist', (tester) async {
       await tester.pumpWidget(buildKitchen(
         lines: [makeLine(1, 1, 30)],
         shops: [makeShop(1, 'Hotel Raj')],
@@ -291,7 +305,10 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.byTooltip('Share kitchen list'), findsOneWidget);
+      final button = tester.widget<IconButton>(
+        find.widgetWithIcon(IconButton, Icons.share_rounded),
+      );
+      expect(button.onPressed, isNotNull);
     });
 
     testWidgets('By Item tab: products and quantities are displayed', (tester) async {

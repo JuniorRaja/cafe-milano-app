@@ -12,52 +12,56 @@ class ShopConcentrationCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final concAsync = ref.watch(shopConcentrationProvider);
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Text('🏪', style: TextStyle(fontSize: 16)),
-              SizedBox(width: 6),
-              Text(
-                'Shop Concentration',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: kBrandBrown,
+    return RepaintBoundary(
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Text('🏪', style: TextStyle(fontSize: 16)),
+                SizedBox(width: 6),
+                Text(
+                  'Shop Concentration',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: kBrandBrown,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Top 5 shops by revenue',
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+            ),
+            const SizedBox(height: 14),
+            concAsync.when(
+              data: (rows) {
+                if (rows.isEmpty) return _emptyState();
+                return _buildTable(rows);
+              },
+              loading: () => const SizedBox(
+                height: 100,
+                child: Center(
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: kBrandBrown,
+                  ),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Top 5 shops by revenue',
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-          ),
-          const SizedBox(height: 14),
-          concAsync.when(
-            data: (rows) {
-              if (rows.isEmpty) return _emptyState();
-              return _buildTable(rows);
-            },
-            loading: () => const SizedBox(
-              height: 100,
-              child: Center(
-                child: CircularProgressIndicator(
-                    strokeWidth: 2, color: kBrandBrown),
-              ),
+              error: (_, _) => _emptyState(),
             ),
-            error: (_, _) => _emptyState(),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -144,10 +148,7 @@ class _ShopRow extends StatelessWidget {
                 if (row.area != null)
                   Text(
                     row.area!,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.grey.shade500,
-                    ),
+                    style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
                   ),
               ],
             ),

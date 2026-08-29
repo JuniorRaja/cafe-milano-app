@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'theme/app_theme.dart';
+import 'theme/brand_config.dart';
+import 'theme/tokens.dart';
 import 'widgets/floating_nav_bar.dart';
 import 'widgets/app_background.dart';
 import 'screens/splash/splash_screen.dart';
@@ -24,11 +28,21 @@ import 'screens/profile/dashboard_settings_screen.dart';
 import 'screens/dashboard/kpi_help_screen.dart';
 import 'screens/order_entry/order_entry_screen.dart';
 
-// Brand colors extracted from the Caffe Milano logo
-const kBrandGold   = Color(0xFFFFC000); // logo background — primary seed
-const kBrandBrown  = Color(0xFF4A2C2A); // espresso — active/selected states, icon & text accents
-const kBrandMaroon = Color(0xFFB71C1C); // logo ring + inner circle — reserved for brand-mark use, not seeded
-const kSurface     = Color(0xFFFFFBF5); // warm cream
+// Deprecated brand-colour aliases onto the design tokens.
+//
+// 60+ files import these. Removing them in this release would turn a
+// foundation change into a 60-file diff with no reviewable seam, so they stay
+// and the analyzer warning count is the progress bar: doc 10c drives it to
+// zero and then deletes them. Do not add new uses.
+@Deprecated('Use AppColors.brandPrimary, or brandProvider for the live value.')
+const kBrandGold = AppColors.brandPrimary;
+@Deprecated('Use AppColors.brandDeep, or brandProvider for the live value.')
+const kBrandBrown = AppColors.brandDeep;
+@Deprecated('Use AppColors.brandMark — logo mark only, never a UI colour.')
+const kBrandMaroon = AppColors.brandMark;
+@Deprecated('Use AppColors.bg.')
+const kSurface = AppColors.bg;
+@Deprecated('Use brandProvider.logoAsset.')
 const kDefaultLogoAsset = 'mobile-app-logo-trasnsp.png';
 
 class AppRoutes {
@@ -207,75 +221,15 @@ final _router = GoRouter(
   ],
 );
 
-class MilanoOrdersApp extends StatelessWidget {
-  const MilanoOrdersApp({super.key});
+class OrdersApp extends ConsumerWidget {
+  const OrdersApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final brand = ref.watch(brandProvider);
     return MaterialApp.router(
-      title: 'Milano Orders',
-      theme: ThemeData(
-        useMaterial3: true,
-        visualDensity: VisualDensity.compact,
-        fontFamily: 'Quicksand',
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: kBrandGold,
-          surface: kSurface,
-        ),
-        listTileTheme: const ListTileThemeData(
-          dense: true,
-          visualDensity: VisualDensity.compact,
-        ),
-        navigationBarTheme: NavigationBarThemeData(
-          height: 64,
-          indicatorColor: Colors.transparent,
-          iconTheme: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.selected)) {
-              return const IconThemeData(color: kBrandBrown);
-            }
-            return IconThemeData(color: Colors.grey.shade600);
-          }),
-          labelTextStyle: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.selected)) {
-              return const TextStyle(
-                fontFamily: 'Quicksand',
-                color: kBrandBrown,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              );
-            }
-            return TextStyle(
-              fontFamily: 'Quicksand',
-              color: Colors.grey.shade600,
-              fontSize: 11,
-            );
-          }),
-        ),
-        tabBarTheme: const TabBarThemeData(
-          labelColor: kBrandBrown,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: kBrandBrown,
-          dividerColor: Colors.transparent,
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8)),
-          ),
-        ),
-        filledButtonTheme: FilledButtonThemeData(
-          style: FilledButton.styleFrom(
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8)),
-          ),
-        ),
-        outlinedButtonTheme: OutlinedButtonThemeData(
-          style: OutlinedButton.styleFrom(
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8)),
-          ),
-        ),
-      ),
+      title: brand.appName,
+      theme: buildAppTheme(brand),
       routerConfig: _router,
     );
   }
@@ -293,32 +247,43 @@ class _ScaffoldWithNavBar extends StatelessWidget {
     final location = GoRouterState.of(context).uri.path;
     final showNavBar = _topLevelPaths.contains(location);
 
-    return Scaffold(
-      backgroundColor: kSurface,
-      body: Stack(
+    // The background sits *outside* the Scaffold, not in its body.
+    //
+    // `bottomNavigationBar` insets the body, so a body-level background is
+    // laid out ~80px shorter on shell routes than on sub-routes, where the
+    // nav bar is absent. `BoxFit.cover` recomputes its crop against that
+    // shorter box, so popping back from a sub-route visibly rescaled the
+    // artwork mid-transition. Out here its box is the whole screen in both
+    // states and never changes.
+    return ColoredBox(
+      color: AppColors.bg,
+      child: Stack(
         children: [
           const Positioned.fill(child: AppBackground()),
-          navigationShell,
+          Scaffold(
+            backgroundColor: Colors.transparent,
+            body: navigationShell,
+            bottomNavigationBar: showNavBar
+                ? FloatingNavBar(
+                    selectedIndex: navigationShell.currentIndex,
+                    onDestinationSelected: (index) => navigationShell.goBranch(
+                      index,
+                      initialLocation: index == navigationShell.currentIndex,
+                    ),
+                  )
+                : null,
+            floatingActionButton: showNavBar
+                ? FloatingActionButton(
+                    onPressed: () =>
+                        GoRouter.of(context).push(AppRoutes.dashboard),
+                    child: const Icon(Icons.dashboard_rounded),
+                  )
+                : null,
+            floatingActionButtonLocation:
+                FloatingActionButtonLocation.centerDocked,
+          ),
         ],
       ),
-      bottomNavigationBar: showNavBar
-          ? FloatingNavBar(
-              selectedIndex: navigationShell.currentIndex,
-              onDestinationSelected: (index) => navigationShell.goBranch(
-                index,
-                initialLocation: index == navigationShell.currentIndex,
-              ),
-            )
-          : null,
-      floatingActionButton: showNavBar
-          ? FloatingActionButton(
-              onPressed: () => GoRouter.of(context).push(AppRoutes.dashboard),
-              backgroundColor: kBrandGold,
-              foregroundColor: Colors.black87,
-              child: const Icon(Icons.dashboard_rounded),
-            )
-          : null,
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
 }
