@@ -62,7 +62,7 @@ ThemeData buildAppTheme(BrandConfig brand) {
   return ThemeData(
     useMaterial3: true,
     visualDensity: VisualDensity.compact,
-    fontFamily: 'Quicksand',
+    fontFamily: 'Raleway',
     colorScheme: scheme,
     scaffoldBackgroundColor: AppColors.bg,
     canvasColor: AppColors.bg,

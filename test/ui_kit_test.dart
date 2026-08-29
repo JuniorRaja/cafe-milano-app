@@ -112,7 +112,7 @@ void main() {
         t.bodyLarge,
         t.labelLarge,
       ]) {
-        expect(style?.fontFamily, 'Quicksand');
+        expect(style?.fontFamily, 'Raleway');
       }
     });
 

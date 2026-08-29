@@ -97,8 +97,21 @@ Two rules that are easy to get backwards:
 
 ### Type
 
-Quicksand, already shipped. **Eight steps replacing fourteen sizes**, wired into
-`ThemeData.textTheme` so `Theme.of(context).textTheme` finally means something.
+**Eight steps replacing fourteen sizes**, wired into `ThemeData.textTheme` so
+`Theme.of(context).textTheme` finally means something.
+
+The face is **Raleway**, swapped in from Quicksand on 2026-08-29 at the owner's
+call: Quicksand is a rounded display type and the app is a billing tool. Four
+static weights (400/500/600/700), instanced from the Google Fonts variable
+master and bundled - this app has to work with no signal, so a runtime font
+download is not an option.
+
+Two things to know about the swap. Raleway carries a **smaller x-height** than
+Quicksand, so the same `fontSize:` reads smaller and lighter on the phone; if a
+step looks thin, move its weight up before you move its size. And the four files
+are **164 KB each against Quicksand's 78 KB**, so the APK grows ~343 KB. They are
+deliberately *not* subset: shop and product names are free text the owner types,
+and a subset font turns anything outside it into tofu.
 
 | Token | Size / weight | Used for |
 |---|---|---|

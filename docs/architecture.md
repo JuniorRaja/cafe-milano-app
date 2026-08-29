@@ -82,7 +82,7 @@ All values come from `lib/theme/tokens.dart`.
 | Container | Holds |
 |---|---|
 | `AppColors` | Brand, surface, text, semantic |
-| `AppType` | 8 steps, wired into `ThemeData.textTheme` |
+| `AppType` | 8 steps, wired into `ThemeData.textTheme`. Raleway, four bundled weights |
 | `AppSpace` | `s1`–`s6` = 4, 8, 12, 16, 24, 32. Plus `page` |
 | `AppRadius` | Corner scale |
 | `AppShadow` | Elevation |

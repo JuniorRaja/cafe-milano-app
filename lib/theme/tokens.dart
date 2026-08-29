@@ -114,7 +114,7 @@ enum AppTone {
 /// Anything that needs a different colour still overrides it the usual way:
 /// `AppType.body.copyWith(color: tone.fg)`.
 abstract final class AppType {
-  static const _family = 'Quicksand';
+  static const _family = 'Raleway';
 
   /// 28 / w700 — hero figures. Theme slot: `displaySmall`.
   static const displayL = TextStyle(

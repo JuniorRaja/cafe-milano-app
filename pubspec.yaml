@@ -43,14 +43,14 @@ flutter:
     - mobile-app-logo-trasnsp.png
     - bg-vector-blurred.png
   fonts:
-    - family: Quicksand
+    - family: Raleway
       fonts:
-        - asset: assets/fonts/Quicksand-Regular.ttf
-        - asset: assets/fonts/Quicksand-Medium.ttf
+        - asset: assets/fonts/Raleway-Regular.ttf
+        - asset: assets/fonts/Raleway-Medium.ttf
           weight: 500
-        - asset: assets/fonts/Quicksand-SemiBold.ttf
+        - asset: assets/fonts/Raleway-SemiBold.ttf
           weight: 600
-        - asset: assets/fonts/Quicksand-Bold.ttf
+        - asset: assets/fonts/Raleway-Bold.ttf
           weight: 700
 
 flutter_launcher_icons:
