@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:milano_orders/providers/bootstrap_provider.dart';
 import 'package:milano_orders/providers/date_provider.dart';
 import 'package:milano_orders/providers/order_provider.dart';
 import 'package:milano_orders/providers/pending_writes.dart';
@@ -11,6 +12,7 @@ import 'package:milano_orders/providers/shop_provider.dart';
 import 'package:milano_orders/screens/home/home_shops_screen.dart';
 import 'package:milano_orders/theme/app_theme.dart';
 import 'package:milano_orders/theme/brand_config.dart';
+import 'package:milano_orders/widgets/shell/app_bootstrap_gate.dart';
 import 'package:milano_orders/widgets/shell/app_lifecycle_scope.dart';
 
 /// Lifecycle-audit Phase 1, which ships inside doc 10b.
@@ -159,6 +161,86 @@ void main() {
     });
   });
 
+  group('bootstrap gate', () {
+    /// The old failure mode: a throw during seeding meant `runApp` was never
+    /// reached, so the user sat looking at a native splash that would never
+    /// resolve — no error, no retry, nothing to report.
+    Widget gated(ProviderContainer container) => UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: const SizedBox.shrink(),
+            builder: (context, child) => AppBootstrapGate(child: child),
+          ),
+        );
+
+    testWidgets('a throw in bootstrap renders an error screen with a retry',
+        (tester) async {
+      final container = ProviderContainer(
+        overrides: [
+          bootstrapProvider.overrideWith(_FailingBootstrap.new),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(gated(container));
+      await tester.pumpAndSettle();
+
+      expect(find.text('The app could not start.'), findsOneWidget);
+      // The cause is shown, so a screenshot from the owner is diagnosable.
+      expect(find.textContaining('seed exploded'), findsOneWidget);
+      // And there is a way forward, which is what makes it an error screen
+      // rather than a dead end.
+      expect(find.text('Try again'), findsOneWidget);
+    });
+
+    testWidgets('retrying re-runs bootstrap and lets the app through',
+        (tester) async {
+      _FailingBootstrap.failNext = true;
+      final container = ProviderContainer(
+        overrides: [bootstrapProvider.overrideWith(_FailingBootstrap.new)],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: const Text('the app'),
+            builder: (context, child) => AppBootstrapGate(child: child),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Try again'), findsOneWidget);
+
+      await tester.tap(find.text('Try again'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('the app'), findsOneWidget);
+      expect(find.text('Try again'), findsNothing);
+    });
+
+    testWidgets('a successful bootstrap shows the app, not a gate',
+        (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: const Text('the app'),
+            builder: (context, child) => AppBootstrapGate(child: child),
+          ),
+        ),
+      );
+      // Loading renders the child too — the native splash is on top of it, so
+      // the first screen is ready the moment it comes down rather than
+      // starting to build then.
+      expect(find.text('the app'), findsOneWidget);
+    });
+  });
+
   group('pending writes flush on pause', () {
     testWidgets('backgrounding runs every registered flush', (tester) async {
       // dispose() covers leaving the screen. Nothing covered Android
@@ -211,4 +293,18 @@ void main() {
     });
   });
 
+}
+
+/// Fails its first build, then succeeds — so the retry path can be walked, not
+/// just the failure.
+class _FailingBootstrap extends Bootstrap {
+  static bool failNext = true;
+
+  @override
+  Future<void> build() async {
+    if (failNext) {
+      failNext = false;
+      throw StateError('seed exploded');
+    }
+  }
 }

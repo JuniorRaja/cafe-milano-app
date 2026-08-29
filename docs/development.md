@@ -41,14 +41,22 @@ flutter analyze
 ./tool/check_tokens.sh
 ```
 
-11 test files, 180 tests. They cover the code that carries money — FIFO allocation, the
+13 test files, 203 tests. They cover the code that carries money — FIFO allocation, the
 quantity wheel and its clamp, backup round-trips, DAO behavior, the migration chain —
 plus the two things [10b](features/10b-navigation.md) added that break silently:
 
 - `routing_test.dart` — every pre-10b `/profile/*` URL still resolves. A broken deep
   link is not noticed for a week, so it is not left to clicking.
 - `lifecycle_test.dart` — the midnight rollover, driven by advancing `package:clock`
-  rather than by waiting until midnight.
+  rather than by waiting until midnight, and the bootstrap error screen.
+- `shell_test.dart` and `settings_test.dart` — the drawer, the quick actions, the shop
+  picker and the settings search.
+
+Two notes for anyone adding widget tests here. The default 800x600 test surface is
+shorter than any real phone, so a lazily-built list drops its lower rows and
+`find.text` reports them missing — `setSurfaceSize` to something phone-shaped. And
+`SharedPreferences.setMockInitialValues` plus `PackageInfo.setMockInitialValues` are
+needed before anything that reads either.
 
 The UI needs no unit tests. Money arithmetic does, and so does anything whose failure
 is silent.

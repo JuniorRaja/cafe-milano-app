@@ -353,8 +353,9 @@ away there.
       done-when, and the reason Phase 1 is in this release.
 - [ ] Cold start reaches the first interactive frame with **no blank flash** between the
       native splash and the first screen.
-- [ ] A deliberate throw inside the bootstrap seed renders an error screen with a retry,
-      not a held splash.
+- [x] A deliberate throw inside the bootstrap seed renders an error screen with a retry,
+      not a held splash. **Covered by `test/lifecycle_test.dart`**, including the retry
+      actually letting the app through, so this no longer needs the phone.
 
 ## Notes
 
@@ -375,8 +376,9 @@ away there.
 
 ## Build notes — 2026-08-29
 
-Built on `release/1.11.0-navigation`. `flutter analyze` clean, `flutter test` 180 green,
-`tool/check_tokens.sh` passes with the screen count down from 396 to 365.
+Built on `release/1.11.0-navigation`. `flutter analyze` clean, `flutter test` **203
+green** (was 136), `tool/check_tokens.sh` passes with the screen count down from 396 to
+365.
 
 **Three deviations from the doc as written**, each noted in place above:
 
@@ -392,7 +394,19 @@ Built on `release/1.11.0-navigation`. `flutter analyze` clean, `flutter test` 18
    across 18 shops to fill in a subtitle — the thing [04](04-dashboard-performance.md)
    removed from the dashboard. No schema change; the chain stays frozen at v6.
 
-**One defect found by the new tests, in this release's own code.** The resume hook read
+**Three defects found by the new tests, all in this release's own code and all of which
+would otherwise have shipped.**
+
+The quick-action sheet **could not record a payment at all**: it popped its own sheet and
+then tested `context.mounted` on that popped sheet's context, which is false by then, so
+the payment sheet silently never opened. The sheet now only *chooses*; the FAB, which
+outlives it, acts.
+
+Settings tile **tap ripples were invisible** — `ListTile` paints ink on the nearest
+`Material` ancestor and `AppCard` is a `DecoratedBox`, so every highlight was drawn
+behind the card.
+
+And the resume hook read
 `todayProvider` to answer "did the date change while we were away?" — but that provider
 is lazy, so the read *built* it from the clock as it then was and compared the new day
 against itself. It could never fire, and it would have failed exactly where it matters:
@@ -402,7 +416,9 @@ starts the midnight timer at launch rather than whenever a screen first wants a 
 
 ### What still needs the phone
 
-Six criteria above are unticked because a container cannot honestly tick them.
+Five criteria above are unticked because a container cannot honestly tick them. A sixth
+— the bootstrap error screen — was moved into `test/lifecycle_test.dart` instead, which
+is a better place for it than a manual step nobody will repeat.
 
 | Criterion | How to check |
 |---|---|
@@ -411,7 +427,6 @@ Six criteria above are unticked because a container cannot honestly tick them.
 | Back from a drawer destination returns to the originating tab | Open Kitchen, drawer → Shops, back. Expect Kitchen |
 | Dashboard keeps the bottom bar, back restores scroll position | Both were broken before this release |
 | Cold start has no blank flash | Watch the hand-off from the native splash. This is the `FlutterNativeSplash.remove()` move onto a post-frame callback |
-| A throw in bootstrap renders a retry, not a held splash | Throw inside `Bootstrap.build()`, run, expect an error screen with a working Try again |
 
 Also still open from [18](18-foundation-guardrails.md): the four 10a performance figures
 have a pass but no recorded numbers. This release rewrote the router and deleted the
