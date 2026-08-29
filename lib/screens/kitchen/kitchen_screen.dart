@@ -13,6 +13,7 @@ import '../../providers/product_provider.dart';
 import '../../services/category_emoji.dart';
 import '../../widgets/date_selector.dart';
 import '../../widgets/staggered_fade_in.dart';
+import '../../widgets/shell/app_shell.dart';
 
 class KitchenScreen extends ConsumerStatefulWidget {
   const KitchenScreen({super.key});
@@ -72,9 +73,7 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Row(
                 children: [
-                  const Icon(Icons.restaurant_rounded,
-                      color: kBrandGold, size: 28),
-                  const SizedBox(width: 10),
+                  const ShellDrawerButton(),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

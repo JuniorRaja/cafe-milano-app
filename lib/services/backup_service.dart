@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../database/app_database.dart';
 import '../theme/brand_config.dart';
+import '../providers/settings_summary_provider.dart';
 
 const _backupFilePrefix = 'cafe-milano-backup-';
 
@@ -89,6 +90,8 @@ Future<void> exportAndShareBackup(AppDatabase db) async {
   final timestamp = DateFormat('yyyyMMdd-HHmmss').format(DateTime.now());
   final file = File(p.join(dir.path, '$_backupFilePrefix$timestamp.json'));
   await file.writeAsString(jsonString);
+
+  await recordBackupExport(DateTime.now());
 
   await Share.shareXFiles([XFile(file.path)], text: '${BrandConfig.milano.appName} Backup');
 }

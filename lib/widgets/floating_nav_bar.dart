@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../app.dart';
+import 'shell/destinations.dart';
+import 'ui/ui.dart';
 
 /// Icon-only floating pill nav bar with a center gap for the shared FAB.
 class FloatingNavBar extends StatefulWidget {
@@ -26,12 +27,10 @@ class _FloatingNavBarState extends State<FloatingNavBar>
   bool _reducedMotion = false;
   bool _scheduled = false;
 
-  static const _icons = [
-    (outlined: Icons.home_outlined, filled: Icons.home),
-    (outlined: Icons.receipt_long_outlined, filled: Icons.receipt_long),
-    (outlined: Icons.restaurant_outlined, filled: Icons.restaurant),
-    (outlined: Icons.person_outline, filled: Icons.person),
-  ];
+  /// Built from `destinations.dart`, not from a hardcoded tuple array. Adding
+  /// or reordering a slot is a change to that list and nothing else — which is
+  /// the whole reason doc 10b exists.
+  static final _slots = bottomBarDestinations;
 
   @override
   void initState() {
@@ -69,12 +68,13 @@ class _FloatingNavBarState extends State<FloatingNavBar>
   }
 
   Widget _buildIcon(int index, {required bool fromLeft}) {
-    final entry = _icons[index];
+    final entry = _slots[index];
     final selected = widget.selectedIndex == index;
 
     final icon = IconButton(
-      icon: Icon(selected ? entry.filled : entry.outlined),
-      color: selected ? kBrandBrown : Colors.grey.shade600,
+      icon: Icon(selected ? entry.selectedIcon : entry.icon),
+      color: selected ? AppColors.brandDeep : AppColors.textTertiary,
+      tooltip: entry.label,
       onPressed: () => widget.onDestinationSelected(index),
     );
 
@@ -101,12 +101,12 @@ class _FloatingNavBarState extends State<FloatingNavBar>
       child: const SizedBox(width: 56),
     );
 
-    final half = _icons.length ~/ 2;
+    final half = _slots.length ~/ 2;
     final leftIcons = [
       for (var i = 0; i < half; i++) _buildIcon(i, fromLeft: true),
     ];
     final rightIcons = [
-      for (var i = half; i < _icons.length; i++) _buildIcon(i, fromLeft: false),
+      for (var i = half; i < _slots.length; i++) _buildIcon(i, fromLeft: false),
     ];
 
     return Container(
@@ -117,16 +117,10 @@ class _FloatingNavBarState extends State<FloatingNavBar>
         16,
         8 + MediaQuery.of(context).padding.bottom,
       ),
-      decoration: BoxDecoration(
-        color: kSurface,
-        borderRadius: BorderRadius.circular(32),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(20),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadius.rFull,
+        boxShadow: AppShadow.card,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,

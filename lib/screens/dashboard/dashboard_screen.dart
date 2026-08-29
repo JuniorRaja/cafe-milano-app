@@ -6,6 +6,7 @@ import '../../models/dashboard_models.dart';
 import '../../providers/category_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/dashboard_settings_provider.dart';
+import '../../providers/date_provider.dart';
 import '../../widgets/dashboard/date_range_pill.dart';
 import '../../widgets/dashboard/pulse_card.dart';
 import '../../widgets/dashboard/category_scorecards.dart';
@@ -15,6 +16,7 @@ import '../../widgets/dashboard/product_leaderboard_card.dart';
 import '../../widgets/dashboard/weekday_heatmap.dart';
 import '../../widgets/dashboard/attention_flags.dart';
 import '../../widgets/dashboard/outstanding_card.dart';
+import '../../widgets/shell/app_shell.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -37,9 +39,7 @@ class DashboardScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Row(
                 children: [
-                  const Icon(Icons.dashboard_rounded,
-                      color: kBrandGold, size: 28),
-                  const SizedBox(width: 10),
+                  const ShellDrawerButton(),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

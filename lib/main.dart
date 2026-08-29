@@ -1,19 +1,28 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app.dart';
-import 'database/dev_seed.dart';
-import 'providers/database_provider.dart';
+import 'services/error_reporting.dart';
 
-void main() async {
+/// `runApp` first, then the work.
+///
+/// This function used to build a `ProviderContainer` by hand, read the
+/// database out of it, and seed before calling `runApp`. That cost two things.
+/// The container was never owned by a `ProviderScope`, so `databaseProvider`'s
+/// `ref.onDispose(db.close)` could never fire and the SQLite handle was
+/// released only by process death. And any throw before `runApp` produced a
+/// native splash that never resolved.
+///
+/// Bootstrap now runs inside the tree — see `bootstrap_provider.dart`.
+void main() {
   final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
-  final container = ProviderContainer();
-  final db = container.read(databaseProvider);
-  if (kDebugMode) {
-    await seedFromBackup(db);
-  }
-  runApp(UncontrolledProviderScope(container: container, child: const OrdersApp()));
-  FlutterNativeSplash.remove();
+  installErrorHandlers();
+
+  runApp(
+    const ProviderScope(
+      observers: [AppProviderObserver()],
+      child: OrdersApp(),
+    ),
+  );
 }

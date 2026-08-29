@@ -14,6 +14,7 @@ import '../../providers/product_provider.dart';
 import '../../widgets/date_selector.dart';
 import '../../widgets/staggered_fade_in.dart';
 import '../ledger/record_payment_sheet.dart';
+import '../../widgets/shell/app_shell.dart';
 
 class OrdersScreen extends ConsumerStatefulWidget {
   const OrdersScreen({super.key});
@@ -57,9 +58,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Row(
                 children: [
-                  const Icon(Icons.receipt_long_rounded,
-                      color: kBrandGold, size: 28),
-                  const SizedBox(width: 10),
+                  const ShellDrawerButton(),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,

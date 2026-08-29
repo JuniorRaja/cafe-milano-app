@@ -11,3 +11,10 @@ final standingOrdersForShopProvider =
     StreamProvider.autoDispose.family<List<StandingOrder>, int>((ref, shopId) {
   return ref.watch(databaseProvider).priceDao.watchStandingOrdersForShop(shopId);
 });
+
+/// Price and standing-order coverage for the Settings tiles. One aggregate,
+/// not a per-shop read — see [PriceDao.watchCatalogueCoverage].
+final catalogueCoverageProvider =
+    StreamProvider.autoDispose<CatalogueCoverage>((ref) {
+  return ref.watch(databaseProvider).priceDao.watchCatalogueCoverage();
+});

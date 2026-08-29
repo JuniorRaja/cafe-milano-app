@@ -128,7 +128,7 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                             IconButton(
                               icon: const Icon(Icons.edit_outlined),
                               onPressed: () => context
-                                  .push('/profile/products/${product.id}/edit'),
+                                  .push(AppRoutes.productEditFor(product.id)),
                             ),
                           ],
                         ),

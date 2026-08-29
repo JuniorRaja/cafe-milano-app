@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../app.dart';
 import '../../database/app_database.dart';
 import '../../providers/database_provider.dart';
+import '../../providers/pending_writes.dart';
 import '../../utils/haptics.dart';
 import '../../widgets/product_qty_row.dart';
 
@@ -39,10 +40,17 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
   // `ref` is already unusable by then.
   late final AppDatabase _db;
 
+  /// Removes this screen's entry from [pendingWritesProvider].
+  VoidCallback? _unregisterFlush;
+
   @override
   void initState() {
     super.initState();
     _db = ref.read(databaseProvider);
+    // dispose() covers leaving the screen. This covers the app being
+    // backgrounded, where Android may suspend or kill the process without
+    // ever calling dispose — same 500 ms of typing, same data loss.
+    _unregisterFlush = ref.read(pendingWritesProvider).register(_flushPending);
     if (widget.date != null) {
       final p = widget.date!.split('-');
       _date = DateTime(int.parse(p[0]), int.parse(p[1]), int.parse(p[2]));
@@ -105,18 +113,26 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
     });
   }
 
+  /// Writes a debounced save immediately, if one is pending. Safe to call when
+  /// nothing is outstanding — it is then a no-op.
+  ///
+  /// The write goes through `_db`, not `ref`: `ref` is dead by dispose() and
+  /// `_save()` would fail silently, which is the same data loss wearing a
+  /// different hat.
+  Future<void> _flushPending() async {
+    if (!(_debounce?.isActive ?? false)) return;
+    _debounce!.cancel();
+    await _save();
+  }
+
   @override
   void dispose() {
+    _unregisterFlush?.call();
     // Flush, do not discard. Anything typed in the last 500 ms is otherwise
-    // lost on the way out of this screen. The write goes through _db, not ref:
-    // ref is dead by dispose() and _save() would fail silently, which is the
-    // same data loss wearing a different hat.
-    if (_debounce?.isActive ?? false) {
-      _debounce!.cancel();
-      unawaited(_save().catchError((Object e) {
-        debugPrint('[MilanoOrders] order-entry flush failed: $e');
-      }));
-    }
+    // lost on the way out of this screen.
+    unawaited(_flushPending().catchError((Object e) {
+      debugPrint('[MilanoOrders] order-entry flush failed: $e');
+    }));
     super.dispose();
   }
 

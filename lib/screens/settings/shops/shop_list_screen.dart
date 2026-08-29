@@ -73,11 +73,11 @@ class ShopListScreen extends ConsumerWidget {
                       ),
                       IconButton(
                         icon: const Icon(Icons.receipt_long_outlined),
-                        onPressed: () => context.push('/profile/shops/${shop.id}/ledger'),
+                        onPressed: () => context.push(AppRoutes.shopLedgerFor(shop.id)),
                       ),
                       IconButton(
                         icon: const Icon(Icons.edit_outlined),
-                        onPressed: () => context.push('/profile/shops/${shop.id}/edit'),
+                        onPressed: () => context.push(AppRoutes.shopEditFor(shop.id)),
                       ),
                     ],
                   ),

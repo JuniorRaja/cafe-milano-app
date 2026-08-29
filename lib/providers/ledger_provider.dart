@@ -45,3 +45,11 @@ final outstandingByShopProvider = StreamProvider<List<ShopOutstanding>>((ref) {
   final db = ref.watch(databaseProvider);
   return db.ledgerDao.watchOutstandingByShop();
 });
+
+/// The all-shops receivables figure the drawer card shows. Folded from the
+/// same rows [outstandingByShopProvider] serves, so the card and the list it
+/// opens are one number.
+final outstandingSummaryProvider = StreamProvider<OutstandingSummary>((ref) {
+  final db = ref.watch(databaseProvider);
+  return db.ledgerDao.watchOutstandingSummary();
+});

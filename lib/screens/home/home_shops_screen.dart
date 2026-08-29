@@ -12,6 +12,7 @@ import '../../providers/order_provider.dart';
 import '../../widgets/date_selector.dart';
 import '../../widgets/shop_order_card.dart';
 import '../../widgets/staggered_fade_in.dart';
+import '../../widgets/shell/app_shell.dart';
 
 class HomeShopsScreen extends ConsumerWidget {
   const HomeShopsScreen({super.key});
@@ -34,8 +35,7 @@ class HomeShopsScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Row(
                 children: [
-                  Icon(_greetingIcon(), color: kBrandGold, size: 30),
-                  const SizedBox(width: 10),
+                  const ShellDrawerButton(),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,

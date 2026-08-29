@@ -4,6 +4,7 @@ import '../models/dashboard_models.dart';
 import '../services/category_emoji.dart';
 import 'category_provider.dart';
 import 'database_provider.dart';
+import 'date_provider.dart';
 
 // ─── Range State ────────────────────────────────────────────────────────────
 
@@ -27,15 +28,6 @@ class DashboardRangeNotifier extends StateNotifier<DashboardRange> {
     );
   }
 }
-
-/// Midnight-normalised "today" — the single, explicit, invalidatable source
-/// for every provider that means "today" rather than the selected range.
-/// Refreshing the dashboard re-derives it, so a session left open across
-/// midnight catches up instead of quietly reporting yesterday forever.
-final todayProvider = Provider<DateTime>((ref) {
-  final now = DateTime.now();
-  return DateTime(now.year, now.month, now.day);
-});
 
 // ─── Shared aggregates ──────────────────────────────────────────────────────
 // getShopConcentration and getCategoryScores each feed two cards; keyed on

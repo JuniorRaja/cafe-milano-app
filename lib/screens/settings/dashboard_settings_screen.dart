@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../app.dart';
 import '../../providers/dashboard_settings_provider.dart';
 
 class DashboardSettingsScreen extends ConsumerWidget {
@@ -43,7 +44,7 @@ class DashboardSettingsScreen extends ConsumerWidget {
                   subtitle: "Today's snapshot",
                   value: settings.showPulse,
                   onChanged: (v) => notifier.toggle(kDashPulse, v),
-                  onInfo: () => context.push('/profile/dashboard-settings/help',
+                  onInfo: () => context.push(AppRoutes.kpiHelp,
                       extra: 'today_revenue'),
                 ),
                 const Divider(height: 1, indent: 16),
@@ -52,7 +53,7 @@ class DashboardSettingsScreen extends ConsumerWidget {
                   subtitle: 'Total owed across all shops',
                   value: settings.showOutstanding,
                   onChanged: (v) => notifier.toggle(kDashOutstanding, v),
-                  onInfo: () => context.push('/profile/dashboard-settings/help',
+                  onInfo: () => context.push(AppRoutes.kpiHelp,
                       extra: 'today_revenue'),
                 ),
                 const Divider(height: 1, indent: 16),
@@ -61,7 +62,7 @@ class DashboardSettingsScreen extends ConsumerWidget {
                   subtitle: 'Per-category health cards',
                   value: settings.showCategoryCards,
                   onChanged: (v) => notifier.toggle(kDashCategoryCards, v),
-                  onInfo: () => context.push('/profile/dashboard-settings/help',
+                  onInfo: () => context.push(AppRoutes.kpiHelp,
                       extra: 'category_revenue'),
                 ),
                 const Divider(height: 1, indent: 16),
@@ -70,7 +71,7 @@ class DashboardSettingsScreen extends ConsumerWidget {
                   subtitle: 'Mix, concentration & leaderboard',
                   value: settings.showRevenueAnatomy,
                   onChanged: (v) => notifier.toggle(kDashRevenueAnatomy, v),
-                  onInfo: () => context.push('/profile/dashboard-settings/help',
+                  onInfo: () => context.push(AppRoutes.kpiHelp,
                       extra: 'category_mix'),
                 ),
                 const Divider(height: 1, indent: 16),
@@ -80,7 +81,7 @@ class DashboardSettingsScreen extends ConsumerWidget {
                   value: settings.showOperationalPatterns,
                   onChanged: (v) =>
                       notifier.toggle(kDashOperationalPatterns, v),
-                  onInfo: () => context.push('/profile/dashboard-settings/help',
+                  onInfo: () => context.push(AppRoutes.kpiHelp,
                       extra: 'heatmap'),
                 ),
                 const Divider(height: 1, indent: 16),
@@ -89,7 +90,7 @@ class DashboardSettingsScreen extends ConsumerWidget {
                   subtitle: 'Smart alerts & anomalies',
                   value: settings.showAttentionFlags,
                   onChanged: (v) => notifier.toggle(kDashAttentionFlags, v),
-                  onInfo: () => context.push('/profile/dashboard-settings/help',
+                  onInfo: () => context.push(AppRoutes.kpiHelp,
                       extra: 'declining_flag'),
                 ),
               ],
@@ -121,7 +122,7 @@ class DashboardSettingsScreen extends ConsumerWidget {
                   subtitle: 'Donut chart',
                   value: settings.showCategoryMix,
                   onChanged: (v) => notifier.toggle(kDashCategoryMix, v),
-                  onInfo: () => context.push('/profile/dashboard-settings/help',
+                  onInfo: () => context.push(AppRoutes.kpiHelp,
                       extra: 'category_mix'),
                 ),
                 const Divider(height: 1, indent: 16),
@@ -131,7 +132,7 @@ class DashboardSettingsScreen extends ConsumerWidget {
                   value: settings.showShopConcentration,
                   onChanged: (v) =>
                       notifier.toggle(kDashShopConcentration, v),
-                  onInfo: () => context.push('/profile/dashboard-settings/help',
+                  onInfo: () => context.push(AppRoutes.kpiHelp,
                       extra: 'shop_concentration'),
                 ),
                 const Divider(height: 1, indent: 16),
@@ -141,7 +142,7 @@ class DashboardSettingsScreen extends ConsumerWidget {
                   value: settings.showProductLeaderboard,
                   onChanged: (v) =>
                       notifier.toggle(kDashProductLeaderboard, v),
-                  onInfo: () => context.push('/profile/dashboard-settings/help',
+                  onInfo: () => context.push(AppRoutes.kpiHelp,
                       extra: 'product_leaderboard'),
                 ),
                 const Divider(height: 1, indent: 16),
@@ -150,7 +151,7 @@ class DashboardSettingsScreen extends ConsumerWidget {
                   subtitle: 'Demand by weekday',
                   value: settings.showHeatmap,
                   onChanged: (v) => notifier.toggle(kDashHeatmap, v),
-                  onInfo: () => context.push('/profile/dashboard-settings/help',
+                  onInfo: () => context.push(AppRoutes.kpiHelp,
                       extra: 'heatmap'),
                 ),
               ],
@@ -174,7 +175,7 @@ class DashboardSettingsScreen extends ConsumerWidget {
                 style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push('/profile/dashboard-settings/help'),
+              onTap: () => context.push(AppRoutes.kpiHelp),
             ),
           ),
         ],
