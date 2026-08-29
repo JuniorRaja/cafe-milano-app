@@ -32,14 +32,14 @@ class _PriceMatrixScreenState extends ConsumerState<PriceMatrixScreen> {
   void _showAboutDialog(BuildContext context) {
     unawaited(showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Price Matrix'),
         content: const Text(
           'Set the selling price for each product per shop. These prices are used when creating orders and generating bills.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Close'),
           ),
         ],

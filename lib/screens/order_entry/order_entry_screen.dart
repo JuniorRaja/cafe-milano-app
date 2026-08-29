@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../app.dart';
 import '../../database/app_database.dart';
 import '../../providers/database_provider.dart';
+import '../../utils/haptics.dart';
 import '../../widgets/product_qty_row.dart';
 
 class OrderEntryScreen extends ConsumerStatefulWidget {
@@ -157,16 +157,16 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
     if (totalQty == 0) {
       final ok = await showDialog<bool>(
         context: context,
-        builder: (_) => AlertDialog(
+        builder: (dialogContext) => AlertDialog(
           title: const Text('All quantities are 0'),
           content: const Text('Confirm this order with no items?'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () => Navigator.pop(dialogContext, false),
               child: const Text('Cancel'),
             ),
             TextButton(
-              onPressed: () => Navigator.pop(context, true),
+              onPressed: () => Navigator.pop(dialogContext, true),
               child: const Text('Confirm'),
             ),
           ],
@@ -178,7 +178,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
     if (!mounted) return;
     await ref.read(databaseProvider).orderDao.setConfirmed(_orderId!, true);
     if (!mounted) return;
-    unawaited(HapticFeedback.heavyImpact());
+    unawaited(AppHaptics.success());
     setState(() => _isConfirmed = true);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -204,6 +204,10 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
         ),
       ),
     );
+    // Confirming is the end of this shop. Going back was a second tap on every
+    // shop, every morning. The snackbar lives on the app's ScaffoldMessenger,
+    // so it survives the pop and is read on the list.
+    context.pop();
   }
 
   Future<void> _loadStandingOrder() async {
@@ -211,18 +215,18 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
     if (hasEntries) {
       final ok = await showDialog<bool>(
         context: context,
-        builder: (_) => AlertDialog(
+        builder: (dialogContext) => AlertDialog(
           title: const Text('Load Standing Order'),
           content: const Text(
             'Replace current entries with standing order quantities? This cannot be undone.',
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () => Navigator.pop(dialogContext, false),
               child: const Text('Cancel'),
             ),
             TextButton(
-              onPressed: () => Navigator.pop(context, true),
+              onPressed: () => Navigator.pop(dialogContext, true),
               child: const Text('Confirm'),
             ),
           ],
