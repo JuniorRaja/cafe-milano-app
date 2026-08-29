@@ -120,6 +120,8 @@ Step 7 is the one that gets skipped and the one that corrupts real data. Do it.
 
 `Ready` — spec is complete, can be built as written.
 `Outline` — substance captured, expand the action items before starting.
+`Built` — code is on its release branch and green, but the readiness gate is not
+finished. Not shipped, and not to be treated as shipped.
 `Done` — shipped; doc kept as the record of what was built.
 `Dropped` — decided against; doc kept as the record of the decision.
 
@@ -139,7 +141,7 @@ Step 7 is the one that gets skipped and the one that corrupts real data. Do it.
 | — | Backup/import schema compatibility | `1.9.1+12` | fix | — | Done |
 | — | Stop seeding default categories | `1.9.2+13` | fix | — | Done |
 | [10a](features/10a-design-system.md) + [18](features/18-foundation-guardrails.md) | New look, faster, quantities never lost | `1.10.0+14` | feature | — | Done |
-| [10b](features/10b-navigation.md) | Everything reachable in 2 taps | `1.11.0+15` | feature | — | Ready |
+| [10b](features/10b-navigation.md) | Everything reachable in 2 taps | `1.11.0+15` | feature | — | **Built** — on `release/1.11.0-navigation`, awaiting the device pass |
 | [10c](features/10c-screen-restyle.md) | Every screen rebuilt, real error messages | `1.12.0+16` | feature | — | Ready |
 | [12](features/12-dashboard-tabs.md) | Dashboard in tabs, updating live | `1.13.0+17` | feature | — | Outline |
 | [13](features/13-distribution-docs.md) + [14a](features/14a-repository-seam.md) | Download page, and the cleanup 2.0 needs | `1.13.1+18` | fix | — | 13 Outline, 14a Ready |
@@ -269,8 +271,13 @@ against a real v4 install before shipping.
 - **The 10a performance work has no baseline.** All four criteria were verified on the
   owner's device on 2026-08-29 and all four passed, but the figures were not written
   down. There is a pass, not a number to regress against. Capture them the next time
-  the phone is out — [10b](features/10b-navigation.md) rewrites the router and the
-  splash route, which is exactly the work cold start would notice.
+  the phone is out — [10b](features/10b-navigation.md) rewrote the router and **deleted
+  the splash route entirely**, which is exactly the work cold start would notice. That
+  measurement is now overdue rather than merely nice to have.
+- **10b is built but ungated.** Six of its success criteria need the phone and are
+  listed in that doc's *Build notes*. `pubspec.yaml` is deliberately still
+  `1.10.0+14`, so merging the branch as it stands would not cut a release — bump to
+  `1.11.0+15` as the last commit once the device pass is done.
 - **Raleway has a smaller x-height than Quicksand.** Every `fontSize:` in the app now
   reads slightly lighter than the value implies. [10c](features/10c-screen-restyle.md)
   touches all 198 of them; raise weight before size.

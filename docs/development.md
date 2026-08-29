@@ -41,14 +41,19 @@ flutter analyze
 ./tool/check_tokens.sh
 ```
 
-10 test files. They cover the code that carries money: FIFO allocation, the quantity
-wheel and its clamp, backup round-trips, DAO behavior, and the migration chain.
+11 test files, 180 tests. They cover the code that carries money — FIFO allocation, the
+quantity wheel and its clamp, backup round-trips, DAO behavior, the migration chain —
+plus the two things [10b](features/10b-navigation.md) added that break silently:
 
-The UI needs no unit tests. Money arithmetic does.
+- `routing_test.dart` — every pre-10b `/profile/*` URL still resolves. A broken deep
+  link is not noticed for a week, so it is not left to clicking.
+- `lifecycle_test.dart` — the midnight rollover, driven by advancing `package:clock`
+  rather than by waiting until midnight.
 
-**One test fails today:** `v4 -> v5 upgrade` in `migration_test.dart`. Real bug, older
-than the current work. [18](features/18-foundation-guardrails.md) fixes it before CI
-becomes blocking.
+The UI needs no unit tests. Money arithmetic does, and so does anything whose failure
+is silent.
+
+The suite is green. `migration_test.dart`'s `v4 -> v5 upgrade` was fixed in `0f08741`.
 
 ## Release
 

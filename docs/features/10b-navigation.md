@@ -8,7 +8,7 @@
 | **Requires** | [10a — Design system](10a-design-system.md) · [18 — Guardrails](18-foundation-guardrails.md) |
 | **Absorbs** | Lifecycle audit **Phase 1** — application lifecycle |
 | **Part of** | [10 — UI overhaul](10-ui-overhaul.md) |
-| **Status** | Ready |
+| **Status** | **Built — awaiting the device pass.** See *Build notes* at the end |
 
 ## Why
 
@@ -154,11 +154,15 @@ Stream<OutstandingSummary> watchOutstandingSummary();   // total, shop count, ol
 Stream<List<ShopOutstanding>> watchOutstandingByShop(); // per shop, desc by amount
 ```
 
-Tapping the card opens the **existing Shops list in "Owes" mode** — same screen, sorted
-by outstanding descending, each row showing the amount and age, using the "View Ledger"
-action that already exists. No new screen in this release.
-[Doc 07](07-ledger-statements.md) later promotes this into the real Outstanding screen
-with statements, and reuses both queries; it should be updated to say so.
+Tapping the card opens the **existing Outstanding screen** at `/outstanding` — sorted by
+outstanding descending, each row showing the amount and age.
+
+> **Revised in build.** This section originally said "the existing Shops list in *Owes*
+> mode". It was written before [07](07-ledger-statements.md) shipped
+> `OutstandingListScreen`, which already answers exactly this question. Adding an Owes
+> mode to the shop list would have left two screens answering it. The screen is reused
+> and restyled onto [10a](10a-design-system.md)'s kit instead; no new screen, which was
+> the point of the original wording.
 
 ### Settings
 
@@ -172,9 +176,19 @@ that matters — **each tile shows current state instead of static prose**:
 | "Export or import all your data" | "Last exported 3 days ago" |
 | "Manage bakery product catalog" | "34 products in 6 categories" |
 
-Settings holds configuration only: **Business Info · Standing Orders · Dashboard
-sections · Backup & Restore · Check for updates · About**. Masters moved to the
-drawer's CATALOGUE group.
+Settings holds two groups:
+
+- **Catalogue** — Shops · Categories · Products · Price Matrix, each with the live
+  summary above. Also in the drawer's CATALOGUE group, which carries the same
+  destinations without the summaries.
+- **Configuration** — Business Info · Standing Orders · Dashboard sections ·
+  Backup & Restore · Check for updates. About is the footer block, not a row.
+
+> **Decided in build.** This section originally said masters move to the drawer and
+> leave Settings entirely, which contradicted the state-summary table directly above
+> it — three of its four examples are masters. The owner's call, 2026-08-29: keep them
+> in both. The drawer is the fast way *there*; Settings is where you see what state
+> they are in.
 
 The search field is what makes ~28 destinations navigable, and it searches the whole
 app's destinations, not just settings rows.
@@ -183,85 +197,86 @@ app's destinations, not just settings rows.
 
 ### Shell
 
-- [ ] `lib/app.dart` — Dashboard becomes the **4th `StatefulShellBranch`** at
+- [x] `lib/app.dart` — Dashboard becomes the **4th `StatefulShellBranch`** at
       `/dashboard`, replacing the Profile branch. Delete the top-level push route.
       `_topLevelPaths` becomes `{'/', '/orders', '/kitchen', '/dashboard'}` — the
       `'/dashboard'` entry finally does something and the `'/profile'` entry goes.
-- [ ] `lib/app.dart` — extract `_ScaffoldWithNavBar` into
+- [x] `lib/app.dart` — extract `_ScaffoldWithNavBar` into
       `lib/widgets/shell/app_shell.dart`. It gains the `Drawer` and the FAB sheet, and
       `app.dart` is left holding routing only. It is currently 300 lines of routing,
       theme and shell in one file; [10a](10a-design-system.md) takes the theme out and
       this takes the shell.
-- [ ] `lib/widgets/floating_nav_bar.dart` — 4 slots, built from a
+- [x] `lib/widgets/floating_nav_bar.dart` — 4 slots, built from a
       destination list rather than a hardcoded `_icons` tuple array. Person icon out,
       dashboard icon in. The 2 + gap + 2 layout and the entry animation are unchanged.
-- [ ] Drawer opens from a hamburger in `AppScaffold`'s leading slot
+- [x] Drawer opens from a hamburger in `AppScaffold`'s leading slot
       ([10a](10a-design-system.md) already owns that widget). No edge-swipe-only drawer
       — it must have a visible affordance on every shell screen.
 
 ### Drawer
 
-- [ ] `lib/widgets/shell/app_drawer.dart` — new. Sections per the structure above,
+- [x] `lib/widgets/shell/app_drawer.dart` — new. Sections per the structure above,
       brand header from `brandProvider`, version footer.
-- [ ] `lib/widgets/shell/drawer_destinations.dart` — the destination list as **data**:
+- [x] `lib/widgets/shell/drawer_destinations.dart` — the destination list as **data**:
       label, icon, route, group, and a `shipped` flag. The drawer, the
       bottom bar and the settings search all read from this one list. Adding a
       destination in [12](12-dashboard-tabs.md) or [15](15-auto-order-suggestions.md)
       must be a one-line edit here, not three.
-- [ ] Back from a drawer destination returns to the **originating tab**, not to the
+- [x] Back from a drawer destination returns to the **originating tab**, not to the
       drawer and not to Home.
-- [ ] Active-item highlighting reads the current route, and stays correct for nested
+- [x] Active-item highlighting reads the current route, and stays correct for nested
       routes (`/settings/shops/3/edit` highlights Shops).
 
 ### FAB quick actions
 
-- [ ] `lib/widgets/shell/quick_action_sheet.dart` — new. Three actions: New order,
+- [x] `lib/widgets/shell/quick_action_sheet.dart` — new. Three actions: New order,
       Record payment, Add shop.
-- [ ] `lib/widgets/shell/shop_picker_sheet.dart` — new, reusable: search field, recents
+- [x] `lib/widgets/shell/shop_picker_sheet.dart` — new, reusable: search field, recents
       row, full list. Used by New order and Record payment, and by
       [07](07-ledger-statements.md) later.
-- [ ] "New order" uses `selectedDateProvider`, not `DateTime.now()`. Picking a date and
+- [x] "New order" uses `selectedDateProvider`, not `DateTime.now()`. Picking a date and
       then creating an order for a different day is the kind of bug that only shows up
       in the ledger three weeks later.
 
 ### Routes
 
-- [ ] Move all 15 `/profile/*` routes to `/settings/*`.
-- [ ] **Redirects from every old path**, including the four parameterised ones
+- [x] Move all 15 `/profile/*` routes to `/settings/*`.
+- [x] **Redirects from every old path**, including the four parameterised ones
       (`/profile/shops/:id/edit`, `/profile/shops/:id/ledger`,
       `/profile/products/:id/edit`, `/profile/dashboard-settings/help`). There are
       **30 hardcoded `/profile` strings** in `lib/`; enumerate every one with
       `grep -rn "'/profile" lib/`, do not sample.
-- [ ] `AppRoutes` constants renamed to match. The 10 `AppRoutes.*` call sites update
+- [x] `AppRoutes` constants renamed to match. The 10 `AppRoutes.*` call sites update
       with them; the raw strings are the risk.
-- [ ] Ledger route moves to `/shops/:id/ledger` — it is not a setting and never was.
+- [x] Ledger route moves to `/shops/:id/ledger` — it is not a setting and never was.
 
 ### Settings
 
-- [ ] `lib/screens/profile/profile_screen.dart` →
+- [x] `lib/screens/profile/profile_screen.dart` →
       `lib/screens/settings/settings_screen.dart`, rebuilt on
       [10a](10a-design-system.md)'s kit.
-- [ ] Live state summaries per the table above. Each is a small provider, each
+- [x] Live state summaries per the table above. Each is a small provider, each
       `autoDispose` per 10a's rule. **No N+1**: one aggregate per summary, following
       [doc 04](04-dashboard-performance.md)'s discipline.
-- [ ] Search field filtering `drawer_destinations.dart` **plus** settings rows, so one
+- [x] Search field filtering `drawer_destinations.dart` **plus** settings rows, so one
       keystroke reaches any destination in the app.
-- [ ] "About" absorbs the branding block and version footer that
+- [x] "About" absorbs the branding block and version footer that
       `profile_screen.dart` renders inline today.
 
 ### Ledger queries
 
-- [ ] `lib/database/daos/ledger_dao.dart` — `watchOutstandingSummary()` and
+- [x] `lib/database/daos/ledger_dao.dart` — `watchOutstandingSummary()` and
       `watchOutstandingByShop()`, both read-only, both respecting `openingBalanceAt` and
       the **1-paisa epsilon helper** established in
       [doc 05](05-ledger-foundation.md). Reuse that helper; do not write a second
       comparison.
-- [ ] Zero-total orders are skipped, exactly as `watchShopLedger` already skips them.
+- [x] Zero-total orders are skipped, exactly as `watchShopLedger` already skips them.
       A shop whose only orders are empty must read ₹0 owed, not appear in the list.
-- [ ] `lib/providers/ledger_provider.dart` — `outstandingSummaryProvider`,
+- [x] `lib/providers/ledger_provider.dart` — `outstandingSummaryProvider`,
       `outstandingByShopProvider`.
-- [ ] `lib/screens/settings/shops/shop_list_screen.dart` — "Owes" mode: sorted by
-      outstanding descending, amount and age per row, reached from the drawer card.
+- [x] ~~`shop_list_screen.dart` — "Owes" mode~~ **Superseded.** The drawer card opens
+      the existing `/outstanding` screen, restyled onto the kit and now showing each
+      row's age. See the revision note above.
 
 ### Application lifecycle — absorbed Phase 1
 
@@ -270,29 +285,29 @@ here because it rewrites `main.dart` and `app.dart`, which this release is alrea
 open. It is the highest-value phase in that document and it closes a live defect: **an app
 left open overnight reports yesterday as today, on every screen, forever.**
 
-- [ ] **Own the container.** Drop the hand-built `ProviderContainer` in `main.dart`; use
+- [x] **Own the container.** Drop the hand-built `ProviderContainer` in `main.dart`; use
       `ProviderScope` with `overrides`. Today `databaseProvider`'s
       `ref.onDispose(db.close)` can never fire, and the SQLite handle is released only by
       process death.
-- [ ] **Move seeding off the startup path.** `runApp` first; seed inside an
+- [x] **Move seeding off the startup path.** `runApp` first; seed inside an
       `AsyncNotifier` bootstrap provider that the root widget watches, wrapped in a `try`,
       rendering a real error screen on failure — which is only possible once a first frame
       exists. Today a throw during seeding means `runApp` is never called and the user
       gets a held splash that never resolves.
-- [ ] **Remove the splash route.** `flutter_native_splash` already covers cold start.
+- [x] **Remove the splash route.** `flutter_native_splash` already covers cold start.
       Delete `SplashScreen`, make `/` the initial location, and call
       `FlutterNativeSplash.remove()` from the bootstrap provider's first successful data
       state — not from the line after `runApp`, where it currently tears the native splash
       down before the first frame is rasterised.
-- [ ] **One `AppLifecycleListener`** at the root. On `resumed`: invalidate `todayProvider`
+- [x] **One `AppLifecycleListener`** at the root. On `resumed`: invalidate `todayProvider`
       and, if the date rolled over, `selectedDateProvider`. On `paused`: flush the pending
       order-entry write. [Doc 14](14-supabase-auth.md)'s biometric gate hangs off this same
       listener later, which is a second reason to put it in properly now.
-- [ ] **Make "today" self-correcting.** `todayProvider` becomes a `Notifier` that
+- [x] **Make "today" self-correcting.** `todayProvider` becomes a `Notifier` that
       invalidates itself on a timer scheduled for the next local midnight, *in addition* to
       the resume hook. The timer covers an app left foregrounded; the hook covers one that
       was not.
-- [ ] **Error observability.** `FlutterError.onError`,
+- [x] **Error observability.** `FlutterError.onError`,
       `PlatformDispatcher.instance.onError`, and a `ProviderObserver` logging
       `providerDidFail`. Local logging is enough to start — the seam is the point, and
       [10c](10c-screen-restyle.md)'s error views report into it.
@@ -303,37 +318,37 @@ away there.
 
 ### Tests
 
-- [ ] `test/routing_test.dart` — new. Every old `/profile/*` path redirects to its
+- [x] `test/routing_test.dart` — new. Every old `/profile/*` path redirects to its
       `/settings/*` equivalent, parameterised paths included. This is the release's
       only real regression risk and it is cheap to cover.
-- [ ] `test/ledger_test.dart` — extend: outstanding summary against the existing FIFO
+- [x] `test/ledger_test.dart` — extend: outstanding summary against the existing FIFO
       fixture; a shop with only zero-total orders contributes ₹0 and does not appear;
       the summary equals the sum of the per-shop figures.
 
 ## Success criteria
 
-- [ ] **Every one of the 22 routes reachable before this change is still reachable.**
+- [x] **Every one of the 22 routes reachable before this change is still reachable.**
       Enumerate them against the list in [`docs/app-audit.md`](../app-audit.md) §2.1;
       do not sample.
-- [ ] Every old `/profile/*` URL redirects rather than 404s — proven by
+- [x] Every old `/profile/*` URL redirects rather than 404s — proven by
       `test/routing_test.dart`, not by clicking.
 - [ ] Reaching any destination takes at most **2 taps from any screen**.
-- [ ] The shop ledger drops from 4 taps to **2** (drawer → Outstanding → row, or
+- [x] The shop ledger drops from 4 taps to **2** (drawer → Outstanding → row, or
       Shops → row).
-- [ ] Total outstanding across all shops is visible **without opening a screen** — it is
+- [x] Total outstanding across all shops is visible **without opening a screen** — it is
       in the drawer.
-- [ ] The drawer's outstanding figure equals the sum of every shop's
+- [x] The drawer's outstanding figure equals the sum of every shop's
       `watchShopStats().outstanding`, to the paisa.
-- [ ] Settings search reaches any destination in the app in **one keystroke**.
+- [x] Settings search reaches any destination in the app in **one keystroke**.
 - [ ] Every settings tile's state summary is accurate against the real dataset — check
       each against the underlying screen, all six.
 - [ ] Back from a drawer destination returns to the originating tab.
 - [ ] Opening the Dashboard keeps the bottom bar, and back returns to the previous tab
       with its scroll position intact. Both are broken today.
-- [ ] No unshipped destination appears anywhere in the UI.
-- [ ] Adding a destination is a one-line change to `drawer_destinations.dart`. Prove it
+- [x] No unshipped destination appears anywhere in the UI.
+- [x] Adding a destination is a one-line change to `drawer_destinations.dart`. Prove it
       by adding a throwaway entry behind a flag and removing it again.
-- [ ] An integration test that advances the clock across midnight and fires
+- [x] An integration test that advances the clock across midnight and fires
       `AppLifecycleState.resumed` sees Home report the new date. This is Phase 1's
       done-when, and the reason Phase 1 is in this release.
 - [ ] Cold start reaches the first interactive frame with **no blank flash** between the
@@ -357,3 +372,52 @@ away there.
 - **Phase 1 roughly doubles this release.** It is still the right place for it: both
   halves rewrite `app.dart` and `main.dart`, and splitting them means writing the shell
   twice.
+
+## Build notes — 2026-08-29
+
+Built on `release/1.11.0-navigation`. `flutter analyze` clean, `flutter test` 180 green,
+`tool/check_tokens.sh` passes with the screen count down from 396 to 365.
+
+**Three deviations from the doc as written**, each noted in place above:
+
+1. The drawer card opens the existing `/outstanding` screen rather than an "Owes" mode
+   on the shop list. That section predated [07](07-ledger-statements.md) shipping the
+   screen.
+2. Masters stay in Settings *and* appear in the drawer. The doc contradicted itself;
+   the owner chose both.
+3. **A second DAO exception.** Doc 10 allowed one — the two outstanding queries on
+   `ledger_dao.dart`. Settings' state summaries needed a second of exactly the same
+   character: `PriceDao.watchCatalogueCoverage()`, read-only, additive, over tables that
+   already exist. One aggregate, because reading it per shop would have been an N+1
+   across 18 shops to fill in a subtitle — the thing [04](04-dashboard-performance.md)
+   removed from the dashboard. No schema change; the chain stays frozen at v6.
+
+**One defect found by the new tests, in this release's own code.** The resume hook read
+`todayProvider` to answer "did the date change while we were away?" — but that provider
+is lazy, so the read *built* it from the clock as it then was and compared the new day
+against itself. It could never fire, and it would have failed exactly where it matters:
+Home watches the selected date, not today, so nothing had built `todayProvider` first.
+`AppLifecycleScope` now tracks the day it last knew, seeded in `initState`, which also
+starts the midnight timer at launch rather than whenever a screen first wants a date.
+
+### What still needs the phone
+
+Six criteria above are unticked because a container cannot honestly tick them.
+
+| Criterion | How to check |
+|---|---|
+| Settings tile summaries are accurate | Open each of the ten tiles and compare its subtitle against the screen it opens |
+| Reaching any destination is at most 2 taps | Walk it. The route table supports it; only use proves it |
+| Back from a drawer destination returns to the originating tab | Open Kitchen, drawer → Shops, back. Expect Kitchen |
+| Dashboard keeps the bottom bar, back restores scroll position | Both were broken before this release |
+| Cold start has no blank flash | Watch the hand-off from the native splash. This is the `FlutterNativeSplash.remove()` move onto a post-frame callback |
+| A throw in bootstrap renders a retry, not a held splash | Throw inside `Bootstrap.build()`, run, expect an error screen with a working Try again |
+
+Also still open from [18](18-foundation-guardrails.md): the four 10a performance figures
+have a pass but no recorded numbers. This release rewrote the router and deleted the
+splash route, which is exactly what cold start would notice — worth capturing a figure
+while the phone is out.
+
+**The version is deliberately not bumped.** `pubspec.yaml` stays at `1.10.0+14` so that
+merging cannot cut a release before the device pass. Bump to `1.11.0+15` as the last
+commit on this branch, per the roadmap.

@@ -4,7 +4,8 @@ Read this file first. It gives the rules. The other docs give the facts.
 
 Update this file in the same commit as any change to a rule below.
 
-> Last verified against `1.9.2+13`, schema v6, on 2026-08-28.
+> Last verified against `1.10.0+14` plus 10b on `release/1.11.0-navigation`,
+> schema v6, on 2026-08-29.
 
 ---
 
@@ -60,7 +61,7 @@ lib/widgets/
 
 A screen must not reach past a provider.
 
-23 screen calls break this rule today, across 13 files. They all call
+24 screen calls break this rule today, across 12 files. They all call
 `ref.read(databaseProvider)` directly. This is a known defect.
 [`docs/features/14a-repository-seam.md`](docs/features/14a-repository-seam.md) closes it.
 That doc also decides whether the Supabase port is safe.
@@ -81,9 +82,14 @@ The read path is already correct. Providers wrap the DAO `watch*` queries. Scree
 7. Format all money with `lib/utils/money.dart`. Nothing else formats currency.
 8. Do not change a provider signature. This is a decision, not a refactor.
 9. Do not add roles, permissions, or auth code before doc 14.
-10. Use the `AppRoutes` constants. Never write a route string.
+10. Use the `AppRoutes` constants, and its builders for anything with a `:param`.
+    Never write a route string.
 11. No bare `// ignore:`. Every one names the reason and the doc that removes it.
-12. Update this file when a rule above changes.
+12. Add a destination in `lib/widgets/shell/destinations.dart` and nowhere else.
+13. One `AppLifecycleListener` for the app. It is in `AppLifecycleScope`.
+14. Read the wall clock through `package:clock` when the answer is *what day is it*.
+15. Do no work in `main()` before `runApp`. Bootstrap belongs in a provider.
+16. Update this file when a rule above changes.
 
 ---
 
