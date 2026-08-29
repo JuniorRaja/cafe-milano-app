@@ -10,6 +10,10 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
+  # Wall-clock reads go through this so the midnight rollover in
+  # date_provider.dart is testable. Already present transitively; pinned here
+  # because lib/ now imports it directly.
+  clock: ^1.1.1
   drift: ^2.22.0
   flutter_riverpod: ^2.6.1
   go_router: ^14.6.2

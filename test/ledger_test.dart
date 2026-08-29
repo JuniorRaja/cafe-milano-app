@@ -468,6 +468,134 @@ void main() {
       expect(amounts, sorted);
     });
 
+    // --- Outstanding summary — the drawer card (doc 10b) --------------------
+
+    test('the summary total equals the sum of the per-shop figures', () async {
+      final b = await db.shopDao.upsertShop(ShopsCompanion.insert(name: 'B'));
+      final c = await db.shopDao.upsertShop(ShopsCompanion.insert(name: 'C'));
+
+      Future<void> billFor(int shop, DateTime date, double amount) async {
+        final order = await db.orderDao.getOrCreateOrder(shop, date);
+        await db.orderDao.replaceOrderLines(order.id, [
+          OrderLinesCompanion.insert(
+              orderId: order.id, productId: productId, qty: 1, unitPrice: amount),
+        ]);
+      }
+
+      await bill(DateTime(2026, 3, 1), 1200.55);
+      await billFor(b, DateTime(2026, 3, 2), 800.20);
+      await billFor(c, DateTime(2026, 3, 3), 99.25);
+
+      final rows = await db.ledgerDao.watchOutstandingByShop().first;
+      final summary = await db.ledgerDao.watchOutstandingSummary().first;
+
+      final sum = rows.fold<double>(0, (t, r) => t + r.outstanding);
+      // To the paisa: the drawer headline and the list behind it are one
+      // computation, not two that happen to agree today.
+      expect(summary.total, closeTo(sum, 0.001));
+      expect(summary.total, closeTo(2100.0, 0.001));
+      expect(summary.shopCount, rows.length);
+      expect(summary.shopCount, 3);
+    });
+
+    test('the summary equals every shop\'s watchShopStats outstanding',
+        () async {
+      final b = await db.shopDao.upsertShop(ShopsCompanion.insert(name: 'B'));
+      await bill(DateTime(2026, 3, 1), 1000);
+
+      final order = await db.orderDao.getOrCreateOrder(b, DateTime(2026, 3, 2));
+      await db.orderDao.replaceOrderLines(order.id, [
+        OrderLinesCompanion.insert(
+            orderId: order.id, productId: productId, qty: 1, unitPrice: 700),
+      ]);
+      await db.ledgerDao.recordPayment(
+          shopId: b, amount: 250, paidAt: DateTime(2026, 3, 3), mode: PaymentMode.cash);
+
+      final summary = await db.ledgerDao.watchOutstandingSummary().first;
+      final rows = await db.ledgerDao.watchOutstandingByShop().first;
+
+      var viaStats = 0.0;
+      for (final row in rows) {
+        viaStats += (await db.ledgerDao.watchShopStats(row.shopId).first).outstanding;
+      }
+      expect(summary.total, closeTo(viaStats, 0.001));
+      expect(summary.total, closeTo(1450, 0.001));
+    });
+
+    test('a shop with only zero-total orders contributes nothing and is absent',
+        () async {
+      final empty =
+          await db.shopDao.upsertShop(ShopsCompanion.insert(name: 'Empty Only'));
+      // Opening order entry creates the row before anything is typed. Three of
+      // them are still not a bill and must never read as money owed.
+      for (final day in [3, 4, 5]) {
+        await db.orderDao.getOrCreateOrder(empty, DateTime(2026, 4, day));
+      }
+      await bill(DateTime(2026, 4, 1), 500);
+
+      final summary = await db.ledgerDao.watchOutstandingSummary().first;
+      final ids = (await db.ledgerDao.watchOutstandingByShop().first)
+          .map((r) => r.shopId);
+
+      expect(ids, isNot(contains(empty)));
+      expect(summary.shopCount, 1);
+      expect(summary.total, closeTo(500, 0.001));
+      expect((await db.ledgerDao.watchShopStats(empty).first).outstanding,
+          closeTo(0, 0.001));
+    });
+
+    test('nothing owed reads as an empty summary, not a null one', () async {
+      await bill(DateTime(2026, 4, 1), 400);
+      await db.ledgerDao.recordPayment(
+          shopId: shopId, amount: 400, paidAt: DateTime(2026, 4, 2), mode: PaymentMode.cash);
+
+      final summary = await db.ledgerDao.watchOutstandingSummary().first;
+      expect(summary.shopCount, 0);
+      expect(summary.total, closeTo(0, 0.001));
+      expect(summary.oldestUnpaidAt, isNull);
+      expect(summary.ageInDays(DateTime(2026, 5, 1)), isNull);
+    });
+
+    test('the oldest unsettled bill drives the age, and a paid one does not',
+        () async {
+      await bill(DateTime(2026, 2, 1), 300); // will be settled by FIFO
+      await bill(DateTime(2026, 2, 20), 700);
+      await db.ledgerDao.recordPayment(
+          shopId: shopId, amount: 300, paidAt: DateTime(2026, 2, 2), mode: PaymentMode.cash);
+
+      final summary = await db.ledgerDao.watchOutstandingSummary().first;
+      expect(summary.oldestUnpaidAt, DateTime(2026, 2, 20));
+      expect(summary.ageInDays(DateTime(2026, 3, 2)), 10);
+    });
+
+    test('a partly paid bill still counts as the oldest unsettled one',
+        () async {
+      await bill(DateTime(2026, 2, 1), 1000);
+      await db.ledgerDao.recordPayment(
+          shopId: shopId, amount: 400, paidAt: DateTime(2026, 2, 2), mode: PaymentMode.cash);
+
+      final summary = await db.ledgerDao.watchOutstandingSummary().first;
+      expect(summary.total, closeTo(600, 0.001));
+      expect(summary.oldestUnpaidAt, DateTime(2026, 2, 1));
+    });
+
+    test('a shop owing only an opening balance has no bill date to age',
+        () async {
+      await db.shopDao.upsertShop(ShopsCompanion(
+        id: Value(shopId),
+        name: const Value('Hotel Raj'),
+        openingBalance: const Value(1500),
+        openingBalanceAt: Value(DateTime(2026, 1, 1)),
+      ));
+
+      final summary = await db.ledgerDao.watchOutstandingSummary().first;
+      expect(summary.total, closeTo(1500, 0.001));
+      expect(summary.shopCount, 1);
+      // The balance is real; its age is not knowable, and inventing one would
+      // put a wrong number on the drawer card.
+      expect(summary.oldestUnpaidAt, isNull);
+    });
+
     test('opening balances count toward outstanding', () async {
       await db.shopDao.upsertShop(ShopsCompanion(
         id: Value(shopId),

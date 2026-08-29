@@ -108,12 +108,16 @@ class AppRoutes {
 /// pins it.
 ///
 /// Delete only once no installed build can still hold an old link.
-String? _legacyRedirect(BuildContext context, GoRouterState state) {
-  final path = state.uri.path;
+/// Pure so it can be tested as itself. `findMatch` does not run a router-level
+/// redirect, so a test that went through the router would be testing go_router
+/// rather than this rule.
+String? legacyRedirectFor(Uri uri) {
+  final path = uri.path;
 
   // The splash route is gone — the native splash covers cold start now.
   if (path == '/splash') return AppRoutes.home;
 
+  // The trailing slash matters: `/profiles` is not `/profile`.
   if (path != '/profile' && !path.startsWith('/profile/')) return null;
 
   // The ledger did not move to /settings with the rest; it left entirely.
@@ -126,8 +130,11 @@ String? _legacyRedirect(BuildContext context, GoRouterState state) {
       ? AppRoutes.settings
       : '${AppRoutes.settings}${path.substring('/profile'.length)}';
   // `replace` rather than a bare string so query parameters survive the hop.
-  return state.uri.replace(path: moved).toString();
+  return uri.replace(path: moved).toString();
 }
+
+String? _legacyRedirect(BuildContext context, GoRouterState state) =>
+    legacyRedirectFor(state.uri);
 
 GoRouter buildRouter() => GoRouter(
       initialLocation: AppRoutes.home,

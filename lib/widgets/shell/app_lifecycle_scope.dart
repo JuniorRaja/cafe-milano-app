@@ -27,9 +27,22 @@ class AppLifecycleScope extends ConsumerStatefulWidget {
 class _AppLifecycleScopeState extends ConsumerState<AppLifecycleScope> {
   late final AppLifecycleListener _listener;
 
+  /// The date the app was last known to be showing.
+  ///
+  /// Tracked here rather than re-read from [todayProvider] on resume, and the
+  /// difference is not cosmetic. `todayProvider` is lazy: if nothing has
+  /// watched it yet, reading it at resume builds it from the clock *as it is
+  /// now*, so "did the date change while we were away?" compares the new day
+  /// against itself and is always false. The rollover would then never fire on
+  /// the screens that need it most — Home watches the selected date, not this.
+  late DateTime _lastKnownToday;
+
   @override
   void initState() {
     super.initState();
+    // Reading it here also starts its midnight timer at launch rather than
+    // whenever some screen first happens to want today's date.
+    _lastKnownToday = ref.read(todayProvider);
     _listener = AppLifecycleListener(
       onResume: _onResume,
       onPause: _onPause,
@@ -43,17 +56,17 @@ class _AppLifecycleScopeState extends ConsumerState<AppLifecycleScope> {
   }
 
   void _onResume() {
-    final before = ref.read(todayProvider);
+    final before = _lastKnownToday;
     ref.read(todayProvider.notifier).refresh();
     final after = ref.read(todayProvider);
+    _lastKnownToday = after;
     if (before == after) return;
 
     // The date rolled over while the app was away. The *selected* date follows
     // only because it was still sitting on the old today — if the owner had
     // deliberately paged to another day before backgrounding, that choice is
     // theirs and is left alone.
-    final selected = ref.read(selectedDateProvider);
-    if (selected == before) {
+    if (ref.read(selectedDateProvider) == before) {
       ref.read(selectedDateProvider.notifier).state = after;
     }
   }
