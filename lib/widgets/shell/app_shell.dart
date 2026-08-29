@@ -27,8 +27,12 @@ class AppShell extends StatefulWidget {
   /// Opens the shell drawer from anywhere below it. Returns false when the
   /// caller is not inside the shell, so a shared header can offer the
   /// hamburger only where it would work.
+  ///
+  /// Reads the scope without depending on it: this runs from a button
+  /// callback, not from build, and registering a dependency outside build is
+  /// both meaningless and an assertion in debug.
   static bool openDrawer(BuildContext context) {
-    final scope = context.dependOnInheritedWidgetOfExactType<_ShellScope>();
+    final scope = context.getInheritedWidgetOfExactType<_ShellScope>();
     if (scope == null) return false;
     scope.scaffoldKey.currentState?.openDrawer();
     return true;
@@ -83,13 +87,8 @@ class _AppShellState extends State<AppShell> {
                       ),
                     )
                   : null,
-              floatingActionButton: showNavBar
-                  ? FloatingActionButton(
-                      onPressed: () => showQuickActionSheet(context),
-                      tooltip: 'New order, payment or shop',
-                      child: const Icon(Icons.add_rounded),
-                    )
-                  : null,
+              floatingActionButton:
+                  showNavBar ? const QuickActionButton() : null,
               floatingActionButtonLocation:
                   FloatingActionButtonLocation.centerDocked,
             ),

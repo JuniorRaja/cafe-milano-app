@@ -513,30 +513,36 @@ class _Tile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: Container(
-        width: 38,
-        height: 38,
-        decoration: const BoxDecoration(
-          color: AppColors.surfaceMuted,
-          borderRadius: AppRadius.rS,
-        ),
-        child: Icon(icon, color: AppColors.brandDeep, size: 20),
-      ),
-      title: Text(title, style: AppType.titleS),
-      subtitle: Text(
-        subtitle,
-        style: AppType.bodyS.copyWith(
-          color: tone?.fg ?? AppColors.textSecondary,
-        ),
-      ),
-      trailing: trailing ??
-          const Icon(
-            Icons.chevron_right_rounded,
-            color: AppColors.textTertiary,
-            size: 20,
+    // Transparent Material, not decoration. AppCard is a DecoratedBox, and a
+    // ListTile paints its ink on the nearest Material ancestor — without this
+    // the tap ripple is drawn behind the card and never seen.
+    return Material(
+      type: MaterialType.transparency,
+      child: ListTile(
+        leading: Container(
+          width: 38,
+          height: 38,
+          decoration: const BoxDecoration(
+            color: AppColors.surfaceMuted,
+            borderRadius: AppRadius.rS,
           ),
-      onTap: onTap,
+          child: Icon(icon, color: AppColors.brandDeep, size: 20),
+        ),
+        title: Text(title, style: AppType.titleS),
+        subtitle: Text(
+          subtitle,
+          style: AppType.bodyS.copyWith(
+            color: tone?.fg ?? AppColors.textSecondary,
+          ),
+        ),
+        trailing: trailing ??
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.textTertiary,
+              size: 20,
+            ),
+        onTap: onTap,
+      ),
     );
   }
 }

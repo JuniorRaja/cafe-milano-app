@@ -192,15 +192,19 @@ class _DrawerRow extends StatelessWidget {
   }
 
   void _go(BuildContext context) {
-    Navigator.of(context).pop(); // close the drawer first
+    // Captured before the pop. Closing the drawer starts removing this subtree,
+    // so reading the router off `context` afterwards is reading it off a widget
+    // on its way out.
+    final router = GoRouter.of(context);
+    Navigator.of(context).pop();
 
     // A bottom-bar destination switches branch; everything else is pushed over
     // the shell so back returns to the tab it was opened from rather than to
     // the drawer or to Home.
     if (bottomBarRoutes.contains(destination.route)) {
-      context.go(destination.route);
+      router.go(destination.route);
     } else {
-      unawaited(context.push(destination.route));
+      unawaited(router.push(destination.route));
     }
   }
 }
@@ -233,8 +237,9 @@ class _OutstandingCard extends ConsumerWidget {
         child: InkWell(
           borderRadius: AppRadius.rM,
           onTap: () {
+            final router = GoRouter.of(context);
             Navigator.of(context).pop();
-            unawaited(context.push(AppRoutes.outstanding));
+            unawaited(router.push(AppRoutes.outstanding));
           },
           child: Padding(
             padding: const EdgeInsets.all(AppSpace.s4),
