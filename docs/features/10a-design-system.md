@@ -322,24 +322,31 @@ UI does not need unit tests, and nothing here carries money or counts.
 - [x] Changing `BrandConfig.milano.primary` to an obviously wrong colour restyles the
       whole app, including the FAB, buttons, chips and active nav state, with no other
       edit. This is the test that the seam is real.
-- [ ] Cold start to first interactive frame drops from ~1.2 s + native splash to
+- [x] Cold start to first interactive frame drops from ~1.2 s + native splash to
       **under 600 ms** + native splash, measured on the owner's device.
-- [ ] An 18-shop home list is fully visible **within 200 ms** of data arriving, down
+- [x] An 18-shop home list is fully visible **within 200 ms** of data arriving, down
       from ~600 ms.
-- [ ] Scrolling the home list holds 60 fps with the DevTools performance overlay clean
+- [x] Scrolling the home list holds 60 fps with the DevTools performance overlay clean
       of `saveLayer` warnings from the background.
-- [ ] Visiting 14 consecutive dates on the home screen, then returning to today, leaves
+- [x] Visiting 14 consecutive dates on the home screen, then returning to today, leaves
       **one** live `watchOrderSummaries` subscription. Verified with a counter in the
       DAO or the Riverpod observer, not by inspection.
-- [~] `flutter test` passes. `flutter analyze` is clean apart from the intentional
+
+      **Verified on the owner's device, 2026-08-29.** The owner ran the pass and
+      signed it off; the individual figures were not written down. There is
+      therefore a pass/fail record but no baseline to regress against - the
+      next release that touches this should capture the numbers.
+
+- [x] `flutter test` passes. `flutter analyze` is clean apart from the intentional
       `@Deprecated` alias warnings, whose count is recorded in the PR description so
       [10c](10c-screen-restyle.md) can drive it to zero.
-      **131 pass, 84 deprecation warnings, 0 other analyzer issues.** One test still
-      fails — `migration_test.dart`, `v4 -> v5 upgrade` — and failed identically on
-      `60b9662` before this work started. It is a schema-migration bug, the one area
-      10a does not touch, so it is left for its own fix.
-- [ ] Every screen still renders and every route still works. Nothing was rebuilt in
-      this release, so anything that changed shape is a bug.
+      **136 pass, 83 deprecation warnings, 0 other analyzer issues** as merged.
+      `migration_test.dart` was red when 10a was written; doc 18 fixed it in the same
+      release (`0f08741`), which is why this ships green.
+- [x] Every screen still renders and every route still works. Nothing was rebuilt in
+      this release, so anything that changed shape is a bug. The device pass found four
+      that had — haptics, the confirm-order exit, the Price Matrix dialog and the
+      dashboard switch — all fixed in `6eddaac`.
 
 ## Notes
 

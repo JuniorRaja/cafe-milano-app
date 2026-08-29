@@ -1,7 +1,7 @@
 # Milano Orders — Roadmap
 
-> Last updated: 2026-08-28
-> Current shipped version: **1.9.2+13** · schema v6
+> Last updated: 2026-08-29
+> Current shipped version: **1.10.0+14** · schema v6
 > **Scope revised 2026-08-28.** See *What changed and why* below before reading anything else.
 
 This is the index. Every feature has its own self-contained plan in `docs/features/`,
@@ -138,7 +138,7 @@ Step 7 is the one that gets skipped and the one that corrupts real data. Do it.
 | [08](features/08-order-entry-swipe.md) | Digit-wheel quantity entry | `1.9.0+11` | feature | — | Done |
 | — | Backup/import schema compatibility | `1.9.1+12` | fix | — | Done |
 | — | Stop seeding default categories | `1.9.2+13` | fix | — | Done |
-| [10a](features/10a-design-system.md) + [18](features/18-foundation-guardrails.md) | New look, faster, quantities never lost | `1.10.0+14` | feature | — | 10a built, 18 built — **awaiting the four device numbers** |
+| [10a](features/10a-design-system.md) + [18](features/18-foundation-guardrails.md) | New look, faster, quantities never lost | `1.10.0+14` | feature | — | Done |
 | [10b](features/10b-navigation.md) | Everything reachable in 2 taps | `1.11.0+15` | feature | — | Ready |
 | [10c](features/10c-screen-restyle.md) | Every screen rebuilt, real error messages | `1.12.0+16` | feature | — | Ready |
 | [12](features/12-dashboard-tabs.md) | Dashboard in tabs, updating live | `1.13.0+17` | feature | — | Outline |
@@ -169,11 +169,11 @@ listed so the build-number chain reads continuously; neither has a feature doc.
 **The UI foundation goes in before the remaining feature work**, and the framework-level
 work goes in with it rather than after it.
 
-**[10a](features/10a-design-system.md) is already built and sitting uncommitted in the
-working tree.** Tokens, `BrandConfig`, a 14-component kit, the `autoDispose` sweep, the
-pre-blurred background and the splash rework are all in. Commit it to the release branch
-first — an uncommitted foundation blocks everything written against it. It does not go out
-alone, for the reasons in [18](features/18-foundation-guardrails.md).
+**[10a](features/10a-design-system.md) shipped in `1.10.0+14`.** Tokens, `BrandConfig`,
+a 15-component kit, the `autoDispose` sweep, the pre-blurred background and the splash
+rework. It did not go out alone, for the reasons in
+[18](features/18-foundation-guardrails.md), and the release also carried the swap from
+Quicksand to **Raleway** — the owner's call, made during the device pass.
 
 **[18](features/18-foundation-guardrails.md) ships in the same release as 10a** and it
 exists for three reasons the owner named directly:
@@ -262,13 +262,18 @@ against a real v4 install before shipping.
 
 ## Standing risks
 
-- ~~**10a is uncommitted.**~~ Resolved 2026-08-28 — it is on
-  `release/1.10.0-design-system`, together with all of [18](features/18-foundation-guardrails.md)
-  bar the CI gate. **What now blocks the merge is measurement, not code:** the four 10a
-  performance numbers need the owner's phone. See *What is not done* in doc 18.
+- ~~**10a is uncommitted.**~~ Closed 2026-08-29 — shipped in `1.10.0+14`.
 - **There is no CI gate.** Deferred by the owner on 2026-08-28, so `flutter analyze` and
   `flutter test` are run by hand. Steps 2 and 3 of the readiness gate are therefore only
   as reliable as the person running them.
+- **The 10a performance work has no baseline.** All four criteria were verified on the
+  owner's device on 2026-08-29 and all four passed, but the figures were not written
+  down. There is a pass, not a number to regress against. Capture them the next time
+  the phone is out — [10b](features/10b-navigation.md) rewrites the router and the
+  splash route, which is exactly the work cold start would notice.
+- **Raleway has a smaller x-height than Quicksand.** Every `fontSize:` in the app now
+  reads slightly lighter than the value implies. [10c](features/10c-screen-restyle.md)
+  touches all 198 of them; raise weight before size.
 - **Money arithmetic is thinly tested.** Two things carry real money: FIFO allocation
   (05) and the quantity wheel with its clamp (08). Both have tests. Nothing else in the
   UI needs them.

@@ -7,7 +7,7 @@
 | **Schema** | No change |
 | **Requires** | [10a — Design system](10a-design-system.md) committed on the same branch |
 | **Followed by** | [10b — Navigation](10b-navigation.md) |
-| **Status** | Built. Two items open, both listed under *What is not done* |
+| **Status** | **Done** — shipped in `1.10.0+14` |
 
 ## Why
 
@@ -168,14 +168,20 @@ Three files, split by what goes stale at what rate. One file mixing all three ro
 No code unless a number comes back bad. Record every figure in the PR description so
 there is a baseline to regress against.
 
-- [ ] Cold start to first interactive frame. Target **under 600 ms** plus native splash.
-- [ ] 18-shop home list fully visible within **200 ms** of data arriving.
-- [ ] Scroll the home list with the DevTools performance overlay. 60 fps, and **zero**
+- [x] Cold start to first interactive frame. Target **under 600 ms** plus native splash.
+- [x] 18-shop home list fully visible within **200 ms** of data arriving.
+- [x] Scroll the home list with the DevTools performance overlay. 60 fps, and **zero**
       `saveLayer` warnings from the background.
-- [ ] Visit 14 consecutive dates on home, return to today, count live
+- [x] Visit 14 consecutive dates on home, return to today, count live
       `watchOrderSummaries` subscriptions. Expect **one**. Count it with a counter in the
       DAO or the Riverpod observer — not by reading the code.
-- [ ] Anything that misses its target gets a line in this doc saying by how much, and
+
+      **Verified on the owner's device, 2026-08-29.** The owner ran the pass and
+      signed it off; the individual figures were not written down. There is
+      therefore a pass/fail record but no baseline to regress against - the
+      next release that touches this should capture the numbers.
+
+- [x] Nothing missed its target. Anything that had would get a line in this doc saying by how much, and
       either a fix here or a named owner in [10c](10c-screen-restyle.md). "Close enough"
       is not a result.
 
@@ -194,7 +200,10 @@ there is a baseline to regress against.
       rule 11, no bare ignores.
 - [x] `AGENTS.md` fits on two screens. If it does not, the overflow belongs in
       `architecture.md` or `development.md`.
-- [ ] All four 10a performance numbers exist as numbers in the PR description.
+- [~] All four 10a performance criteria were **met on the owner's device**. The
+      figures themselves were not recorded, so this ships as a pass rather than as a
+      baseline. Called out here rather than ticked, because the point of the item was
+      the baseline.
 - [x] `AppErrorView` exists, is exported, and `tool/check_tokens.sh` passes on it.
       Kit section: 0 violations.
 
@@ -205,11 +214,12 @@ Two items, both deliberate, both recorded so they are not discovered later as su
 | Item | Why | Who closes it |
 |---|---|---|
 | **CI analyze + test gate** | Deferred by the owner on 2026-08-28. The tree is green and would pass it today | Whoever picks it up. Nothing in the plan blocks on it |
-| **The four 10a performance numbers** | They need the owner's physical phone. No amount of code substitutes for the measurement | The owner, before this release merges to `master` |
+| ~~**The four 10a performance numbers**~~ | Verified by the owner on 2026-08-29. All four criteria met. The figures were not written down, so there is no baseline — capture them next time the phone is out | Closed |
 
-Until the four numbers exist, 10a's performance work is still a claim rather than a
-result — which is the reason this release exists. The checklist above them stays
-unticked on purpose.
+The performance criteria are met. What this release did not get is the *baseline* —
+four figures to regress against — because the pass was recorded as pass/fail. That is
+a far smaller gap than the one it closed, and it is written down here so it is not
+mistaken for having been captured.
 
 ## Notes
 
