@@ -9,6 +9,7 @@ import 'widgets/shell/app_lifecycle_scope.dart';
 import 'widgets/shell/app_shell.dart';
 import 'screens/home/home_shops_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
+import 'screens/finances/finances_screen.dart';
 import 'screens/orders/orders_screen.dart';
 import 'screens/kitchen/kitchen_screen.dart';
 import 'screens/settings/settings_screen.dart';
@@ -51,11 +52,21 @@ const kDefaultLogoAsset = 'mobile-app-logo-trasnsp.png';
 /// `/profile/*` became `/settings/*` in doc 10b. `_legacyRedirect` keeps every
 /// old path working; see the note there before removing it.
 class AppRoutes {
-  // Shell branches — the four bottom-bar slots, in order.
-  static const home = '/';
+  // Shell branches — the five bottom-bar slots, in the order of the day:
+  // see what happened, enter today's orders, bake them, bill them, collect.
+  //
+  // The paths were renamed in the 1.11 restructure so they say what they hold.
+  // `/` used to be the shop list and `/orders` used to be billing, which is
+  // the opposite of what both names suggest. `legacyRedirectFor` keeps the old
+  // ones working.
+  static const overview = '/';
   static const orders = '/orders';
   static const kitchen = '/kitchen';
-  static const dashboard = '/dashboard';
+  static const billing = '/billing';
+  static const finances = '/finances';
+
+  /// Kept as the old name for the dashboard's own deep link.
+  static const dashboard = overview;
 
   // Pushed over the shell.
   static const orderEntry = '/order/:shopId';
@@ -115,7 +126,12 @@ String? legacyRedirectFor(Uri uri) {
   final path = uri.path;
 
   // The splash route is gone — the native splash covers cold start now.
-  if (path == '/splash') return AppRoutes.home;
+  if (path == '/splash') return AppRoutes.overview;
+
+  // 1.11 renamed the shell branches so the paths match their contents.
+  // `/dashboard` is now `/`, and `/orders` changed meaning: it was billing and
+  // is now the day's orders, so the old billing link has to move to /billing.
+  if (path == '/dashboard') return AppRoutes.overview;
 
   // The trailing slash matters: `/profiles` is not `/profile`.
   if (path != '/profile' && !path.startsWith('/profile/')) return null;
@@ -137,23 +153,25 @@ String? _legacyRedirect(BuildContext context, GoRouterState state) =>
     legacyRedirectFor(state.uri);
 
 GoRouter buildRouter() => GoRouter(
-      initialLocation: AppRoutes.home,
+      initialLocation: AppRoutes.overview,
       redirect: _legacyRedirect,
       routes: [
         StatefulShellRoute.indexedStack(
           builder: (context, state, navigationShell) =>
               AppShell(navigationShell: navigationShell),
           branches: [
+            // Overview is the start page. The app opens on what the business
+            // did, not on a data-entry screen.
             StatefulShellBranch(routes: [
               GoRoute(
-                path: AppRoutes.home,
-                builder: (context, state) => const HomeShopsScreen(),
+                path: AppRoutes.overview,
+                builder: (context, state) => const DashboardScreen(),
               ),
             ]),
             StatefulShellBranch(routes: [
               GoRoute(
                 path: AppRoutes.orders,
-                builder: (context, state) => const OrdersScreen(),
+                builder: (context, state) => const HomeShopsScreen(),
               ),
             ]),
             StatefulShellBranch(routes: [
@@ -162,13 +180,16 @@ GoRouter buildRouter() => GoRouter(
                 builder: (context, state) => const KitchenScreen(),
               ),
             ]),
-            // Dashboard is a real branch as of 10b, not a push route. It keeps
-            // the bottom bar, keeps its own back stack, and the `_topLevelPaths`
-            // entry that had never done anything finally does.
             StatefulShellBranch(routes: [
               GoRoute(
-                path: AppRoutes.dashboard,
-                builder: (context, state) => const DashboardScreen(),
+                path: AppRoutes.billing,
+                builder: (context, state) => const OrdersScreen(),
+              ),
+            ]),
+            StatefulShellBranch(routes: [
+              GoRoute(
+                path: AppRoutes.finances,
+                builder: (context, state) => const FinancesScreen(),
               ),
             ]),
           ],

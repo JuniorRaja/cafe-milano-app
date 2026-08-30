@@ -3,7 +3,21 @@ import 'package:flutter/material.dart';
 import 'shell/destinations.dart';
 import 'ui/ui.dart';
 
-/// Icon-only floating pill nav bar with a center gap for the shared FAB.
+/// The floating pill nav bar.
+///
+/// Five evenly-spaced slots, built from `destinations.dart` rather than a
+/// hardcoded tuple array. Adding or reordering a slot is a change to that list
+/// and nothing else.
+///
+/// The centre gap and its FAB are gone as of the 1.11 revision. The FAB opened
+/// a three-item quick-action sheet; each of those actions now sits where the
+/// user already is — a new order is a tap on a shop in Orders, a payment is the
+/// FAB on Finances, a new shop is the FAB on the shop list — so the slot went
+/// back to being a destination.
+///
+/// Labels are shown. With five slots an icon-only bar asks the user to
+/// remember which pictogram means Billing and which means Orders, and they are
+/// both rectangles with lines on them.
 class FloatingNavBar extends StatefulWidget {
   const FloatingNavBar({
     super.key,
@@ -22,14 +36,9 @@ class _FloatingNavBarState extends State<FloatingNavBar>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final CurvedAnimation _curved;
-  late final Animation<Offset> _leftIconSlide;
-  late final Animation<Offset> _rightIconSlide;
   bool _reducedMotion = false;
   bool _scheduled = false;
 
-  /// Built from `destinations.dart`, not from a hardcoded tuple array. Adding
-  /// or reordering a slot is a change to that list and nothing else — which is
-  /// the whole reason doc 10b exists.
   static final _slots = bottomBarDestinations;
 
   @override
@@ -39,13 +48,7 @@ class _FloatingNavBarState extends State<FloatingNavBar>
       vsync: this,
       duration: const Duration(milliseconds: 450),
     );
-    _curved = CurvedAnimation(parent: _controller, curve: Curves.easeOutBack);
-    _leftIconSlide =
-        Tween<Offset>(begin: const Offset(0.3, 0), end: Offset.zero)
-            .animate(_curved);
-    _rightIconSlide =
-        Tween<Offset>(begin: const Offset(-0.3, 0), end: Offset.zero)
-            .animate(_curved);
+    _curved = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
   }
 
   @override
@@ -63,59 +66,20 @@ class _FloatingNavBarState extends State<FloatingNavBar>
 
   @override
   void dispose() {
+    _curved.dispose();
     _controller.dispose();
     super.dispose();
   }
 
-  Widget _buildIcon(int index, {required bool fromLeft}) {
-    final entry = _slots[index];
-    final selected = widget.selectedIndex == index;
-
-    final icon = IconButton(
-      icon: Icon(selected ? entry.selectedIcon : entry.icon),
-      color: selected ? AppColors.brandDeep : AppColors.textTertiary,
-      tooltip: entry.label,
-      onPressed: () => widget.onDestinationSelected(index),
-    );
-
-    if (_reducedMotion) return icon;
-
-    return SlideTransition(
-      position: fromLeft ? _leftIconSlide : _rightIconSlide,
-      child: FadeTransition(
-        opacity: _controller,
-        child: ScaleTransition(scale: _curved, child: icon),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final fabGap = ScaleTransition(
-      scale: _reducedMotion
-          ? const AlwaysStoppedAnimation(1)
-          : CurvedAnimation(
-              parent: _controller,
-              curve: const Interval(0.3, 1, curve: Curves.easeOutBack),
-            ),
-      child: const SizedBox(width: 56),
-    );
-
-    final half = _slots.length ~/ 2;
-    final leftIcons = [
-      for (var i = 0; i < half; i++) _buildIcon(i, fromLeft: true),
-    ];
-    final rightIcons = [
-      for (var i = half; i < _slots.length; i++) _buildIcon(i, fromLeft: false),
-    ];
-
-    return Container(
-      height: 64,
+    final bar = Container(
+      height: 62,
       margin: EdgeInsets.fromLTRB(
-        16,
-        8,
-        16,
-        8 + MediaQuery.of(context).padding.bottom,
+        AppSpace.s3,
+        AppSpace.s2,
+        AppSpace.s3,
+        AppSpace.s2 + MediaQuery.of(context).padding.bottom,
       ),
       decoration: const BoxDecoration(
         color: AppColors.surface,
@@ -123,8 +87,74 @@ class _FloatingNavBarState extends State<FloatingNavBar>
         boxShadow: AppShadow.card,
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [...leftIcons, fabGap, ...rightIcons],
+        children: [
+          for (var i = 0; i < _slots.length; i++)
+            Expanded(child: _Slot(
+              destination: _slots[i],
+              selected: widget.selectedIndex == i,
+              onTap: () => widget.onDestinationSelected(i),
+            )),
+        ],
+      ),
+    );
+
+    if (_reducedMotion) return bar;
+    return FadeTransition(
+      opacity: _curved,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.35),
+          end: Offset.zero,
+        ).animate(_curved),
+        child: bar,
+      ),
+    );
+  }
+}
+
+class _Slot extends StatelessWidget {
+  const _Slot({
+    required this.destination,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final AppDestination destination;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? AppColors.brandDeep : AppColors.textTertiary;
+
+    return Semantics(
+      selected: selected,
+      button: true,
+      label: destination.label,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: AppRadius.rFull,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                selected ? destination.selectedIcon : destination.icon,
+                size: 22,
+                color: color,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                destination.label,
+                style: AppType.caption.copyWith(color: color),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

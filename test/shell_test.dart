@@ -12,7 +12,7 @@ import 'package:milano_orders/theme/app_theme.dart';
 import 'package:milano_orders/theme/brand_config.dart';
 import 'package:milano_orders/widgets/shell/app_drawer.dart';
 import 'package:milano_orders/widgets/shell/destinations.dart';
-import 'package:milano_orders/widgets/shell/quick_action_sheet.dart';
+import 'package:milano_orders/screens/finances/finances_screen.dart';
 import 'package:milano_orders/widgets/shell/shop_picker_sheet.dart';
 
 /// The drawer, the quick-action sheet and the shop picker — the three pieces
@@ -124,69 +124,15 @@ void main() {
     });
   });
 
-  group('quick actions', () {
-    testWidgets('the FAB offers exactly the three actions', (tester) async {
-      await tester.pumpWidget(host(
-        child: const Scaffold(floatingActionButton: QuickActionButton()),
-      ));
-
-      await tester.tap(find.byType(FloatingActionButton));
-      await tester.pumpAndSettle();
-
-      expect(find.text('New order'), findsOneWidget);
-      expect(find.text('Record payment'), findsOneWidget);
-      expect(find.text('Add shop'), findsOneWidget);
-      // No fourth. Counter stock was dropped with doc 11.
-      expect(find.byType(ListTile), findsNothing);
-    });
-
-    testWidgets('picking Add shop closes the sheet and routes', (tester) async {
-      var landed = false;
-      await tester.pumpWidget(
-        ProviderScope(
-          child: MaterialApp.router(
-            theme: buildAppTheme(BrandConfig.milano),
-            routerConfig: GoRouter(
-              initialLocation: '/',
-              routes: [
-                GoRoute(
-                  path: '/',
-                  builder: (_, _) =>
-                      const Scaffold(floatingActionButton: QuickActionButton()),
-                ),
-                GoRoute(
-                  path: '/settings/shops/new',
-                  builder: (_, _) {
-                    landed = true;
-                    return const Scaffold(body: Text('new shop'));
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-
-      await tester.tap(find.byType(FloatingActionButton));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Add shop'));
-      await tester.pumpAndSettle();
-
-      // The sheet has to be gone *and* the route reached. An earlier version
-      // navigated through the popped sheet's own context and silently did
-      // neither.
-      expect(landed, isTrue);
-      expect(find.text('new shop'), findsOneWidget);
-      expect(find.text('Record payment'), findsNothing);
-    });
-  });
-
-  group('quick actions end to end', () {
-    // The two actions that do real work, driven all the way through to the row
-    // that lands in the database. A widget appearing is not the unit of proof
-    // here — "Record payment" shipped broken once already, with the sheet
-    // popping itself and then testing `context.mounted` on its own dead
-    // context, so nothing happened and nothing complained.
+  group('recording a payment, end to end', () {
+    // Driven all the way through to the row that lands in the database. A
+    // widget appearing is not the unit of proof here — this flow shipped broken
+    // once already, popping a sheet and then testing `context.mounted` on its
+    // own dead context, so nothing happened and nothing complained.
+    //
+    // It lives on Finances now. The centre FAB and its quick-action sheet were
+    // removed in the 1.11 revision; recording a payment belongs on the screen
+    // about money.
     //
     // `databaseProvider` is real so the write is real. `activeShopsProvider` is
     // stubbed only because the picker shows an AppSkeleton while a real query
@@ -230,19 +176,11 @@ void main() {
             routerConfig: GoRouter(
               initialLocation: '/',
               routes: [
+                GoRoute(path: '/', builder: (_, _) => const FinancesScreen()),
                 GoRoute(
-                  path: '/',
-                  builder: (_, _) => const Scaffold(
-                    floatingActionButton: QuickActionButton(),
-                  ),
-                ),
-                GoRoute(
-                  path: '/order/:shopId',
+                  path: '/shops/:id/ledger',
                   builder: (_, state) => Scaffold(
-                    body: Text(
-                      'order ${state.pathParameters['shopId']} '
-                      'on ${state.uri.queryParameters['date']}',
-                    ),
+                    body: Text('ledger ${state.pathParameters['id']}'),
                   ),
                 ),
               ],
@@ -253,10 +191,8 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    Future<void> chooseAction(WidgetTester tester, String label) async {
-      await tester.tap(find.byType(FloatingActionButton));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(label));
+    Future<void> openPicker(WidgetTester tester) async {
+      await tester.tap(find.widgetWithText(FloatingActionButton, 'Record payment'));
       await tester.pumpAndSettle();
     }
 
@@ -279,7 +215,7 @@ void main() {
         (tester) async {
       await pumpShell(tester);
 
-      await chooseAction(tester, 'Record payment');
+      await openPicker(tester);
 
       // The picker opened rather than the flow dying silently.
       expect(find.text('All shops'), findsOneWidget);
@@ -309,7 +245,7 @@ void main() {
 
     testWidgets('dismissing the shop picker records nothing', (tester) async {
       await pumpShell(tester);
-      await chooseAction(tester, 'Record payment');
+      await openPicker(tester);
 
       // Back out of the picker rather than choosing.
       Navigator.of(tester.element(find.text('All shops'))).pop();
@@ -321,21 +257,6 @@ void main() {
       await drain(tester);
     });
 
-    testWidgets('New order opens order entry on the selected date, not today',
-        (tester) async {
-      // Paging to another day and then creating an order for today is the bug
-      // that only surfaces in the ledger weeks later.
-      final selected = DateTime(2026, 9, 4);
-      await pumpShell(tester, selectedDate: selected);
-
-      await chooseAction(tester, 'New order');
-      await tester.tap(find.text('Hotel Raj'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('order $shopId on 2026-09-04'), findsOneWidget);
-
-      await drain(tester);
-    });
   });
 
   group('shop picker', () {

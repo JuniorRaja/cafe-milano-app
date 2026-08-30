@@ -1,4 +1,3 @@
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -41,7 +40,7 @@ class HomeShopsScreen extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'WELCOME BACK',
+                        'TODAY',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -50,7 +49,7 @@ class HomeShopsScreen extends ConsumerWidget {
                         ),
                       ),
                       Text(
-                        '${_greeting()}, $_greetingName',
+                        'Orders',
                         style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.w800,
@@ -153,19 +152,4 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-const _greetingNames = ['Mohan', 'JMR'];
-final _greetingName = _greetingNames[Random().nextInt(_greetingNames.length)];
 
-String _greeting() {
-  final hour = DateTime.now().hour;
-  if (hour >= 5 && hour < 12) return 'Good morning';
-  if (hour >= 12 && hour < 17) return 'Good afternoon';
-  return 'Good evening';
-}
-
-IconData _greetingIcon() {
-  final hour = DateTime.now().hour;
-  if (hour >= 5 && hour < 12) return Icons.wb_sunny_rounded;
-  if (hour >= 12 && hour < 17) return Icons.wb_cloudy_rounded;
-  return Icons.nights_stay_rounded;
-}

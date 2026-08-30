@@ -8,12 +8,9 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../app.dart';
 import '../../providers/business_info_provider.dart';
-import '../../providers/category_provider.dart';
 import '../../providers/dashboard_settings_provider.dart';
 import '../../providers/price_provider.dart';
-import '../../providers/product_provider.dart';
 import '../../providers/settings_summary_provider.dart';
-import '../../providers/shop_provider.dart';
 import '../../services/update_service.dart';
 import '../../theme/brand_config.dart';
 import '../../widgets/shell/destinations.dart';
@@ -28,6 +25,12 @@ import '../../widgets/ui/ui.dart';
 /// status" told the owner nothing they did not already know; "18 active · 2
 /// inactive" answers a question. Each summary is one aggregate, never a
 /// per-row read.
+///
+/// **The masters are not listed here.** Shops, Products, Categories and the
+/// Price Matrix live in the drawer's Catalogue group and nowhere else. They
+/// were briefly in both; two doors to one room is how "Profile" became a
+/// filing cabinet in the first place. The search below still reaches them, so
+/// nothing got further away.
 ///
 /// **The search field searches the whole app**, not this screen. It reads
 /// `destinations.dart` as well as the rows below, which is what makes ~28
@@ -163,8 +166,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return ListView(
       padding: const EdgeInsets.only(bottom: AppSpace.s6),
       children: [
-        const SectionHeader(title: 'Catalogue'),
-        _card(_catalogueRows()),
         const SectionHeader(title: 'Configuration'),
         _card(_configRows()),
         const SizedBox(height: AppSpace.s5),
@@ -198,86 +199,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   // ---------------------------------------------------------------------------
   // Rows, each with a live summary
   // ---------------------------------------------------------------------------
-
-  List<_Row> _catalogueRows() {
-    final shops = ref.watch(allShopsProvider);
-    final products = ref.watch(allProductsProvider);
-    final categories = ref.watch(allCategoriesProvider);
-    final coverage = ref.watch(catalogueCoverageProvider);
-
-    return [
-      _Row(
-        icon: Icons.store_outlined,
-        title: 'Shops',
-        subtitle: shops.maybeWhen(
-          data: (list) {
-            final active = list.where((s) => s.isActive).length;
-            final inactive = list.length - active;
-            if (list.isEmpty) return 'No shops yet';
-            return inactive == 0
-                ? '$active active'
-                : '$active active · $inactive inactive';
-          },
-          orElse: () => '…',
-        ),
-        keywords: const ['outlets', 'customers', 'stores'],
-        onTap: () => context.push(AppRoutes.shops),
-      ),
-      _Row(
-        icon: Icons.category_outlined,
-        title: 'Categories',
-        subtitle: categories.maybeWhen(
-          data: (list) => list.isEmpty
-              ? 'None yet — products will be ungrouped'
-              : '${list.length} '
-                  '${list.length == 1 ? 'category' : 'categories'}',
-          orElse: () => '…',
-        ),
-        keywords: const ['groups', 'sections'],
-        onTap: () => context.push(AppRoutes.categories),
-      ),
-      _Row(
-        icon: Icons.bakery_dining_outlined,
-        title: 'Products',
-        subtitle: products.maybeWhen(
-          data: (list) {
-            final active = list.where((p) => p.isActive).length;
-            final groups = categories.maybeWhen(
-              data: (c) => c.length,
-              orElse: () => null,
-            );
-            if (list.isEmpty) return 'No products yet';
-            return groups == null
-                ? '$active active'
-                : '$active active in $groups '
-                    '${groups == 1 ? 'category' : 'categories'}';
-          },
-          orElse: () => '…',
-        ),
-        keywords: const ['items', 'catalog', 'menu'],
-        onTap: () => context.push(AppRoutes.products),
-      ),
-      _Row(
-        icon: Icons.price_change_outlined,
-        title: 'Price Matrix',
-        subtitle: coverage.maybeWhen(
-          data: (c) => c.priceSlots == 0
-              ? 'Add shops and products first'
-              : '${c.pricesSet} of ${c.priceSlots} per-shop prices set',
-          orElse: () => '…',
-        ),
-        // Amber, not red: an unset price is not an error. The product's own
-        // price is used, which is correct for most shops.
-        tone: coverage.maybeWhen(
-          data: (c) =>
-              c.priceSlots > 0 && c.pricesSet == 0 ? AppTone.warning : null,
-          orElse: () => null,
-        ),
-        keywords: const ['prices', 'rates', 'per shop'],
-        onTap: () => context.push(AppRoutes.prices),
-      ),
-    ];
-  }
 
   List<_Row> _configRows() {
     final businessInfo = ref.watch(businessInfoProvider);

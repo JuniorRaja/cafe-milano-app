@@ -120,6 +120,21 @@ class ShopOutstanding {
       : asOf.difference(oldestUnpaidAt!).inDays;
 }
 
+/// Money that moved inside a period. Billed is what went out as bills,
+/// collected is what came back — the two halves of a month, side by side.
+class PeriodMoney {
+  final double billed;
+  final double collected;
+
+  const PeriodMoney({required this.billed, required this.collected});
+
+  static const empty = PeriodMoney(billed: 0, collected: 0);
+
+  /// Positive when more was collected than billed — a month spent catching up
+  /// on old debt rather than falling further behind.
+  double get net => collected - billed;
+}
+
 /// Every shop's outstanding folded into one figure, for the drawer card.
 ///
 /// Deliberately derived from the same rows [LedgerDao.watchOutstandingByShop]
@@ -313,6 +328,45 @@ class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
         oldestUnpaidAt: oldest,
       );
     });
+  }
+
+  /// What was collected and billed inside a period, for the Finances quick
+  /// stats. Read-only and additive, one aggregate rather than a per-shop read.
+  ///
+  /// "Billed" counts real bills only — a zero-total order is the empty row the
+  /// order-entry screen creates before anything is typed, and is not a bill,
+  /// exactly as the rest of this DAO treats it. Bills before a shop's
+  /// opening-balance cutoff are already inside that balance and are skipped.
+  Stream<PeriodMoney> watchPeriodMoney(DateTime from, DateTime to) {
+    final start = DateTime(from.year, from.month, from.day);
+    final end = DateTime(to.year, to.month, to.day, 23, 59, 59, 999);
+
+    final query = customSelect(
+      'SELECT '
+      '(SELECT COALESCE(SUM(p.amount), 0.0) FROM payments p '
+      '   WHERE p.paid_at >= ? AND p.paid_at <= ?) AS collected, '
+      '(SELECT COALESCE(SUM(t.total), 0.0) FROM ('
+      '   SELECT (SELECT COALESCE(SUM(ol.qty * ol.unit_price), 0.0) '
+      '           FROM order_lines ol WHERE ol.order_id = o.id) AS total '
+      '   FROM daily_orders o INNER JOIN shops s ON s.id = o.shop_id '
+      '   WHERE o.order_date >= ? AND o.order_date <= ? '
+      '   AND (s.opening_balance_at IS NULL '
+      '        OR o.order_date >= s.opening_balance_at)'
+      ' ) t WHERE t.total > ?) AS billed',
+      variables: [
+        Variable.withDateTime(start),
+        Variable.withDateTime(end),
+        Variable.withDateTime(start),
+        Variable.withDateTime(end),
+        Variable.withReal(_moneyEpsilon),
+      ],
+      readsFrom: {payments, dailyOrders, orderLines, shops},
+    );
+
+    return query.watchSingle().map((row) => PeriodMoney(
+          collected: row.read<double>('collected'),
+          billed: row.read<double>('billed'),
+        ));
   }
 
   /// Chronological interleave of bills (debits) and payments (credits) for

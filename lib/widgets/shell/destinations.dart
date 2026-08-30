@@ -73,30 +73,22 @@ class AppDestination {
 /// Ordered as the drawer draws them.
 const appDestinations = <AppDestination>[
   AppDestination(
-    label: 'Dashboard',
+    label: 'Overview',
     icon: Icons.insights_outlined,
     activeIcon: Icons.insights,
-    route: AppRoutes.dashboard,
+    route: AppRoutes.overview,
     group: DestGroup.primary,
-    keywords: ['analytics', 'reports', 'kpi', 'insights'],
+    keywords: ['dashboard', 'analytics', 'reports', 'kpi', 'home', 'insights'],
   ),
 
   // --- Daily ---------------------------------------------------------------
   AppDestination(
-    label: 'Today',
-    icon: Icons.home_outlined,
-    activeIcon: Icons.home,
-    route: AppRoutes.home,
-    group: DestGroup.daily,
-    keywords: ['home', 'orders', 'shops', 'entry'],
-  ),
-  AppDestination(
-    label: 'Billing',
-    icon: Icons.receipt_long_outlined,
-    activeIcon: Icons.receipt_long,
+    label: 'Orders',
+    icon: Icons.edit_note_outlined,
+    activeIcon: Icons.edit_note,
     route: AppRoutes.orders,
     group: DestGroup.daily,
-    keywords: ['bills', 'invoice', 'totals', 'grand total'],
+    keywords: ['today', 'entry', 'quantities', 'shops', 'order entry'],
   ),
   AppDestination(
     label: 'Kitchen',
@@ -106,15 +98,32 @@ const appDestinations = <AppDestination>[
     group: DestGroup.daily,
     keywords: ['production', 'bake', 'bake list'],
   ),
+  AppDestination(
+    label: 'Billing',
+    icon: Icons.receipt_long_outlined,
+    activeIcon: Icons.receipt_long,
+    route: AppRoutes.billing,
+    group: DestGroup.daily,
+    keywords: ['bills', 'invoice', 'totals', 'grand total'],
+  ),
 
   // --- Money ---------------------------------------------------------------
   AppDestination(
-    label: 'Outstanding',
+    label: 'Finances',
     icon: Icons.account_balance_wallet_outlined,
     activeIcon: Icons.account_balance_wallet,
-    route: AppRoutes.outstanding,
+    route: AppRoutes.finances,
     group: DestGroup.money,
-    keywords: ['receivables', 'owed', 'dues', 'ledger', 'balance'],
+    keywords: [
+      'receivables',
+      'owed',
+      'dues',
+      'ledger',
+      'balance',
+      'outstanding',
+      'payment',
+      'collection',
+    ],
   ),
   AppDestination(
     label: 'Price Matrix',
@@ -188,15 +197,23 @@ List<AppDestination> get visibleDestinations =>
 List<AppDestination> destinationsIn(DestGroup group) =>
     visibleDestinations.where((d) => d.group == group).toList();
 
-/// The four bottom-bar slots, in order, left to right around the centre FAB.
+/// The five bottom-bar slots, left to right, in the order of the day: see what
+/// happened, enter today's orders, bake them, bill them, collect.
 ///
-/// These are the shell's `StatefulShellBranch`es and their order is load-bearing:
-/// index 0-3 here must match the branch order in `app.dart`.
+/// These are the shell's `StatefulShellBranch`es and their order is
+/// load-bearing: index 0-4 here must match the branch order in `app.dart`.
+///
+/// Five slots and no centre gap, as of the 1.11 revision. The centre FAB was a
+/// quick-action sheet; every one of its three actions now has an obvious home
+/// of its own — a new order is a tap on a shop in Orders, a payment is the FAB
+/// on Finances, a new shop is the FAB on the shop list — so the most prominent
+/// control in the app no longer spends itself on a menu.
 const bottomBarRoutes = <String>[
-  AppRoutes.home,
+  AppRoutes.overview,
   AppRoutes.orders,
   AppRoutes.kitchen,
-  AppRoutes.dashboard,
+  AppRoutes.billing,
+  AppRoutes.finances,
 ];
 
 List<AppDestination> get bottomBarDestinations => [

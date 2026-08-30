@@ -89,6 +89,16 @@ void main() {
       expect(resolve('/splash'), '/');
     });
 
+    test('the 1.11 branch renames redirect', () {
+      // The shell branches were renamed so the paths match their contents:
+      // `/` was the shop list and `/orders` was billing, which is the opposite
+      // of what either name suggests.
+      expect(resolve('/dashboard'), '/');
+      expect(matches('/'), isTrue);
+      expect(matches('/billing'), isTrue);
+      expect(matches('/finances'), isTrue);
+    });
+
     test('a path merely starting with the letters profile is left alone', () {
       // /profiles is not /profile. A `startsWith('/profile')` written without
       // the trailing slash would rewrite it.
@@ -106,7 +116,8 @@ void main() {
       '/',
       '/orders',
       '/kitchen',
-      '/dashboard',
+      '/billing',
+      '/finances',
       '/order/1',
       '/outstanding',
       '/shops/1/ledger',
@@ -127,8 +138,10 @@ void main() {
       '/settings/dashboard-settings/help',
     ];
 
-    test('all 22 match a route rather than falling through', () {
-      expect(routes, hasLength(22));
+    test('every one matches a route rather than falling through', () {
+      // 22 before the restructure, 23 after: Finances is new, and /dashboard
+      // became / rather than disappearing.
+      expect(routes, hasLength(23));
       for (final route in routes) {
         expect(
           matches(route),
@@ -179,10 +192,11 @@ void main() {
 
     test('no route constant still points at /profile', () {
       const constants = [
-        AppRoutes.home,
+        AppRoutes.overview,
         AppRoutes.orders,
         AppRoutes.kitchen,
-        AppRoutes.dashboard,
+        AppRoutes.billing,
+        AppRoutes.finances,
         AppRoutes.orderEntry,
         AppRoutes.outstanding,
         AppRoutes.shopLedger,
@@ -230,15 +244,35 @@ void main() {
       );
     });
 
-    test('the bottom bar has four slots and they are the shell branches', () {
-      expect(bottomBarDestinations, hasLength(4));
+    test('the bottom bar has five slots, in the order of the day', () {
+      // See what happened, enter today's orders, bake them, bill them, collect.
+      expect(bottomBarDestinations, hasLength(5));
       expect(
         bottomBarDestinations.map((d) => d.route).toList(),
-        ['/', '/orders', '/kitchen', '/dashboard'],
+        ['/', '/orders', '/kitchen', '/billing', '/finances'],
       );
-      // Person icon out, dashboard icon in — Profile is no longer a slot.
       expect(bottomBarRoutes, isNot(contains('/profile')));
       expect(bottomBarRoutes, isNot(contains('/settings')));
+    });
+
+    test('the slot order matches the shell branch order', () {
+      // index 0-4 in bottomBarRoutes addresses branch 0-4 in app.dart. If the
+      // two ever disagree, every tab opens the wrong screen.
+      final router = buildRouter();
+      addTearDown(router.dispose);
+      final shell =
+          router.configuration.routes.whereType<StatefulShellRoute>().single;
+
+      expect(shell.branches, hasLength(bottomBarRoutes.length));
+      for (var i = 0; i < bottomBarRoutes.length; i++) {
+        final route = shell.branches[i].routes.single as GoRoute;
+        expect(
+          route.path,
+          bottomBarRoutes[i],
+          reason: 'slot $i points at ${bottomBarRoutes[i]} but branch $i '
+              'serves ${route.path}',
+        );
+      }
     });
 
     test('a nested route highlights its section, not the shortest prefix', () {
@@ -246,7 +280,7 @@ void main() {
       expect(destinationForLocation('/settings/products/7/edit')?.label,
           'Products');
       expect(destinationForLocation('/settings')?.label, 'Settings');
-      expect(destinationForLocation('/')?.label, 'Today');
+      expect(destinationForLocation('/')?.label, 'Overview');
       // '/' must not swallow every path just because they all start with it.
       expect(destinationForLocation('/kitchen')?.label, 'Kitchen');
     });

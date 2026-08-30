@@ -6,7 +6,6 @@ import '../floating_nav_bar.dart';
 import '../ui/ui.dart';
 import 'app_drawer.dart';
 import 'destinations.dart';
-import 'quick_action_sheet.dart';
 
 /// The shell every branch screen is drawn inside: background, bottom bar,
 /// drawer and the centre FAB.
@@ -87,10 +86,6 @@ class _AppShellState extends State<AppShell> {
                       ),
                     )
                   : null,
-              floatingActionButton:
-                  showNavBar ? const QuickActionButton() : null,
-              floatingActionButtonLocation:
-                  FloatingActionButtonLocation.centerDocked,
             ),
           ),
         ],

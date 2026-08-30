@@ -84,25 +84,7 @@ void main() {
   }
 
   group('tiles report state, not prose', () {
-    testWidgets('shops, categories and products count what exists',
-        (tester) async {
-      await pump(
-        tester,
-        shops: [
-          shop(1, 'Hotel Raj'),
-          shop(2, 'Star Bakery'),
-          shop(3, 'Closed Down', active: false),
-        ],
-        products: [product(1, 'Bun'), product(2, 'Veg Puff')],
-        categories: [category(1, 'Breads'), category(2, 'Savouries')],
-      );
-
-      expect(find.text('2 active · 1 inactive'), findsOneWidget);
-      expect(find.text('2 categories'), findsOneWidget);
-      expect(find.text('2 active in 2 categories'), findsOneWidget);
-    });
-
-    testWidgets('price coverage reads as coverage, not as missing rows',
+    testWidgets('standing orders and dashboard sections count what is set',
         (tester) async {
       await pump(
         tester,
@@ -113,17 +95,13 @@ void main() {
         ),
       );
 
-      expect(find.text('212 of 504 per-shop prices set'), findsOneWidget);
       expect(find.text('7 shops have default quantities'), findsOneWidget);
+      expect(find.textContaining('sections visible'), findsOneWidget);
     });
 
-    testWidgets('an empty catalogue says so rather than showing 0 of 0',
+    testWidgets('an unconfigured app says so rather than showing 0 of 0',
         (tester) async {
       await pump(tester);
-
-      expect(find.text('No shops yet'), findsOneWidget);
-      expect(find.text('No products yet'), findsOneWidget);
-      expect(find.text('Add shops and products first'), findsOneWidget);
       expect(find.text('No default quantities set'), findsOneWidget);
     });
 
@@ -140,9 +118,22 @@ void main() {
       expect(find.text('Never exported'), findsOneWidget);
     });
 
-    testWidgets('the installed version is shown without a check', (tester) async {
+    testWidgets('the installed version is shown without a check',
+        (tester) async {
       await pump(tester);
       expect(find.text('Installed v1.11.0 (build 15)'), findsOneWidget);
+    });
+
+    testWidgets('the masters are not listed here', (tester) async {
+      // They live in the drawer's Catalogue group and nowhere else. Two doors
+      // to one room is how "Profile" became a filing cabinet.
+      await pump(tester, shops: [shop(1, 'Hotel Raj')]);
+
+      expect(find.text('Catalogue'), findsNothing);
+      expect(find.text('Shops'), findsNothing);
+      expect(find.text('Products'), findsNothing);
+      expect(find.text('Price Matrix'), findsNothing);
+      expect(find.text('Configuration'), findsOneWidget);
     });
   });
 
@@ -152,22 +143,27 @@ void main() {
       await pump(tester);
 
       // Kitchen is a bottom-bar destination and has no settings row. Before
-      // 10b nothing on this screen could reach it.
+      // 10b nothing on this screen could reach it. The masters are the same
+      // case now that they have left Settings for the drawer.
       await tester.enterText(find.byType(TextField), 'kitchen');
       await tester.pumpAndSettle();
 
       expect(find.text('Screens'), findsOneWidget);
       expect(find.text('Kitchen'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), 'shops');
+      await tester.pumpAndSettle();
+      expect(find.text('Shops'), findsOneWidget);
     });
 
     testWidgets('a destination is found by what the owner would type',
         (tester) async {
       await pump(tester);
 
-      // "receivables" is a keyword on Outstanding, not its label.
+      // "receivables" is a keyword on Finances, not its label.
       await tester.enterText(find.byType(TextField), 'receivables');
       await tester.pumpAndSettle();
-      expect(find.text('Outstanding'), findsOneWidget);
+      expect(find.text('Finances'), findsOneWidget);
     });
 
     testWidgets('a settings row is found by keyword too', (tester) async {
@@ -195,11 +191,10 @@ void main() {
 
       await tester.enterText(find.byType(TextField), 'kitchen');
       await tester.pumpAndSettle();
-      expect(find.text('Catalogue'), findsNothing);
+      expect(find.text('Configuration'), findsNothing);
 
       await tester.tap(find.byTooltip('Clear'));
       await tester.pumpAndSettle();
-      expect(find.text('Catalogue'), findsOneWidget);
       expect(find.text('Configuration'), findsOneWidget);
     });
   });

@@ -53,3 +53,11 @@ final outstandingSummaryProvider = StreamProvider<OutstandingSummary>((ref) {
   final db = ref.watch(databaseProvider);
   return db.ledgerDao.watchOutstandingSummary();
 });
+
+/// Billed and collected over a window, for the Finances quick stats.
+/// `autoDispose` because it is parameterised — 10a's rule.
+final periodMoneyProvider = StreamProvider.autoDispose
+    .family<PeriodMoney, ({DateTime from, DateTime to})>((ref, range) {
+  final db = ref.watch(databaseProvider);
+  return db.ledgerDao.watchPeriodMoney(range.from, range.to);
+});
