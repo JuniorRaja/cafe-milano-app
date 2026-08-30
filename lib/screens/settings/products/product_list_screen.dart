@@ -1,19 +1,23 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../app.dart';
 import '../../../database/app_database.dart';
-import '../../../providers/product_provider.dart';
 import '../../../providers/category_provider.dart';
 import '../../../providers/database_provider.dart';
+import '../../../providers/product_provider.dart';
 import '../../../services/category_emoji.dart';
 import '../../../widgets/letter_avatar.dart';
+import '../../../widgets/ui/ui.dart';
 
-// Sentinel values for the category filter
-const _kFilterAll = -2;
-const _kFilterUncategorised = -1;
-
+/// The products master.
+///
+/// Same rebuild as Shops, plus the category filter it already had — now on the
+/// kit's `FilterChipRow` rather than a hand-rolled chip row, and combined with
+/// search rather than replaced by it.
 class ProductListScreen extends ConsumerStatefulWidget {
   const ProductListScreen({super.key});
 
@@ -22,120 +26,91 @@ class ProductListScreen extends ConsumerStatefulWidget {
 }
 
 class _ProductListScreenState extends ConsumerState<ProductListScreen> {
-  int _catFilter = _kFilterAll;
+  /// Index into the chip row: 0 is All, then one per active category, then
+  /// Uncategorised last.
+  int _filterIndex = 0;
 
   @override
   Widget build(BuildContext context) {
     final productsAsync = ref.watch(allProductsProvider);
     final allCats = ref.watch(allCategoriesProvider).maybeWhen(
           data: (c) => c,
-          orElse: () => <Category>[],
+          orElse: () => const <Category>[],
         );
     final activeCats = allCats.where((c) => c.isActive).toList();
     final catMap = {for (final c in allCats) c.id: c};
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Products',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              'Manage product catalog',
-              style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade500,
-                  fontWeight: FontWeight.normal),
-            ),
-          ],
+    return MasterListPage(
+      caption: 'Catalogue',
+      title: 'Products',
+      searchHint: 'Search products by name or category',
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.ios_share_rounded),
+          color: AppColors.textPrimary,
+          tooltip: 'Share catalogue',
+          onPressed: () => context.push(AppRoutes.catalogShare),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.share),
-            tooltip: 'Share catalog',
-            onPressed: () => context.push(AppRoutes.catalogShare),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push(AppRoutes.productNew),
-        child: const Icon(Icons.add),
-      ),
-      body: productsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+      ],
+      stats: productsAsync.whenOrNull(
         data: (products) {
-          final active = products.where((p) => p.isActive).toList();
-          final inactive = products.where((p) => !p.isActive).toList();
-          final all = [...active, ...inactive];
-
-          if (all.isEmpty) {
-            return const Center(
-                child: Text('No products yet. Tap + to add one.'));
-          }
-
-          final filtered = _applyFilter(all, catMap);
+          final active = products.where((p) => p.isActive).length;
+          return [
+            StatBandItem('${products.length}', label: 'products'),
+            StatBandItem('$active', label: 'active'),
+            StatBandItem('${activeCats.length}', label: 'categories'),
+          ];
+        },
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => context.push(AppRoutes.productNew),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Add product'),
+      ),
+      builder: (context, query) => productsAsync.when(
+        loading: AppSkeleton.list,
+        error: (e, _) => AppErrorView(
+          message: 'Could not load your products.',
+          cause: '$e',
+          onRetry: () => ref.invalidate(allProductsProvider),
+        ),
+        data: (products) {
+          final ordered = [
+            ...products.where((p) => p.isActive),
+            ...products.where((p) => !p.isActive),
+          ];
+          final matches = ordered
+              .where((p) => _matchesFilter(p, activeCats))
+              .where((p) => _matchesQuery(p, catMap, query))
+              .toList();
 
           return Column(
             children: [
-              if (activeCats.isNotEmpty) _FilterChipsRow(
-                categories: activeCats,
-                selected: _catFilter,
-                onSelect: (v) => setState(() => _catFilter = v),
-              ),
+              if (activeCats.isNotEmpty)
+                FilterChipRow(
+                  chips: [
+                    const FilterChipData('All'),
+                    for (final cat in activeCats)
+                      FilterChipData('${emojiFor(cat.name)} ${cat.name}'),
+                    const FilterChipData('Uncategorised'),
+                  ],
+                  selectedIndex: _filterIndex,
+                  onSelected: (i) => setState(() => _filterIndex = i),
+                ),
               Expanded(
-                child: ListView.separated(
-                  itemCount: filtered.length,
-                  separatorBuilder: (_, _) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final product = filtered[index];
-                    final isActive = product.isActive;
-                    return Opacity(
-                      opacity: isActive ? 1.0 : 0.45,
-                      child: ListTile(
-                        leading: product.photoPath != null
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(20),
-                                child: Image.file(
-                                  File(product.photoPath!),
-                                  width: 40,
-                                  height: 40,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, _, _) =>
-                                      LetterAvatar(name: product.name, radius: 20),
-                                ),
-                              )
-                            : LetterAvatar(name: product.name, radius: 20),
-                        title: Text(
-                          product.name,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
+                child: matches.isEmpty
+                    ? _empty(context, query)
+                    : ListView.builder(
+                        padding: const EdgeInsets.only(
+                          top: AppSpace.s2,
+                          bottom: 96,
                         ),
-                        subtitle: _buildSubtitle(product, catMap),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            FilterChip(
-                              label: Text(isActive ? 'Active' : 'Inactive'),
-                              selected: isActive,
-                              onSelected: (_) => ref
-                                  .read(databaseProvider)
-                                  .productDao
-                                  .setProductActive(product.id, !isActive),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.edit_outlined),
-                              onPressed: () => context
-                                  .push(AppRoutes.productEditFor(product.id)),
-                            ),
-                          ],
+                        itemCount: matches.length,
+                        itemBuilder: (context, index) => _ProductRow(
+                          product: matches[index],
+                          category: catMap[matches[index].categoryId],
                         ),
                       ),
-                    );
-                  },
-                ),
               ),
             ],
           );
@@ -144,65 +119,113 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
     );
   }
 
-  List _applyFilter(List products, Map<int, Category> catMap) {
-    if (_catFilter == _kFilterAll) return products;
-    if (_catFilter == _kFilterUncategorised) {
-      return products.where((p) => p.categoryId == null).toList();
+  Widget _empty(BuildContext context, String query) {
+    if (query.isNotEmpty) {
+      return const EmptyState.inert(
+        icon: Icons.search_off_rounded,
+        title: 'No product matches',
+        message: 'Try part of the name, or a category.',
+      );
     }
-    return products.where((p) => p.categoryId == _catFilter).toList();
-  }
-
-  Widget? _buildSubtitle(Product product, Map<int, Category> catMap) {
-    final unit = product.unit;
-    final cat = catMap[product.categoryId];
-    final parts = [
-      if (unit != null && unit.isNotEmpty) 'Unit: $unit',
-      if (cat != null) '${emojiFor(cat.name)} ${cat.name}',
-    ];
-    return parts.isEmpty ? null : Text(parts.join(' · '));
-  }
-}
-
-class _FilterChipsRow extends StatelessWidget {
-  const _FilterChipsRow({
-    required this.categories,
-    required this.selected,
-    required this.onSelect,
-  });
-
-  final List<Category> categories;
-  final int selected;
-  final void Function(int) onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Row(
-        children: [
-          _chip('All', _kFilterAll, selected, onSelect),
-          for (final cat in categories)
-            _chip(
-              '${emojiFor(cat.name)} ${cat.name}',
-              cat.id,
-              selected,
-              onSelect,
-            ),
-          _chip('🍽️ Uncategorised', _kFilterUncategorised, selected, onSelect),
-        ],
-      ),
+    if (_filterIndex != 0) {
+      return const EmptyState.inert(
+        icon: Icons.filter_alt_off_outlined,
+        title: 'Nothing in this category',
+        message: 'Pick another category, or All.',
+      );
+    }
+    return EmptyState(
+      icon: Icons.bakery_dining_outlined,
+      title: 'No products yet',
+      message: 'Add what you bake and it can be ordered, baked and billed.',
+      actionLabel: 'Add your first product',
+      onAction: () => context.push(AppRoutes.productNew),
     );
   }
 
-  Widget _chip(String label, int value, int selected, void Function(int) onSelect) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 6),
-      child: FilterChip(
-        label: Text(label, style: const TextStyle(fontSize: 12)),
-        selected: selected == value,
-        onSelected: (_) => onSelect(value),
-        visualDensity: VisualDensity.compact,
+  bool _matchesFilter(Product product, List<Category> activeCats) {
+    if (_filterIndex == 0) return true;
+    if (_filterIndex == activeCats.length + 1) return product.categoryId == null;
+    return product.categoryId == activeCats[_filterIndex - 1].id;
+  }
+
+  bool _matchesQuery(
+    Product product,
+    Map<int, Category> catMap,
+    String query,
+  ) {
+    if (query.isEmpty) return true;
+    if (product.name.toLowerCase().contains(query)) return true;
+    final cat = catMap[product.categoryId];
+    return cat != null && cat.name.toLowerCase().contains(query);
+  }
+}
+
+class _ProductRow extends ConsumerWidget {
+  const _ProductRow({required this.product, required this.category});
+
+  final Product product;
+  final Category? category;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unit = product.unit;
+    final parts = [
+      if (unit != null && unit.isNotEmpty) unit,
+      if (category != null) '${emojiFor(category!.name)} ${category!.name}',
+    ];
+
+    return ListRow(
+      title: product.name,
+      subtitle: parts.isEmpty ? null : parts.join(' · '),
+      leading: _Thumb(product: product),
+      badge: product.isActive
+          ? null
+          : const StatusBadge(label: 'Inactive', tone: AppTone.neutral),
+      onTap: () => context.push(AppRoutes.productEditFor(product.id)),
+      footer: Padding(
+        padding: const EdgeInsets.only(top: AppSpace.s2),
+        child: Row(
+          children: [
+            const Spacer(),
+            AppButton.text(
+              label: product.isActive ? 'Deactivate' : 'Activate',
+              onPressed: () => ref
+                  .read(databaseProvider)
+                  .productDao
+                  .setProductActive(product.id, !product.isActive),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Thumb extends StatelessWidget {
+  const _Thumb({required this.product});
+
+  final Product product;
+
+  @override
+  Widget build(BuildContext context) {
+    final path = product.photoPath;
+    if (path == null) return LetterAvatar(name: product.name, radius: 20);
+
+    return ClipRRect(
+      borderRadius: AppRadius.rFull,
+      child: Image.file(
+        File(path),
+        width: 40,
+        height: 40,
+        fit: BoxFit.cover,
+        // Product photos come from the camera. Without this the full
+        // multi-megapixel image was decoded to be drawn at 40x40, on the
+        // scrolling thread — a large part of why these lists stuttered.
+        cacheWidth: 120,
+        cacheHeight: 120,
+        filterQuality: FilterQuality.low,
+        errorBuilder: (_, _, _) => LetterAvatar(name: product.name, radius: 20),
       ),
     );
   }

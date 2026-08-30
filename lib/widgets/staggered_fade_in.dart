@@ -1,20 +1,28 @@
 import 'package:flutter/material.dart';
 
-/// Fades a list in. **No longer staggers** — the name and the file stay so the
-/// diff at the ~6 call sites is legible; doc 10c renames them.
+/// Fades a list in **once**, as a whole.
 ///
-/// The old version gave each row `30ms * index` (capped at 12) plus a 250 ms
-/// fade, so the last visible row of an 18-shop list appeared **360 ms after the
-/// data was ready** and the list animated for ~600 ms. Each row was also its
-/// own `StatefulWidget` with its own `Future.delayed` and `setState`.
+/// Two versions of this were wrong before, in opposite ways.
 ///
-/// One 150 ms fade, one implicit animation, no timers, no per-row state.
-/// [index] is ignored and kept only so call sites need not change.
-class StaggeredFadeIn extends StatelessWidget {
-  const StaggeredFadeIn({super.key, this.index = 0, required this.child});
-
-  /// Ignored. Retained so the existing call sites compile unchanged.
-  final int index;
+/// The original staggered each row by `30ms * index` on top of a 250 ms fade,
+/// so the last visible row of an 18-shop list appeared 360 ms after the data
+/// was ready. Doc 10a cut that to a single 150 ms fade.
+///
+/// What 10a left in place was worse for scrolling, and is what the owner felt
+/// as stutter. The widget was applied **inside `itemBuilder`**, and
+/// `itemBuilder` runs every time a row scrolls into view — so each new row
+/// started its own `TweenAnimationBuilder`, and every frame of it composited
+/// through an `Opacity`, which forces a `saveLayer`. Scrolling a long list
+/// meant a continuous supply of fresh animated layers, one per row, forever.
+///
+/// So this now wraps the **list**, not the row. One animation, one layer, and
+/// it is finished 150 ms after the list first appears no matter how far the
+/// user scrolls.
+///
+/// Applying it per row is the bug; [ListFadeIn] takes a whole list for exactly
+/// that reason.
+class ListFadeIn extends StatelessWidget {
+  const ListFadeIn({super.key, required this.child});
 
   final Widget child;
 

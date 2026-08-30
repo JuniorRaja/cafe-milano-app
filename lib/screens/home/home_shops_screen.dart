@@ -71,7 +71,6 @@ class HomeShopsScreen extends ConsumerWidget {
                         {for (final s in summaries) s.order.shopId: s},
                     orElse: () => <int, OrderDaySummary>{},
                   );
-                  final dateStr = DateFormat('yyyy-MM-dd').format(selectedDate);
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -100,20 +99,22 @@ class HomeShopsScreen extends ConsumerWidget {
                       Expanded(
                         child: shops.isEmpty
                             ? const _EmptyState()
-                            : ListView.builder(
+                            : ListFadeIn(
+                                child: ListView.builder(
                                 itemCount: shops.length,
                                 itemBuilder: (context, index) {
                                   final shop = shops[index];
-                                  return StaggeredFadeIn(
-                                    index: index,
+                                  return RepaintBoundary(
                                     child: ShopOrderCard(
                                       shop: shop,
                                       summary: summaryMap[shop.id],
                                       onTap: () => context.push(
-                                          '/order/${shop.id}?date=$dateStr'),
+                                          AppRoutes.orderEntryFor(shop.id,
+                                              date: selectedDate)),
                                     ),
                                   );
                                 },
+                                ),
                               ),
                       ),
                     ],

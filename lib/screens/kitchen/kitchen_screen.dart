@@ -414,8 +414,7 @@ class _ByItemView extends StatelessWidget {
                   final entry = sorted[i];
                   final product = productMap[entry.key];
                   final unit = product?.unit;
-                  return StaggeredFadeIn(
-                    index: i,
+                  return RepaintBoundary(
                     child: ListTile(
                       leading: CircleAvatar(
                         backgroundColor: kBrandBrown.withAlpha(30),

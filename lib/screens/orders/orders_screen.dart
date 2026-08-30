@@ -124,9 +124,8 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                             final s = summaries[i];
                             final shop = shopMap[s.order.shopId];
                             final isExpanded = _expandedOrderId == s.order.id;
-                            return StaggeredFadeIn(
+                            return RepaintBoundary(
                               key: ValueKey(s.order.id),
-                              index: i,
                               child: _OrderCard(
                                 summary: s,
                                 shop: shop,
