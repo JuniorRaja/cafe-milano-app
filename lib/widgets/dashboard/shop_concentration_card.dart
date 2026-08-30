@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import '../../app.dart';
 import '../../models/dashboard_models.dart';
 import '../../providers/dashboard_provider.dart';
+import '../../utils/money.dart';
+import '../../theme/brand_config.dart';
 
 class ShopConcentrationCard extends ConsumerWidget {
   const ShopConcentrationCard({super.key});
@@ -96,13 +97,13 @@ class ShopConcentrationCard extends ConsumerWidget {
   }
 }
 
-class _ShopRow extends StatelessWidget {
+class _ShopRow extends ConsumerWidget {
   const _ShopRow({required this.rank, required this.row});
   final int rank;
   final ShopConcentrationRow row;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isHighConcentration = row.sharePercent > 25;
 
     return Padding(
@@ -168,7 +169,7 @@ class _ShopRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '₹${NumberFormat('#,##,###').format(row.revenue.round())}',
+                ref.watch(brandProvider).money(row.revenue.round()),
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,

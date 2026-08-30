@@ -28,6 +28,23 @@ extension MoneyFormat on BrandConfig {
   String moneyCompact(num value) =>
       '$currencySymbol${NumberFormat.compact(locale: locale).format(value)}';
 
+  /// `₹1.2L` past a lakh, `₹24,680` below it, `₹450` under a thousand.
+  String moneyLakh(num value) => '$currencySymbol${countLakh(value)}';
+
+  /// [moneyLakh] without the symbol.
+  ///
+  /// Deliberately hand-rolled rather than `NumberFormat.compact`: the
+  /// threshold and the one decimal place are a display decision the dashboard
+  /// cards had already made and agreed on, and `compact` renders `1.2L` in
+  /// some intl versions and `100K` in others. This keeps what the cards
+  /// already showed while giving the rule one home — it was three byte-identical
+  /// private copies before.
+  String countLakh(num value) {
+    if (value >= 100000) return '${(value / 100000).toStringAsFixed(1)}L';
+    if (value >= 1000) return count(value.round());
+    return value.toStringAsFixed(0);
+  }
+
   /// Grouped number without the currency symbol — piece counts, quantities.
   String count(num value) => _format(0).format(value);
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:milano_orders/database/app_database.dart';
 import 'package:milano_orders/widgets/product_qty_row.dart';
@@ -12,17 +13,21 @@ void main() {
     VoidCallback? onIncrementHold,
     VoidCallback? onDecrementHold,
   }) {
-    return MaterialApp(
-      home: Scaffold(
-        body: ProductQtyRow(
-          product: product,
-          qty: qty,
-          price: 10,
-          onIncrement: () {},
-          onDecrement: () {},
-          onIncrementHold: onIncrementHold,
-          onDecrementHold: onDecrementHold,
-          onQtySet: onQtySet,
+    // ProductQtyRow reads the currency symbol and digit grouping from
+    // brandProvider, so it needs a scope even though nothing here is stateful.
+    return ProviderScope(
+      child: MaterialApp(
+        home: Scaffold(
+          body: ProductQtyRow(
+            product: product,
+            qty: qty,
+            price: 10,
+            onIncrement: () {},
+            onDecrement: () {},
+            onIncrementHold: onIncrementHold,
+            onDecrementHold: onDecrementHold,
+            onQtySet: onQtySet,
+          ),
         ),
       ),
     );

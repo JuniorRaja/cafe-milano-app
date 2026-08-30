@@ -5,12 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../utils/haptics.dart';
-import 'package:intl/intl.dart';
 import '../app.dart';
 import '../database/app_database.dart';
 import 'letter_avatar.dart';
+import '../utils/money.dart';
+import '../theme/brand_config.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ProductQtyRow extends StatelessWidget {
+class ProductQtyRow extends ConsumerWidget {
   const ProductQtyRow({
     super.key,
     required this.product,
@@ -33,12 +35,13 @@ class ProductQtyRow extends StatelessWidget {
   final ValueChanged<int>? onQtySet;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final brand = ref.watch(brandProvider);
     final hasPrce = price != null;
     final lineTotal = hasPrce ? qty * price! : 0.0;
     final unitLabel = product.unit != null ? ' / ${product.unit}' : '';
     final priceLabel = hasPrce
-        ? '₹${NumberFormat('#,##0.##').format(price)}$unitLabel'
+        ? '${brand.moneyTrim(price!)}$unitLabel'
         : 'Price not set';
 
     return Opacity(
@@ -75,7 +78,7 @@ class ProductQtyRow extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     hasPrce
-                        ? '$priceLabel  ·  ₹${NumberFormat('#,##0.##').format(lineTotal)}'
+                        ? '$priceLabel  ·  ${brand.moneyTrim(lineTotal)}'
                         : 'Price not set',
                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),

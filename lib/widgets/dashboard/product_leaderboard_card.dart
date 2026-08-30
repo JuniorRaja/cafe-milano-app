@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import '../../app.dart';
 import '../../models/dashboard_models.dart';
 import '../../providers/dashboard_provider.dart';
+import '../../utils/money.dart';
+import '../../theme/brand_config.dart';
 
 class ProductLeaderboardCard extends ConsumerWidget {
   const ProductLeaderboardCard({super.key});
@@ -158,13 +159,14 @@ class ProductLeaderboardCard extends ConsumerWidget {
   }
 }
 
-class _ProductRow extends StatelessWidget {
+class _ProductRow extends ConsumerWidget {
   const _ProductRow({required this.rank, required this.row});
   final int rank;
   final ProductLeaderRow row;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final brand = ref.watch(brandProvider);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 7),
       child: Row(
@@ -200,7 +202,7 @@ class _ProductRow extends StatelessWidget {
           SizedBox(
             width: 60,
             child: Text(
-              '₹${NumberFormat.compact().format(row.revenue)}',
+              brand.moneyLakh(row.revenue),
               style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
               textAlign: TextAlign.right,
             ),
@@ -209,7 +211,7 @@ class _ProductRow extends StatelessWidget {
           SizedBox(
             width: 40,
             child: Text(
-              NumberFormat.compact().format(row.qty),
+              brand.countLakh(row.qty),
               style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
               textAlign: TextAlign.right,
             ),

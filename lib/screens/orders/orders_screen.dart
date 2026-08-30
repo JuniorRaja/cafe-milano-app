@@ -15,6 +15,8 @@ import '../../widgets/date_selector.dart';
 import '../../widgets/staggered_fade_in.dart';
 import '../ledger/record_payment_sheet.dart';
 import '../../widgets/shell/app_shell.dart';
+import '../../utils/money.dart';
+import '../../theme/brand_config.dart';
 
 class OrdersScreen extends ConsumerStatefulWidget {
   const OrdersScreen({super.key});
@@ -167,7 +169,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                                             color: Colors.white, fontSize: 12),
                                       ),
                                       Text(
-                                        '₹${NumberFormat('#,##0.##').format(grandTotal)}',
+                                        ref.watch(brandProvider).moneyTrim(grandTotal),
                                         style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 18,
@@ -253,17 +255,18 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     Map<int, Shop> shopMap,
     DateTime date,
   ) async {
+    final brand = ref.read(brandProvider);
     final dateLabel = DateFormat('dd MMM yyyy').format(date);
     final buf = StringBuffer();
     buf.writeln('🧾 Bills — $dateLabel');
     buf.writeln();
     for (final s in summaries) {
       final name = shopMap[s.order.shopId]?.name ?? 'Unknown';
-      buf.writeln('🏪 $name — ₹${NumberFormat('#,##0').format(s.total)}');
+      buf.writeln('🏪 $name — ${brand.money(s.total)}');
     }
     buf.writeln();
     final grand = summaries.fold<double>(0, (a, b) => a + b.total);
-    buf.writeln('GRAND TOTAL: ₹${NumberFormat('#,##0').format(grand)}');
+    buf.writeln('GRAND TOTAL: ${brand.money(grand)}');
     await Share.share(buf.toString().trim());
   }
 
@@ -273,6 +276,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     Map<int, Product> productMap,
     DateTime date,
   ) {
+    final brand = ref.read(brandProvider);
     final dateLabel = DateFormat('dd MMM yyyy').format(date);
     final buf = StringBuffer();
     buf.writeln('🧾 Bill — $shopName');
@@ -291,10 +295,10 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
         final lineTotal = line.qty * line.unitPrice;
         total += lineTotal;
         buf.writeln(
-            '· $name × ${line.qty} — ₹${NumberFormat('#,##0').format(lineTotal)}');
+            '· $name × ${line.qty} — ${brand.money(lineTotal)}');
       }
       buf.writeln();
-      buf.writeln('TOTAL: ₹${NumberFormat('#,##0').format(total)}');
+      buf.writeln('TOTAL: ${brand.money(total)}');
     } else {
       buf.writeln('No items');
     }
@@ -302,7 +306,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   }
 }
 
-class _OrderCard extends StatelessWidget {
+class _OrderCard extends ConsumerWidget {
   const _OrderCard({
     required this.summary,
     required this.shop,
@@ -329,7 +333,8 @@ class _OrderCard extends StatelessWidget {
   final VoidCallback onShare;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final brand = ref.watch(brandProvider);
     final isConfirmed = summary.order.isConfirmed;
     final due = billDue;
     final settled = due == null || due.status == BillStatus.paid;
@@ -383,7 +388,7 @@ class _OrderCard extends StatelessWidget {
                         Row(
                           children: [
                             Text(
-                              '₹${NumberFormat('#,##0').format(summary.total)}',
+                              brand.money(summary.total),
                               style: const TextStyle(
                                   fontWeight: FontWeight.bold, fontSize: 15),
                             ),
@@ -466,6 +471,7 @@ class _BillingDetail extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final brand = ref.watch(brandProvider);
     final owlAsync = ref.watch(orderWithLinesProvider(orderId));
     return owlAsync.when(
       data: (data) {
@@ -559,7 +565,7 @@ class _BillingDetail extends ConsumerWidget {
                       SizedBox(
                         width: 64,
                         child: Text(
-                          '₹${NumberFormat('#,##0.##').format(line.unitPrice)}',
+                          brand.moneyTrim(line.unitPrice),
                           textAlign: TextAlign.right,
                           style: const TextStyle(fontSize: 14),
                         ),
@@ -567,7 +573,7 @@ class _BillingDetail extends ConsumerWidget {
                       SizedBox(
                         width: 72,
                         child: Text(
-                          '₹${NumberFormat('#,##0').format(lineTotal)}',
+                          brand.money(lineTotal),
                           textAlign: TextAlign.right,
                           style: const TextStyle(
                               fontSize: 14,
@@ -593,7 +599,7 @@ class _BillingDetail extends ConsumerWidget {
                     ),
                     const Spacer(),
                     Text(
-                      '₹${NumberFormat('#,##0').format(total)}',
+                      brand.money(total),
                       style: const TextStyle(
                         color: kBrandBrown,
                         fontWeight: FontWeight.bold,

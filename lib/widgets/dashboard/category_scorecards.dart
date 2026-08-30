@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import '../../app.dart';
 import '../../models/dashboard_models.dart';
 import '../../providers/dashboard_provider.dart';
 import 'category_sparkline.dart';
+import '../../utils/money.dart';
+import '../../theme/brand_config.dart';
 
 class CategoryScorecardsWidget extends ConsumerWidget {
   const CategoryScorecardsWidget({super.key});
@@ -131,12 +132,13 @@ class CategoryScorecardsWidget extends ConsumerWidget {
   }
 }
 
-class _ScorecardCard extends StatelessWidget {
+class _ScorecardCard extends ConsumerWidget {
   const _ScorecardCard({required this.scorecard});
   final CategoryScorecard scorecard;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final brand = ref.watch(brandProvider);
     return Container(
       width: 160,
       padding: const EdgeInsets.all(14),
@@ -171,7 +173,7 @@ class _ScorecardCard extends StatelessWidget {
 
           // Revenue
           Text(
-            '₹${_formatRevenue(scorecard.revenue)}',
+            brand.moneyLakh(scorecard.revenue),
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w800,
@@ -182,7 +184,7 @@ class _ScorecardCard extends StatelessWidget {
 
           // Volume + Reach
           Text(
-            '${NumberFormat('#,###').format(scorecard.pieces)} pcs · ${scorecard.shopCount} shops',
+            '${brand.count(scorecard.pieces)} pcs · ${scorecard.shopCount} shops',
             style: TextStyle(
               fontSize: 10,
               color: Colors.grey.shade600,
@@ -229,12 +231,4 @@ class _ScorecardCard extends StatelessWidget {
     );
   }
 
-  String _formatRevenue(double amount) {
-    if (amount >= 100000) {
-      return '${(amount / 100000).toStringAsFixed(1)}L';
-    } else if (amount >= 1000) {
-      return NumberFormat('#,##,###').format(amount.round());
-    }
-    return amount.toStringAsFixed(0);
-  }
 }

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:intl/intl.dart';
 import '../../app.dart';
 import '../../models/dashboard_models.dart';
 import '../../providers/dashboard_provider.dart';
+import '../../utils/money.dart';
+import '../../theme/brand_config.dart';
 
 // Consistent colour palette for category slices
 const _kSliceColors = [
@@ -25,6 +26,7 @@ class RevenueMixCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final brand = ref.watch(brandProvider);
     final mixAsync = ref.watch(categoryMixProvider);
 
     return RepaintBoundary(
@@ -57,7 +59,7 @@ class RevenueMixCard extends ConsumerWidget {
             mixAsync.when(
               data: (rows) {
                 if (rows.isEmpty) return _emptyState();
-                return _buildContent(rows);
+                return _buildContent(brand, rows);
               },
               loading: () => const SizedBox(
                 height: 200,
@@ -76,7 +78,7 @@ class RevenueMixCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildContent(List<CategoryMixRow> rows) {
+  Widget _buildContent(BrandConfig brand, List<CategoryMixRow> rows) {
     final totalRevenue = rows.fold<double>(0, (sum, r) => sum + r.revenue);
 
     return Column(
@@ -108,7 +110,7 @@ class RevenueMixCard extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '₹${_formatCurrency(totalRevenue)}',
+                    brand.moneyLakh(totalRevenue),
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
@@ -162,17 +164,9 @@ class RevenueMixCard extends ConsumerWidget {
     );
   }
 
-  static String _formatCurrency(double amount) {
-    if (amount >= 100000) {
-      return '${(amount / 100000).toStringAsFixed(1)}L';
-    } else if (amount >= 1000) {
-      return NumberFormat('#,##,###').format(amount.round());
-    }
-    return amount.toStringAsFixed(0);
-  }
 }
 
-class _MixRow extends StatelessWidget {
+class _MixRow extends ConsumerWidget {
   const _MixRow({required this.rank, required this.color, required this.row});
 
   final int rank;
@@ -180,7 +174,7 @@ class _MixRow extends StatelessWidget {
   final CategoryMixRow row;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -205,7 +199,7 @@ class _MixRow extends StatelessWidget {
           ),
           // Revenue
           Text(
-            '₹${NumberFormat('#,##,###').format(row.revenue.round())}',
+            ref.watch(brandProvider).money(row.revenue.round()),
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
           ),
           const SizedBox(width: 8),

@@ -10,6 +10,8 @@ import '../../providers/database_provider.dart';
 import '../../providers/pending_writes.dart';
 import '../../utils/haptics.dart';
 import '../../widgets/product_qty_row.dart';
+import '../../utils/money.dart';
+import '../../theme/brand_config.dart';
 
 class OrderEntryScreen extends ConsumerStatefulWidget {
   const OrderEntryScreen({super.key, required this.shopId, this.date});
@@ -533,7 +535,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          '₹${NumberFormat('#,##0.##').format(totalAmount)}',
+                          ref.watch(brandProvider).moneyTrim(totalAmount),
                           style: const TextStyle(
                               fontSize: 18, fontWeight: FontWeight.bold),
                         ),

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../app.dart';
 import '../database/app_database.dart';
 import 'letter_avatar.dart';
+import '../utils/money.dart';
+import '../theme/brand_config.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ShopOrderCard extends StatelessWidget {
+class ShopOrderCard extends ConsumerWidget {
   const ShopOrderCard({
     super.key,
     required this.shop,
@@ -17,7 +19,7 @@ class ShopOrderCard extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final hasOrder = summary != null;
     final isConfirmed = summary?.order.isConfirmed ?? false;
 
@@ -77,7 +79,7 @@ class ShopOrderCard extends StatelessWidget {
                     const SizedBox(width: 6),
                     _BrandChip(
                         label:
-                            '₹${NumberFormat('#,##0').format(summary!.total)}'),
+                            ref.watch(brandProvider).money(summary!.total)),
                   ],
                 ),
               ] else ...[
