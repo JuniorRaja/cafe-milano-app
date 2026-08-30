@@ -4,8 +4,8 @@ Read this file first. It gives the rules. The other docs give the facts.
 
 Update this file in the same commit as any change to a rule below.
 
-> Last verified against `1.10.0+14` plus 10b on `release/1.11.0-navigation`,
-> schema v6, on 2026-08-29.
+> Last verified against `1.10.0+14` plus the 1.11 work on
+> `release/1.11.0-navigation`, schema v6, on 2026-08-30.
 
 ---
 
@@ -79,7 +79,8 @@ The read path is already correct. Providers wrap the DAO `watch*` queries. Scree
 4. Keep `dev/` in `.gitignore`. Never commit real business data.
 5. Never disable `tool/check_tokens.sh`. The violation count can only decrease.
 6. Never write a brand name into the UI. Read it from `BrandConfig`.
-7. Format all money with `lib/utils/money.dart`. Nothing else formats currency.
+7. Format all money with `lib/utils/money.dart`. Never write `₹` or a
+   `NumberFormat` pattern — the grouping is Indian and comes from `BrandConfig`.
 8. Do not change a provider signature. This is a decision, not a refactor.
 9. Do not add roles, permissions, or auth code before doc 14.
 10. Use the `AppRoutes` constants, and its builders for anything with a `:param`.
@@ -89,7 +90,10 @@ The read path is already correct. Providers wrap the DAO `watch*` queries. Scree
 13. One `AppLifecycleListener` for the app. It is in `AppLifecycleScope`.
 14. Read the wall clock through `package:clock` when the answer is *what day is it*.
 15. Do no work in `main()` before `runApp`. Bootstrap belongs in a provider.
-16. Update this file when a rule above changes.
+16. One confirm dialog: `confirmDestructive`. Never hand-roll an `AlertDialog`
+    with Cancel and a destructive action.
+17. Never animate inside `itemBuilder`. Fade the list, not the row.
+18. Update this file when a rule above changes.
 
 ---
 

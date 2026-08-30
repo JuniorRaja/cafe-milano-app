@@ -142,7 +142,7 @@ finished. Not shipped, and not to be treated as shipped.
 | — | Stop seeding default categories | `1.9.2+13` | fix | — | Done |
 | [10a](features/10a-design-system.md) + [18](features/18-foundation-guardrails.md) | New look, faster, quantities never lost | `1.10.0+14` | feature | — | Done |
 | [10b](features/10b-navigation.md) | Everything reachable in 2 taps | `1.11.0+15` | feature | — | **Built** — on `release/1.11.0-navigation`, awaiting the device pass |
-| [10c](features/10c-screen-restyle.md) | Every screen rebuilt, real error messages | `1.12.0+16` | feature | — | Ready |
+| [10c](features/10c-screen-restyle.md) | Every screen rebuilt, real error messages | `1.12.0+16` | feature | — | Ready — scope reduced, see *Standing risks* |
 | [12](features/12-dashboard-tabs.md) | Dashboard in tabs, updating live | `1.13.0+17` | feature | — | Outline |
 | [13](features/13-distribution-docs.md) + [14a](features/14a-repository-seam.md) | Download page, and the cleanup 2.0 needs | `1.13.1+18` | fix | — | 13 Outline, 14a Ready |
 | [14](features/14-supabase-auth.md) | Cloud data, login, second device | `2.0.0+19` | major | port v6 | Outline |
@@ -274,10 +274,16 @@ against a real v4 install before shipping.
   the phone is out — [10b](features/10b-navigation.md) rewrote the router and **deleted
   the splash route entirely**, which is exactly the work cold start would notice. That
   measurement is now overdue rather than merely nice to have.
-- **10b is built but ungated.** Six of its success criteria need the phone and are
-  listed in that doc's *Build notes*. `pubspec.yaml` is deliberately still
-  `1.10.0+14`, so merging the branch as it stands would not cut a release — bump to
-  `1.11.0+15` as the last commit once the device pass is done.
+- **10b is built but ungated, and the owner revised it on 2026-08-30.** Five slots
+  instead of four, no centre FAB, a Finances tab, and the app opens on the Overview.
+  See that doc's *Revised by the owner* table. Its remaining criteria need the phone
+  and are listed in *Build notes*. `pubspec.yaml` is deliberately still `1.10.0+14`,
+  so merging the branch as it stands would not cut a release — bump to `1.11.0+15`
+  as the last commit once the device pass is done.
+- **Some of 10c landed early.** The 1.11 branch rebuilt the three master lists on
+  the kit and routed every currency site through `money.dart`, because the owner hit
+  both as live defects. `check_tokens.sh` is at **354**, from 396. 10c's scope
+  shrinks accordingly; it is still the release that sets `SCREENS_BLOCKING=1`.
 - **Raleway has a smaller x-height than Quicksand.** Every `fontSize:` in the app now
   reads slightly lighter than the value implies. [10c](features/10c-screen-restyle.md)
   touches all 198 of them; raise weight before size.

@@ -41,7 +41,7 @@ flutter analyze
 ./tool/check_tokens.sh
 ```
 
-13 test files, 206 tests. They cover the code that carries money — FIFO allocation, the
+15 test files, 229 tests. They cover the code that carries money — FIFO allocation, the
 quantity wheel and its clamp, backup round-trips, DAO behavior, the migration chain —
 plus the two things [10b](features/10b-navigation.md) added that break silently:
 
@@ -49,8 +49,12 @@ plus the two things [10b](features/10b-navigation.md) added that break silently:
   link is not noticed for a week, so it is not left to clicking.
 - `lifecycle_test.dart` — the midnight rollover, driven by advancing `package:clock`
   rather than by waiting until midnight, and the bootstrap error screen.
-- `shell_test.dart` and `settings_test.dart` — the drawer, the quick actions, the shop
-  picker and the settings search.
+- `shell_test.dart` and `settings_test.dart` — the drawer, the shop picker, recording
+  a payment end to end, and the settings search.
+- `master_lists_test.dart` — that Shops, Products and Categories behave as one
+  screen. "Consistent" is a claim that rots silently without a test.
+- `money_test.dart` — Indian digit grouping, and that a different brand changes both
+  symbol and grouping.
 
 Four notes for anyone adding widget tests here. Each of these cost real time to
 diagnose once.

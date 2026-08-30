@@ -374,6 +374,24 @@ away there.
   halves rewrite `app.dart` and `main.dart`, and splitting them means writing the shell
   twice.
 
+## Revised by the owner — 2026-08-30
+
+Four changes taken after the build, which supersede the decisions above.
+They are recorded here rather than edited into the body, so the reasoning that
+was live at the time stays readable.
+
+| Was | Now | Why |
+|---|---|---|
+| 4-slot bar, centre quick-action FAB | **5 slots, no FAB** — Overview · Orders · Kitchen · Billing · Finances | The FAB spent the most prominent control in the app on a three-item menu. Each action has an obvious home: a new order is a tap on a shop in Orders, a payment is the FAB on Finances, a new shop is the FAB on the shop list |
+| App opens on the shop list | **Opens on Overview** | Starting on data entry asked "what are you typing today" before answering "how is the business" |
+| Outstanding is a drawer entry | **Finances is a tab** — outstanding, 30-day billed against collected, who owes, record payment | 10b made the figure visible; this gives it somewhere to live |
+| Masters in Settings *and* the drawer | **Drawer only** | Reverses the 2026-08-29 call. Two doors to one room is how "Profile" became a filing cabinet |
+
+`/` and `/orders` were renamed with it: `/` was the shop list and `/orders` was
+billing, which is the opposite of what either name suggests. `/` is Overview,
+`/orders` is the day's orders, `/billing` is billing.
+`quick_action_sheet.dart` is deleted rather than left unused.
+
 ## Build notes — 2026-08-29
 
 Built on `release/1.11.0-navigation`. `flutter analyze` clean, `flutter test` **203
