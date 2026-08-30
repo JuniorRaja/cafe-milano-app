@@ -10,6 +10,7 @@ library;
 export '../../theme/tokens.dart';
 export 'app_button.dart';
 export 'app_card.dart';
+export 'confirm_dialog.dart';
 export 'app_error_view.dart';
 export 'app_scaffold.dart';
 export 'app_skeleton.dart';

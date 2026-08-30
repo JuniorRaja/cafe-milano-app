@@ -13,6 +13,7 @@ import '../../services/ledger_statement_service.dart';
 import 'record_payment_sheet.dart';
 import '../../utils/money.dart';
 import '../../theme/brand_config.dart';
+import '../../widgets/ui/ui.dart';
 
 final _dateFmt = DateFormat('dd MMM yyyy');
 
@@ -187,29 +188,16 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
   // are derived, so re-pointing them safely means recomputing FIFO anyway.
   // Delete and re-record is the correction path.
   Future<void> _confirmDeletePayment(LedgerEntry entry) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Payment'),
-        content: Text(
-          'Delete the ${ref.read(brandProvider).moneyDecimal(entry.amount)} payment dated '
-          '${_dateFmt.format(entry.date)}?\n\n'
-          'Any bills it settled go back to unpaid. To correct a payment, '
+    final confirmed = await confirmDestructive(
+      context,
+      title: 'Delete Payment',
+      message: 'Delete the '
+          '${ref.read(brandProvider).moneyDecimal(entry.amount)} payment '
+          'dated ${_dateFmt.format(entry.date)}?',
+      detail: 'Any bills it settled go back to unpaid. To correct a payment, '
           'delete it and record it again.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
     );
-    if (confirmed == true) {
+    if (confirmed) {
       await ref.read(databaseProvider).ledgerDao.deletePayment(entry.paymentId!);
     }
   }

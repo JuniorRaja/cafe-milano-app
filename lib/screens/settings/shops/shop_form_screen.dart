@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../database/app_database.dart';
 import '../../../providers/database_provider.dart';
+import '../../../widgets/ui/ui.dart';
 
 class ShopFormScreen extends ConsumerStatefulWidget {
   const ShopFormScreen({super.key, this.shopId});
@@ -95,24 +96,12 @@ class _ShopFormScreenState extends ConsumerState<ShopFormScreen> {
       );
       return;
     }
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Shop'),
-        content: const Text('Delete this shop permanently?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final confirmed = await confirmDestructive(
+      context,
+      title: 'Delete Shop',
+      message: 'Delete this shop permanently?',
     );
-    if (confirmed == true && mounted) {
+    if (confirmed && mounted) {
       await ref.read(databaseProvider).shopDao.deleteShop(widget.shopId!);
       if (mounted) context.pop();
     }

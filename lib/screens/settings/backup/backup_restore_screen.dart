@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app.dart';
 import '../../../providers/database_provider.dart';
 import '../../../services/backup_service.dart';
+import '../../../widgets/ui/ui.dart';
 
 class BackupRestoreScreen extends ConsumerStatefulWidget {
   const BackupRestoreScreen({super.key});
@@ -38,28 +39,16 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
     final path = result?.files.single.path;
     if (path == null || !mounted) return;
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Restore backup?'),
-        content: const Text(
-          'This will permanently erase all current data on this device '
-          '(shops, products, prices, orders, business info) and replace it '
-          'with the contents of the selected backup. This cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Erase & Restore'),
-          ),
-        ],
-      ),
+    final confirmed = await confirmDestructive(
+      context,
+      title: 'Restore backup?',
+      message: 'This will permanently erase all current data on this device '
+          'and replace it with the contents of the selected backup.',
+      detail: 'Shops, products, prices, orders and business info. This cannot '
+          'be undone.',
+      confirmLabel: 'Erase & Restore',
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
 
     setState(() => _busy = true);
     try {

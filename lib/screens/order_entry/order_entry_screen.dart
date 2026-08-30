@@ -12,6 +12,7 @@ import '../../utils/haptics.dart';
 import '../../widgets/product_qty_row.dart';
 import '../../utils/money.dart';
 import '../../theme/brand_config.dart';
+import '../../widgets/ui/ui.dart';
 
 class OrderEntryScreen extends ConsumerStatefulWidget {
   const OrderEntryScreen({super.key, required this.shopId, this.date});
@@ -173,24 +174,14 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
     _debounce?.cancel();
     final totalQty = _qtys.values.fold(0, (a, b) => a + b);
     if (totalQty == 0) {
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('All quantities are 0'),
-          content: const Text('Confirm this order with no items?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Confirm'),
-            ),
-          ],
-        ),
+      final ok = await confirmDestructive(
+        context,
+        title: 'All quantities are 0',
+        message: 'Confirm this order with no items?',
+        confirmLabel: 'Confirm',
+        destructive: false,
       );
-      if (ok != true || !mounted) return;
+      if (!ok || !mounted) return;
     }
     await _save();
     if (!mounted) return;
@@ -231,26 +222,14 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
   Future<void> _loadStandingOrder() async {
     final hasEntries = _qtys.values.any((q) => q > 0);
     if (hasEntries) {
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Load Standing Order'),
-          content: const Text(
-            'Replace current entries with standing order quantities? This cannot be undone.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Confirm'),
-            ),
-          ],
-        ),
+      final ok = await confirmDestructive(
+        context,
+        title: 'Load Standing Order',
+        message: 'Replace current entries with standing order quantities?',
+        detail: 'This cannot be undone.',
+        confirmLabel: 'Replace',
       );
-      if (ok != true || !mounted) return;
+      if (!ok || !mounted) return;
     }
     final db = ref.read(databaseProvider);
     final sos =

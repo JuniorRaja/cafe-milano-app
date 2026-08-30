@@ -10,6 +10,7 @@ import '../../../database/app_database.dart';
 import '../../../providers/category_provider.dart';
 import '../../../providers/database_provider.dart';
 import '../../../services/category_emoji.dart';
+import '../../../widgets/ui/ui.dart';
 
 class ProductFormScreen extends ConsumerStatefulWidget {
   const ProductFormScreen({super.key, this.productId});
@@ -119,24 +120,12 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       );
       return;
     }
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Product'),
-        content: const Text('Delete this product permanently?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final confirmed = await confirmDestructive(
+      context,
+      title: 'Delete Product',
+      message: 'Delete this product permanently?',
     );
-    if (confirmed == true && mounted) {
+    if (confirmed && mounted) {
       await ref.read(databaseProvider).productDao.deleteProduct(widget.productId!);
       if (mounted) context.pop();
     }

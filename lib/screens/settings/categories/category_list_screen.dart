@@ -4,6 +4,7 @@ import '../../../database/app_database.dart';
 import '../../../providers/category_provider.dart';
 import '../../../providers/database_provider.dart';
 import '../../../services/category_emoji.dart';
+import '../../../widgets/ui/ui.dart';
 
 class CategoryListScreen extends ConsumerWidget {
   const CategoryListScreen({super.key});
@@ -119,28 +120,16 @@ class CategoryListScreen extends ConsumerWidget {
     final db = ref.read(databaseProvider);
     final count = await db.categoryDao.countProductsForCategory(cat.id);
     if (!context.mounted) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Category'),
-        content: Text(
-          count > 0
-              ? '$count ${count == 1 ? "product" : "products"} will become uncategorised. Continue?'
-              : 'Delete "${cat.name}"?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final confirmed = await confirmDestructive(
+      context,
+      title: 'Delete Category',
+      message: 'Delete "${cat.name}"?',
+      detail: count == 0
+          ? null
+          : '$count ${count == 1 ? 'product' : 'products'} will become '
+              'uncategorised.',
     );
-    if (confirmed == true && context.mounted) {
+    if (confirmed && context.mounted) {
       await ref.read(databaseProvider).categoryDao.deleteCategory(cat.id);
     }
   }
