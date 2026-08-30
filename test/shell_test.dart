@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:drift/native.dart';
 import 'package:milano_orders/database/app_database.dart';
+import 'package:milano_orders/providers/database_provider.dart';
+import 'package:milano_orders/providers/date_provider.dart';
 import 'package:milano_orders/providers/ledger_provider.dart';
 import 'package:milano_orders/providers/shop_provider.dart';
 import 'package:milano_orders/theme/app_theme.dart';
@@ -175,6 +178,163 @@ void main() {
       expect(landed, isTrue);
       expect(find.text('new shop'), findsOneWidget);
       expect(find.text('Record payment'), findsNothing);
+    });
+  });
+
+  group('quick actions end to end', () {
+    // The two actions that do real work, driven all the way through to the row
+    // that lands in the database. A widget appearing is not the unit of proof
+    // here — "Record payment" shipped broken once already, with the sheet
+    // popping itself and then testing `context.mounted` on its own dead
+    // context, so nothing happened and nothing complained.
+    //
+    // `databaseProvider` is real so the write is real. `activeShopsProvider` is
+    // stubbed only because the picker shows an AppSkeleton while a real query
+    // is in flight, and a skeleton pulses forever — `pumpAndSettle` would sit
+    // on it until the test timed out. The shop list is not what is under test.
+    late AppDatabase db;
+    late int shopId;
+
+    setUp(() async {
+      db = AppDatabase.forTesting(NativeDatabase.memory());
+      shopId = await db.shopDao.upsertShop(
+        ShopsCompanion.insert(name: 'Hotel Raj'),
+      );
+    });
+    tearDown(() => db.close());
+
+    Future<void> pumpShell(WidgetTester tester, {DateTime? selectedDate}) async {
+      await tester.binding.setSurfaceSize(const Size(420, 1200));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            activeShopsProvider.overrideWith(
+              (ref) => Stream.value([
+                Shop(
+                  id: shopId,
+                  name: 'Hotel Raj',
+                  area: null,
+                  phone: null,
+                  isActive: true,
+                ),
+              ]),
+            ),
+            if (selectedDate != null)
+              selectedDateProvider.overrideWith((ref) => selectedDate),
+          ],
+          child: MaterialApp.router(
+            theme: buildAppTheme(BrandConfig.milano),
+            routerConfig: GoRouter(
+              initialLocation: '/',
+              routes: [
+                GoRoute(
+                  path: '/',
+                  builder: (_, _) => const Scaffold(
+                    floatingActionButton: QuickActionButton(),
+                  ),
+                ),
+                GoRoute(
+                  path: '/order/:shopId',
+                  builder: (_, state) => Scaffold(
+                    body: Text(
+                      'order ${state.pathParameters['shopId']} '
+                      'on ${state.uri.queryParameters['date']}',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> chooseAction(WidgetTester tester, String label) async {
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(label));
+      await tester.pumpAndSettle();
+    }
+
+    /// Tears the tree down inside the test, then lets Drift's cleanup run.
+    ///
+    /// Disposing the ProviderScope cancels the Drift query streams, and Drift
+    /// schedules a zero-duration Timer to close its stream store. The
+    /// end-of-test invariant check sees that timer still pending and fails —
+    /// and the resulting shutdown deadlocks the entire test file, not just the
+    /// failing test, which is why this is worth the ceremony.
+    ///
+    /// The pump needs a real duration: a bare `pump()` renders a frame without
+    /// advancing the fake clock, so a zero-duration timer never comes due.
+    Future<void> drain(WidgetTester tester) async {
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(milliseconds: 10));
+    }
+
+    testWidgets('Record payment writes a payment against the chosen shop',
+        (tester) async {
+      await pumpShell(tester);
+
+      await chooseAction(tester, 'Record payment');
+
+      // The picker opened rather than the flow dying silently.
+      expect(find.text('All shops'), findsOneWidget);
+      await tester.tap(find.text('Hotel Raj'));
+      await tester.pumpAndSettle();
+
+      // And the payment sheet opened behind it. This is the exact step that
+      // used to be skipped.
+      expect(find.widgetWithText(FilledButton, 'Save'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextFormField).first, '450');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+
+      // Not pumpAndSettle: the Save button swaps in a CircularProgressIndicator
+      // while the write runs, and that animation never settles.
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+
+      final payments = await db.select(db.payments).get();
+      expect(payments, hasLength(1));
+      expect(payments.single.shopId, shopId);
+      expect(payments.single.amount, closeTo(450, 0.001));
+      expect(payments.single.mode, PaymentMode.cash.name);
+
+      await drain(tester);
+    });
+
+    testWidgets('dismissing the shop picker records nothing', (tester) async {
+      await pumpShell(tester);
+      await chooseAction(tester, 'Record payment');
+
+      // Back out of the picker rather than choosing.
+      Navigator.of(tester.element(find.text('All shops'))).pop();
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(FilledButton, 'Save'), findsNothing);
+      expect(await db.select(db.payments).get(), isEmpty);
+
+      await drain(tester);
+    });
+
+    testWidgets('New order opens order entry on the selected date, not today',
+        (tester) async {
+      // Paging to another day and then creating an order for today is the bug
+      // that only surfaces in the ledger weeks later.
+      final selected = DateTime(2026, 9, 4);
+      await pumpShell(tester, selectedDate: selected);
+
+      await chooseAction(tester, 'New order');
+      await tester.tap(find.text('Hotel Raj'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('order $shopId on 2026-09-04'), findsOneWidget);
+
+      await drain(tester);
     });
   });
 

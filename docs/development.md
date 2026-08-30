@@ -41,7 +41,7 @@ flutter analyze
 ./tool/check_tokens.sh
 ```
 
-13 test files, 203 tests. They cover the code that carries money — FIFO allocation, the
+13 test files, 206 tests. They cover the code that carries money — FIFO allocation, the
 quantity wheel and its clamp, backup round-trips, DAO behavior, the migration chain —
 plus the two things [10b](features/10b-navigation.md) added that break silently:
 
@@ -52,11 +52,25 @@ plus the two things [10b](features/10b-navigation.md) added that break silently:
 - `shell_test.dart` and `settings_test.dart` — the drawer, the quick actions, the shop
   picker and the settings search.
 
-Two notes for anyone adding widget tests here. The default 800x600 test surface is
-shorter than any real phone, so a lazily-built list drops its lower rows and
-`find.text` reports them missing — `setSurfaceSize` to something phone-shaped. And
-`SharedPreferences.setMockInitialValues` plus `PackageInfo.setMockInitialValues` are
-needed before anything that reads either.
+Four notes for anyone adding widget tests here. Each of these cost real time to
+diagnose once.
+
+- The default 800x600 surface is shorter than any real phone, so a lazily-built list
+  drops its lower rows and `find.text` reports them missing. `setSurfaceSize` to
+  something phone-shaped.
+- `SharedPreferences.setMockInitialValues` and `PackageInfo.setMockInitialValues` are
+  needed before anything that reads either.
+- **`pumpAndSettle` never returns while an indeterminate animation is on screen** —
+  `AppSkeleton` pulses forever and so does the `CircularProgressIndicator` inside a
+  busy button. Either stub the provider so the skeleton is skipped, or step with
+  `pump(Duration(...))` instead.
+- **A test using a real `AppDatabase` must tear its own tree down.** Disposing the
+  `ProviderScope` cancels Drift's query streams, and Drift schedules a zero-duration
+  Timer to close its stream store; the end-of-test invariant check sees it pending and
+  fails. Worse, the shutdown then deadlocks the *whole file*, so one such test makes
+  every test around it look like it hangs. `pumpWidget(SizedBox())` then
+  `pump(Duration(milliseconds: 10))` — the duration matters, a bare `pump()` renders a
+  frame without advancing the fake clock. See `drain()` in `test/shell_test.dart`.
 
 The UI needs no unit tests. Money arithmetic does, and so does anything whose failure
 is silent.
