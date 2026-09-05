@@ -9,6 +9,8 @@
 // drift futures do not advance under the widget-test fake clock, so database
 // work goes through `tester.runAsync`; and no `pumpAndSettle`, because the
 // loading spinner animates forever and never settles.
+import 'dart:async';
+
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -88,7 +90,11 @@ void main() {
     await pump(tester, at: AppRoutes.orders);
     expect(find.text('ORDERS'), findsOneWidget);
 
-    router.push(AppRoutes.orderEntryFor(shopId));
+    unawaited(router.push(AppRoutes.orderEntryFor(shopId)));
+    // Pump first so the route is built and `initState` fires, *then* give the
+    // real event loop a turn so `_init`'s drift futures complete. `io` alone
+    // runs the gap before the screen exists, which is why this needs both.
+    await tester.pump();
     await io(tester);
     expect(find.text('Test Shop'), findsOneWidget,
         reason: 'the order screen should have loaded');
@@ -136,7 +142,7 @@ void main() {
     );
     await io(tester);
 
-    router.push(AppRoutes.orderEntryFor(shopId));
+    unawaited(router.push(AppRoutes.orderEntryFor(shopId)));
     // No `runAsync`, so `_init` never completes and the screen stays in its
     // `_loading` branch — which carries the second back button, the one that is
     // easy to forget.
