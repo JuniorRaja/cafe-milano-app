@@ -251,6 +251,24 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
     _debounce = Timer(const Duration(milliseconds: 500), _save);
   }
 
+  /// Leaves this screen the way the user arrived.
+  ///
+  /// This used to jump to `/` — which is not a back at all. It goes to the
+  /// Overview branch, so leaving a shop landed on the Dashboard rather than on
+  /// the Orders tab the shop was opened from. It was also a hardcoded route
+  /// string, which AGENTS.md rule 10 forbids for exactly this reason.
+  ///
+  /// The fallback covers a cold deep link into `/order/5`, where there is no
+  /// stack to pop. Orders is where this screen is reached from, so that is
+  /// where an unpoppable one goes — never the Overview.
+  void _back() {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go(AppRoutes.orders);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -258,7 +276,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
         appBar: AppBar(
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            onPressed: () => context.go('/'),
+            onPressed: _back,
           ),
           title: const Text('Order Entry'),
         ),
@@ -286,7 +304,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/'),
+          onPressed: _back,
         ),
         titleSpacing: 0,
         title: Row(
