@@ -357,6 +357,54 @@ void main() {
       expect(find.text('Overdue'), findsOneWidget);
     });
 
+    // The Orders list carries eighteen of these a morning, so the word became a
+    // glyph. The word has to survive somewhere — see
+    // docs/features/10b-device-pass.md, D2.
+    testWidgets('StatusBadge.mark draws a glyph and keeps the word for a '
+        'screen reader', (tester) async {
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(
+        host(
+          const StatusBadge.mark(
+            icon: Icons.check_circle_rounded,
+            label: 'Confirmed',
+            tone: AppTone.positive,
+          ),
+        ),
+      );
+
+      expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+      expect(find.text('Confirmed'), findsNothing);
+      expect(find.bySemanticsLabel('Confirmed'), findsOneWidget);
+      handle.dispose();
+    });
+
+    testWidgets('ListRow puts a titleBadge beside the title, not past the '
+        'money', (tester) async {
+      await tester.pumpWidget(
+        host(
+          const ListRow(
+            title: 'Hotel Raj',
+            subtitle: 'Anna Nagar',
+            trailing: '\u20b9360',
+            titleBadge: StatusBadge.mark(
+              icon: Icons.check_circle_rounded,
+              label: 'Confirmed',
+              tone: AppTone.positive,
+            ),
+          ),
+        ),
+      );
+
+      // The mark sits between the title and the money, which is the whole
+      // point of the slot: money keeps a straight right-hand column.
+      final title = tester.getRect(find.text('Hotel Raj'));
+      final mark = tester.getRect(find.byIcon(Icons.check_circle_rounded));
+      final money = tester.getRect(find.text('\u20b9360'));
+      expect(mark.left, greaterThan(title.right - 1));
+      expect(money.left, greaterThan(mark.right));
+    });
+
     testWidgets('DeltaPill takes its tone from the sign, not the call site', (
       tester,
     ) async {

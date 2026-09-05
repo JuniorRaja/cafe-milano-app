@@ -13,12 +13,17 @@ import '../../theme/tokens.dart';
 /// Layout is deliberately fixed: leading, then title over subtitle, then an
 /// optional right-hand column of [trailing] over [trailingSubtitle], then
 /// [badge]. Everything a screen wants to add goes in [footer], underneath.
+///
+/// [titleBadge] is the one thing that breaks that left-to-right order, and it
+/// earns it: a status mark belongs beside the name it describes, not beyond
+/// the money column where the eye has already stopped reading.
 class ListRow extends StatelessWidget {
   const ListRow({
     super.key,
     required this.title,
     this.subtitle,
     this.subtitleIcon,
+    this.titleBadge,
     this.leading,
     this.trailing,
     this.trailingSubtitle,
@@ -37,6 +42,14 @@ class ListRow extends StatelessWidget {
 
   /// Small icon before [subtitle] — a location pin, a clock.
   final IconData? subtitleIcon;
+
+  /// Drawn immediately after [title], on the same line. A `StatusBadge.mark`,
+  /// a lock, a flag — something about the thing the title names.
+  ///
+  /// Distinct from [badge], which sits at the far right, past the money. Money
+  /// forms a straight right-hand column down the list and anything else parked
+  /// there bends it.
+  final Widget? titleBadge;
 
   final Widget? leading;
 
@@ -111,16 +124,30 @@ class ListRow extends StatelessWidget {
   }
 
   Widget _titleBlock() {
+    final titleText = Text(
+      title,
+      style: AppType.titleS.copyWith(color: AppColors.textPrimary),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          title,
-          style: AppType.titleS.copyWith(color: AppColors.textPrimary),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
+        if (titleBadge == null)
+          titleText
+        else
+          Row(
+            children: [
+              // Flexible, not Expanded: a short name should not push the mark
+              // to the far right, and a long one must ellipsize rather than
+              // shove the mark off the row.
+              Flexible(child: titleText),
+              const SizedBox(width: AppSpace.s2),
+              titleBadge!,
+            ],
+          ),
         if (subtitle != null) ...[
           const SizedBox(height: 2),
           Row(

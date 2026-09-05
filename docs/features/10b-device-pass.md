@@ -8,7 +8,7 @@
 | **Branch** | `release/1.11.0-navigation` |
 | **Requires** | [10b — Navigation](10b-navigation.md), built |
 | **Ships before** | [10c — Screen restyle](10c-screen-restyle.md) |
-| **Status** | A, B, C built · D–J planned — 2026-09-05 |
+| **Status** | A, B, C, D built · E–J planned — 2026-09-05 |
 
 ## Why
 
@@ -254,30 +254,50 @@ The owner's sketch:
 
 One row, two lines, avatar spanning both, money in a straight right-hand column.
 
-- [ ] Left: the letter avatar, vertically centred across both lines.
-- [ ] Line 1: shop name, then the status mark (D2), then the amount, right-aligned.
-- [ ] Line 2: area on the left, item count on the right.
-- [ ] Amount and item count share one right-hand column so figures line up down the
+- [x] Left: the letter avatar, vertically centred across both lines.
+- [x] Line 1: shop name, then the status mark (D2), then the amount, right-aligned.
+      The mark needed a new slot on `ListRow`: `badge` sits at the *far* right, past
+      the money, and a status mark belongs beside the name it describes.
+      `titleBadge` is that slot, and it is `Flexible` so a long shop name ellipsizes
+      rather than shoving the mark off the row.
+- [x] Line 2: area on the left, item count on the right.
+- [x] Amount and item count share one right-hand column so figures line up down the
       list. This is the decision commit `762be58` recorded for the ledger; it applies
       here for the same reason.
-- [ ] No order yet → line 2 reads `Tap to add order` and the right column is empty. Never
-      `₹0`, which reads as a real zero-rupee order.
+- [x] No order yet → the right column is empty. Never `₹0`, which reads as a real
+      zero-rupee order.
+- [x] ~~line 2 reads `Tap to add order`~~ — **the plan contradicted the sketch and the
+      sketch won.** The sketch puts the area on line 2; the hint was the old card's
+      third line, and a test caught the area disappearing. The hint now appears only
+      when there is nothing else for that line — a shop with no area *and* no order.
+      Everywhere else the amber mark and the empty money column already say the order
+      is missing, and the whole row is the tap target.
 
-**Collision note.** 10c already replaces `ShopOrderCard` with `ListRow` on this screen.
-This item is the layout `ListRow` should produce; do it here and 10c's Home item is done.
-Amend 10c when it lands.
+**Collision note — now settled.** `shop_order_card.dart` is **deleted**. The screen is on
+`ListRow`, so 10c's Home action item is done: strike it when 10c lands. The old card
+spent a 16-padded card, an avatar, a title, an area row and a chip row on the same
+information at roughly twice the height, and it was the last thing standing between this
+screen and the row every other list already uses.
 
 ### D2 · Sticker marks, not pills
 
-- [ ] Confirmed → a filled green check. Pending → a filled amber warning.
-- [ ] Use the icon font, not PNG stickers. PNGs mean four assets per state per density,
+- [x] Confirmed → a filled green check, `AppTone.positive`. Pending → a filled amber
+      warning, `AppTone.warning`. Both semantic, neither decorative.
+- [x] Used the icon font, not PNG stickers. PNGs mean four assets per state per density,
       they do not take a theme colour, and the app already carries an icon set. If the
       owner wants illustrated stickers later, that is an asset swap behind the same
       widget.
-- [ ] Add an `icon`-only mode to `StatusBadge` rather than a new widget. It already
-      takes an `icon` and an `AppTone`; it needs to be able to drop the label.
-- [ ] Keep the label as the semantic name for screen readers. A bare tick is meaningless
-      to TalkBack.
+- [x] `StatusBadge.mark`, a named constructor rather than a new widget or a flag.
+      "A badge with no label" and "a badge whose label is empty" are different things
+      and only one of them is legible to a screen reader, so the mode is not a
+      parameter a call site can get wrong.
+- [x] The label survives as the semantic name. A bare tick is meaningless to TalkBack.
+
+      **`container: true` is load-bearing here.** `Icon` wraps its glyph in
+      `ExcludeSemantics`, so a bare `Semantics(label:)` has no child node to annotate
+      and drops the label on the floor. It was written that way first, and the test
+      that asserts the label is what caught it — a "keeps the word for a screen reader"
+      claim that quietly is not true looks exactly like one that is.
 
 ---
 
@@ -643,7 +663,8 @@ action list as each lands, so it does not build them twice.
 | A5 · header gutter | `480ba82` | Took Dashboard, Orders and Billing onto `AppScaffold` |
 | A1 test fix | `5ff1187` | `io()` gapped before the route was built |
 | B1 + B2 · radius and face | `4d2a46b` | One commit — they land together on every screen |
-| C1 · greeting | `cd80e2d` + follow-up | Greeting back, no name — the owner's call |
+| C1 · greeting | `cd80e2d` + `409f0aa` | Greeting back, no name — the owner's call |
+| D1 + D2 · Orders row and marks | see below | `ShopOrderCard` deleted; 10c's Home item is done |
 
 ### Verified — 2026-09-05, Flutter 3.44.2 / Dart 3.12.2
 
@@ -652,16 +673,17 @@ are the ones CI will see.
 
 | Gate | Result |
 |---|---|
-| `flutter test` | **241 passing, 0 failing** — was 203 when 10b was built |
-| `flutter analyze` | **0 errors.** 70 issues: 6 warnings, 64 infos |
-| `tool/check_tokens.sh` | **342**, from 354. Kit clean |
+| `flutter test` | **244 passing, 0 failing** — was 203 when 10b was built |
+| `flutter analyze` | **0 errors.** 67 issues: 6 warnings, 61 infos |
+| `tool/check_tokens.sh` | **330**, from 354. Kit clean |
 
 `flutter analyze` is **not** clean, and none of it is new:
 
-- **64 infos**, every one a `@Deprecated` `kBrandGold` / `kBrandBrown` /
+- **61 infos**, every one a `@Deprecated` `kBrandGold` / `kBrandBrown` /
   `kSurface` alias. This is 10c's progress bar by design — see
   [10c](10c-screen-restyle.md)'s *Closing the ratchet*. It went **down** here,
-  because A5 took three screens off the aliases.
+  because A5 took three screens off the aliases and D deleted a widget that
+  used three more.
 - **6 warnings**, all pre-dating this branch's work and all confirmed against
   `76ff7d6`: three unused imports (`finances_screen`, `kitchen_screen`,
   `orders_screen` each import something they never call) and three unused

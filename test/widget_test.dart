@@ -113,7 +113,7 @@ void main() {
       expect(find.text('Tap to add order'), findsOneWidget);
     });
 
-    testWidgets('pending chip shown for unconfirmed order', (tester) async {
+    testWidgets('pending mark shown for unconfirmed order', (tester) async {
       final o = makeOrder(1, 1);
       await tester.pumpWidget(buildApp(
         shops: [makeShop(1, 'Hotel Raj')],
@@ -121,11 +121,11 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('Pending'), findsOneWidget);
+      expect(find.byIcon(Icons.warning_rounded), findsOneWidget);
       expect(find.text('Tap to add order'), findsNothing);
     });
 
-    testWidgets('confirmed chip shown for confirmed order', (tester) async {
+    testWidgets('confirmed mark shown for confirmed order', (tester) async {
       final o = makeOrder(1, 1, confirmed: true);
       await tester.pumpWidget(buildApp(
         shops: [makeShop(1, 'Hotel Raj')],
@@ -133,11 +133,34 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('Confirmed'), findsOneWidget);
-      expect(find.text('Pending'), findsNothing);
+      expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.warning_rounded), findsNothing);
     });
 
-    testWidgets('item count and rupee total displayed on card', (tester) async {
+    // The marks replaced the words on the device pass, so the words are gone
+    // from the screen. They are not gone from the app: a bare tick means
+    // nothing to a screen reader, so `StatusBadge.mark` keeps the label as its
+    // semantic label. This is the test that stops that being dropped as dead
+    // code later.
+    testWidgets('the marks still say what they mean, to a screen reader',
+        (tester) async {
+      final handle = tester.ensureSemantics();
+      final confirmed = makeOrder(1, 1, confirmed: true);
+      final pending = makeOrder(2, 2);
+      await tester.pumpWidget(buildApp(
+        shops: [makeShop(1, 'Hotel Raj'), makeShop(2, 'Star Bakery')],
+        summariesByDate: {
+          today: [makeSummary(confirmed, 3, 360.0), makeSummary(pending, 2, 90.0)],
+        },
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.bySemanticsLabel('Confirmed'), findsOneWidget);
+      expect(find.bySemanticsLabel('Pending'), findsOneWidget);
+      handle.dispose();
+    });
+
+    testWidgets('item count and rupee total displayed on the row', (tester) async {
       final o = makeOrder(1, 1);
       // 2 items, ₹90 total
       await tester.pumpWidget(buildApp(
@@ -165,11 +188,11 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('Confirmed'), findsOneWidget);
-      // Two: the unconfirmed order, and the shop with no order at all —
-      // ShopOrderCard draws the Pending chip either way. 'Tap to add order' is
-      // what distinguishes them.
-      expect(find.text('Pending'), findsNWidgets(2));
+      expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+      // Two: the unconfirmed order, and the shop with no order at all — the row
+      // marks both as pending, because both still need one. 'Tap to add order'
+      // on the second line is what distinguishes them.
+      expect(find.byIcon(Icons.warning_rounded), findsNWidgets(2));
       expect(find.text('Tap to add order'), findsOneWidget);
     });
 
@@ -207,7 +230,7 @@ void main() {
       );
     });
 
-    testWidgets('changing date refreshes order cards reactively', (tester) async {
+    testWidgets('changing date refreshes order rows reactively', (tester) async {
       final o = makeOrder(1, 1);
       await tester.pumpWidget(buildApp(
         shops: [makeShop(1, 'Hotel Raj')],
@@ -224,11 +247,11 @@ void main() {
       await tester.pumpAndSettle();
 
       // Yesterday — the order exists, so the hint is gone
-      expect(find.text('Pending'), findsOneWidget);
+      expect(find.byIcon(Icons.warning_rounded), findsOneWidget);
       expect(find.text('Tap to add order'), findsNothing);
     });
 
-    testWidgets('tapping a shop card navigates to order entry', (tester) async {
+    testWidgets('tapping a shop row navigates to order entry', (tester) async {
       await tester.pumpWidget(buildApp(shops: [makeShop(1, 'Hotel Raj')]));
       await tester.pumpAndSettle();
 
