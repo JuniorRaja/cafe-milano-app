@@ -112,7 +112,7 @@ void main() {
         t.bodyLarge,
         t.labelLarge,
       ]) {
-        expect(style?.fontFamily, 'Raleway');
+        expect(style?.fontFamily, 'Bricolage Grotesque');
       }
     });
 

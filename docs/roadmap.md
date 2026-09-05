@@ -284,9 +284,13 @@ against a real v4 install before shipping.
   the kit and routed every currency site through `money.dart`, because the owner hit
   both as live defects. `check_tokens.sh` is at **354**, from 396. 10c's scope
   shrinks accordingly; it is still the release that sets `SCREENS_BLOCKING=1`.
-- **Raleway has a smaller x-height than Quicksand.** Every `fontSize:` in the app now
-  reads slightly lighter than the value implies. [10c](features/10c-screen-restyle.md)
-  touches all 198 of them; raise weight before size.
+- **The face changed twice, and the sizes have not been re-read since.** Quicksand →
+  Raleway (2026-08-29), then Raleway → **Bricolage Grotesque**
+  ([10b device pass](features/10b-device-pass.md), 2026-09-05). Raleway has a smaller
+  x-height than Quicksand and Bricolage Grotesque has a larger one than either, so the
+  same `fontSize:` has read light and now reads heavy.
+  [10c](features/10c-screen-restyle.md) touches all 198 of them and is the place to
+  settle it — once, against the face the app is actually shipping.
 - **Money arithmetic is thinly tested.** Two things carry real money: FIFO allocation
   (05) and the quantity wheel with its clamp (08). Both have tests. Nothing else in the
   UI needs them.

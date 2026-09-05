@@ -8,7 +8,7 @@
 | **Branch** | `release/1.11.0-navigation` |
 | **Requires** | [10b — Navigation](10b-navigation.md), built |
 | **Ships before** | [10c — Screen restyle](10c-screen-restyle.md) |
-| **Status** | A (defects) built · B–J planned — 2026-09-05 |
+| **Status** | A, B built · C–J planned — 2026-09-05 |
 
 ## Why
 
@@ -153,37 +153,50 @@ floating in a gutter, and the title beside it does not line up with the content 
 Reduce the radius tokens. Do not remove them, and do not touch `rFull` — the nav bar,
 avatars and status badges are meant to be capsules.
 
-| Token | Now | After | Used by |
+| Token | Was | Now | Used by |
 |---|---|---|---|
 | `rS` | 10 | **6** | chips, fields, buttons |
 | `rM` | 16 | **10** | cards, rows, inputs |
 | `rL` | 24 | **14** | hero cards, bottom sheets |
 | `rFull` | 999 | 999 | pills, avatars — unchanged |
 
-- [ ] Change the four values in `tokens.dart` and nothing else. Every kit component
-      already reads them.
-- [ ] The screens that still hardcode `BorderRadius.circular(8|12|16)` will not follow.
-      That is 10c's ratchet and stays 10c's. Expect a visible mismatch on unmigrated
-      screens until then, and say so out loud rather than half-migrating.
+- [x] ~~Change the four values in `tokens.dart` and nothing else.~~ Three values, plus
+      one thing the plan had wrong: `bottomSheetTheme` carried its **own literal 24** and
+      so ignored `rL` entirely. Every sheet in the app — the quantity wheel, record
+      payment, the shop picker — would have stayed round while the cards came down.
+      `AppRadius.sheetTop` exists now because `bottomSheetTheme` needs a `const` and
+      `rL.topLeft` is a property read, not a constant.
+- [x] The screens that still hardcode `BorderRadius.circular(8|12|16)` do not follow.
+      That is 10c's ratchet and stays 10c's. **53 sites, so expect a visible mismatch**
+      on unmigrated screens — a kit card at 10 beside a hand-rolled one at 12. Said out
+      loud rather than half-migrated.
 
 ### B2 · Bricolage Grotesque replaces Raleway
 
-- [ ] Vendor the static weights into `assets/fonts/`: Regular 400, Medium 500, SemiBold
-      600, Bold 700 — the same four Raleway ships, so no `TextStyle` changes weight.
-      Bricolage Grotesque is OFL and available from the Google Fonts repository.
-- [ ] Take the **static instances**, not the variable font. Flutter can load a variable
-      font but the four `weight:` entries in `pubspec.yaml` are what the theme resolves
-      against, and a partial variable-axis setup is how a font silently falls back to
-      Roboto on one device.
-- [ ] `AppType._family` and `ThemeData.fontFamily` are the only two places the name
-      appears. Change both in one commit.
-- [ ] **Re-check sizes after the swap.** The roadmap already carries this risk for
+- [x] Vendored the four static instances into `assets/fonts/`: Regular 400, Medium 500,
+      SemiBold 600, Bold 700 — the same four Raleway shipped, so no `TextStyle` changes
+      weight. Verified each file's `usWeightClass` really is 400/500/600/700 rather than
+      four copies of one instance.
+- [x] Static instances, not the variable font. Flutter resolves `weight:` by picking a
+      **file**, not by setting an axis, so one variable file would have rendered all four
+      weights at its default instance.
+- [x] **Checked the glyphs before committing**, which the plan did not think to ask for.
+      `₹` is present — losing it would have emptied every statement PDF. `·`, `—` and
+      `×` are there; `→` is there and was *not* in Raleway. `✓` is in neither, which is
+      why `pdf_brand.dart` writes "Ph" rather than `☎`; that comment now names the
+      behaviour instead of the old font.
+- [x] ~~`AppType._family` and `ThemeData.fontFamily` are the only two places the name
+      appears.~~ **Three.** `pdf_brand.dart` loads the TTFs out of the bundle by path for
+      every generated statement and catalogue, and the plan missed it. A PDF rendered in
+      a font the app no longer bundles is an asset-not-found at share time.
+- [x] **Re-check sizes after the swap.** The roadmap already carries this risk for
       Raleway: it has a smaller x-height than Quicksand, so every size reads light.
       Bricolage Grotesque has a *larger* x-height than both. Expect the app to read
       heavier, not lighter. Do not chase it with size changes here — note the figures and
       let 10c, which touches all 198 of them, do it once.
-- [ ] Delete the four Raleway files in the same commit. Two font families in the bundle
-      is 400 KB nobody asked for.
+- [x] Deleted the four Raleway files in the same commit. The bundle gets **smaller**:
+      4 × 164 KB becomes 4 × 82 KB, so ~329 KB off the APK rather than the ~343 KB the
+      Raleway swap added.
 
 ---
 
@@ -607,6 +620,7 @@ action list as each lands, so it does not build them twice.
 | A3 · filter pills | `f848475` | The cause was the row's own padding, not the emoji |
 | A4 · background | `9516e2b` | Painted app-wide; new artwork still to come |
 | A5 · header gutter | `480ba82` | Took Dashboard, Orders and Billing onto `AppScaffold` |
+| B1 + B2 · radius and face | see below | One commit, as asked |
 
 `tool/check_tokens.sh` is at **342**, from 354. The kit stays clean.
 

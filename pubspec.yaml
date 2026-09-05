@@ -47,14 +47,17 @@ flutter:
     - mobile-app-logo-trasnsp.png
     - bg-vector-blurred.png
   fonts:
-    - family: Raleway
+    # Static instances, not the variable font. Flutter resolves `weight:` by
+    # picking a file, not by setting an axis, so a single variable file would
+    # render every weight at its default instance.
+    - family: Bricolage Grotesque
       fonts:
-        - asset: assets/fonts/Raleway-Regular.ttf
-        - asset: assets/fonts/Raleway-Medium.ttf
+        - asset: assets/fonts/BricolageGrotesque-Regular.ttf
+        - asset: assets/fonts/BricolageGrotesque-Medium.ttf
           weight: 500
-        - asset: assets/fonts/Raleway-SemiBold.ttf
+        - asset: assets/fonts/BricolageGrotesque-SemiBold.ttf
           weight: 600
-        - asset: assets/fonts/Raleway-Bold.ttf
+        - asset: assets/fonts/BricolageGrotesque-Bold.ttf
           weight: 700
 
 flutter_launcher_icons:

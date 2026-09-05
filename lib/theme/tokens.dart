@@ -114,7 +114,7 @@ enum AppTone {
 /// Anything that needs a different colour still overrides it the usual way:
 /// `AppType.body.copyWith(color: tone.fg)`.
 abstract final class AppType {
-  static const _family = 'Raleway';
+  static const _family = 'Bricolage Grotesque';
 
   /// 28 / w700 — hero figures. Theme slot: `displaySmall`.
   static const displayL = TextStyle(
@@ -232,15 +232,32 @@ abstract final class AppSpace {
 }
 
 /// Replaces 8 distinct `BorderRadius.circular(n)` values.
+///
+/// **Reduced on 2026-09-05**, from 10 / 16 / 24. The owner read the app back as
+/// too rounded on the phone. Softened, not squared off: every step keeps a
+/// radius, and [rFull] is untouched because the nav bar, the avatars and the
+/// status badges are meant to be capsules.
+///
+/// Screens that still hardcode `BorderRadius.circular(8|12|16)` do not follow
+/// these and will look wrong beside a kit component until
+/// `docs/features/10c-screen-restyle.md` drives that count to zero.
 abstract final class AppRadius {
-  /// 10 — chips, fields, small controls.
-  static const rS = BorderRadius.all(Radius.circular(10));
+  /// 6 — chips, fields, small controls.
+  static const rS = BorderRadius.all(Radius.circular(6));
 
-  /// 16 — cards, sheets, inputs.
-  static const rM = BorderRadius.all(Radius.circular(16));
+  /// 10 — cards, rows, inputs.
+  static const rM = BorderRadius.all(Radius.circular(10));
 
-  /// 24 — hero cards, bottom sheets.
-  static const rL = BorderRadius.all(Radius.circular(24));
+  /// 14 — hero cards, bottom sheets.
+  static const rL = BorderRadius.all(Radius.circular(14));
+
+  /// The top two corners of a bottom sheet, at [rL].
+  ///
+  /// Here rather than at the call site because `bottomSheetTheme` needs a
+  /// `const` value and `rL.topLeft` is a property read, not a constant. Without
+  /// it the theme kept its own literal 24 and quietly ignored every change to
+  /// [rL] — which is how it was until this release.
+  static const sheetTop = BorderRadius.vertical(top: Radius.circular(14));
 
   /// Pills and avatars.
   static const rFull = BorderRadius.all(Radius.circular(999));

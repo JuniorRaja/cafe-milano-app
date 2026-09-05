@@ -62,7 +62,7 @@ ThemeData buildAppTheme(BrandConfig brand) {
   return ThemeData(
     useMaterial3: true,
     visualDensity: VisualDensity.compact,
-    fontFamily: 'Raleway',
+    fontFamily: 'Bricolage Grotesque',
     colorScheme: scheme,
     // Transparent, not `AppColors.bg`. The decorative background is painted
     // once for the whole app in `app.dart`'s builder; an opaque Scaffold ground
@@ -185,9 +185,10 @@ ThemeData buildAppTheme(BrandConfig brand) {
       backgroundColor: AppColors.surface,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      // `AppRadius.sheetTop`, not a literal. This carried its own 24 and so
+      // ignored `rL` entirely — the sheets stayed round when the tokens came
+      // down.
+      shape: RoundedRectangleBorder(borderRadius: AppRadius.sheetTop),
     ),
     snackBarTheme: const SnackBarThemeData(
       backgroundColor: AppColors.brandDeepest,
