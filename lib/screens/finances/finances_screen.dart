@@ -282,7 +282,7 @@ class _PeriodMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _HeaderMenu<LedgerPeriod>(
+    return HeaderMenu<LedgerPeriod>(
       label: selected.label,
       tooltip: 'Change the period',
       values: LedgerPeriod.values,
@@ -302,7 +302,7 @@ class _SortMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _HeaderMenu<OwedSort>(
+    return HeaderMenu<OwedSort>(
       label: selected.label,
       tooltip: 'Change the order',
       icon: Icons.swap_vert_rounded,
@@ -310,61 +310,6 @@ class _SortMenu extends StatelessWidget {
       labelOf: (value) => value.label,
       selected: selected,
       onSelected: onSelected,
-    );
-  }
-}
-
-/// A small dropdown sized to sit in a [SectionHeader]'s trailing slot.
-class _HeaderMenu<T> extends StatelessWidget {
-  const _HeaderMenu({
-    required this.label,
-    required this.tooltip,
-    required this.values,
-    required this.labelOf,
-    required this.selected,
-    required this.onSelected,
-    this.icon = Icons.expand_more_rounded,
-  });
-
-  final String label;
-  final String tooltip;
-  final List<T> values;
-  final String Function(T value) labelOf;
-  final T selected;
-  final ValueChanged<T> onSelected;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<T>(
-      tooltip: tooltip,
-      position: PopupMenuPosition.under,
-      onSelected: onSelected,
-      itemBuilder: (_) => [
-        for (final value in values)
-          CheckedPopupMenuItem<T>(
-            value: value,
-            checked: value == selected,
-            child: Text(labelOf(value)),
-          ),
-      ],
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpace.s2,
-          vertical: AppSpace.s1,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: AppType.label.copyWith(color: AppColors.brandDeep),
-            ),
-            const SizedBox(width: 2),
-            Icon(icon, size: 18, color: AppColors.brandDeep),
-          ],
-        ),
-      ),
     );
   }
 }

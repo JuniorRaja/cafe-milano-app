@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:go_router/go_router.dart';
 
+import '../app_background.dart';
 import '../floating_nav_bar.dart';
 import '../ui/ui.dart';
 import 'app_drawer.dart';
@@ -66,26 +67,29 @@ class _AppShellState extends State<AppShell> {
 
   bool _barVisible = true;
 
-  /// Hide on the way down, show on the way up, show at the top.
+  /// Hide on the way down, show on the way up, show at either end.
   ///
   /// `idle` deliberately does **not** show the bar on its own. Scrolling down
   /// and lifting your finger would bring it straight back, which is a flicker
   /// rather than a feature — so at rest it stays where the last gesture left
-  /// it, unless that rest is at the top of the list.
+  /// it, unless that rest is at one end of the list.
   bool _onUserScroll(UserScrollNotification notification) {
     final metrics = notification.metrics;
-    // Horizontal strips — the date-range pills, the category chips — are
-    // scroll views too, and swiping them is not a scroll down the page.
+    // Horizontal strips — the date pills, the category chips — are scroll
+    // views too, and swiping one is not a scroll down the page.
     if (metrics.axis != Axis.vertical) return false;
 
     final atTop = metrics.pixels <= metrics.minScrollExtent;
+    // At the very bottom there is nothing left to scroll for, so the bar comes
+    // back rather than making you swipe up to reach it.
+    final atEnd = metrics.pixels >= metrics.maxScrollExtent;
     // A list that does not scroll cannot ask for more room than it has.
     final scrolls = metrics.maxScrollExtent > 0;
 
     final next = switch (notification.direction) {
-      ScrollDirection.reverse => !scrolls,
+      ScrollDirection.reverse => atEnd || !scrolls,
       ScrollDirection.forward => true,
-      ScrollDirection.idle => atTop || _barVisible,
+      ScrollDirection.idle => atTop || atEnd || _barVisible,
     };
 
     if (next != _barVisible) setState(() => _barVisible = next);
@@ -99,19 +103,17 @@ class _AppShellState extends State<AppShell> {
     final location = GoRouterState.of(context).uri.path;
     final showNavBar = AppShell.showsNavBarAt(location);
 
-    // The background is no longer painted here. It is painted once for the
-    // whole app, in `app.dart`'s `MaterialApp.builder`, because only the five
-    // shell branches ever reached this widget: every pushed screen — order
-    // entry, the ledger, the masters, settings — drew on flat cream, which is
-    // the inconsistency the device pass found. One layer above the router
-    // covers both, and is built once for the process rather than on every
-    // shell rebuild.
+    // The background art is painted here, behind the five branch screens and
+    // nowhere else. The device pass moved it up to `MaterialApp.builder` so
+    // that pushed screens got it too; on the phone that was too much, and the
+    // owner asked for it back on the main screens only.
     //
-    // The reason it had to sit outside the Scaffold still holds up there.
-    // `bottomNavigationBar` insets the body, so a body-level background is
-    // laid out ~80px shorter on shell routes than on sub-routes. `BoxFit.cover`
-    // recomputes its crop against that shorter box, so popping back from a
-    // sub-route visibly rescaled the artwork mid-transition.
+    // It could not have come back here before J1. `bottomNavigationBar` insets
+    // the body, so a background inside the Scaffold was laid out ~80px shorter
+    // on shell routes than on sub-routes, and `BoxFit.cover` recomputed its
+    // crop against that shorter box — the artwork visibly rescaled when you
+    // popped back from a sub-route. The bar is an overlay now, so the body is
+    // full height on every route and the crop is stable.
 
     // Reduced motion keeps the bar where it is. A control that disappears is
     // the kind of movement the setting exists to switch off, and hiding it
@@ -132,6 +134,7 @@ class _AppShellState extends State<AppShell> {
         drawer: const AppDrawer(),
         body: Stack(
           children: [
+            const AppBackground(),
             NotificationListener<UserScrollNotification>(
               onNotification: _onUserScroll,
               child: widget.navigationShell,

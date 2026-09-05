@@ -18,6 +18,7 @@ export 'app_skeleton.dart';
 export 'delta_pill.dart';
 export 'empty_state.dart';
 export 'filter_chip_row.dart';
+export 'header_menu.dart';
 export 'hero_stat_card.dart';
 export 'list_row.dart';
 export 'master_list_page.dart';

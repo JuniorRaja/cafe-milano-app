@@ -67,105 +67,67 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
       categories: categories,
     );
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: SafeArea(
-        top: true,
-        bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Row(
-                children: [
-                  const ShellDrawerButton(),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'KITCHEN',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey.shade500,
-                            letterSpacing: 1.1,
-                          ),
-                        ),
-                        const Text(
-                          'Production',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            color: kBrandBrown,
-                            height: 1.15,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Share button
-                  IconButton(
-                    icon: const Icon(Icons.share_rounded),
-                    color: kBrandBrown,
-                    tooltip: 'Share kitchen list',
-                    onPressed: hasLines
-                        ? () => _tabController.index == 0
-                            ? _shareItems(itemGroups, date)
-                            : _shareAllShops(lines, shopMap, productMap, date)
-                        : null,
-                  ),
-                ],
-              ),
-            ),
-            // Date selector
-            const DateSelector(),
-            // Tab bar
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                tabs: const [
-                  Tab(text: 'By Item'),
-                  Tab(text: 'By Shop'),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            // Content
-            Expanded(
-              child: linesAsync.when(
-                data: (lines) {
-                  if (lines.isEmpty) {
-                    return const _EmptyState();
-                  }
-                  return TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _ByItemView(groups: itemGroups),
-                      _ByShopView(
-                        lines: lines,
-                        shopMap: shopMap,
-                        productMap: productMap,
-                        onShareShop: (shopId) =>
-                            _shareShop(shopId, lines, shopMap, productMap, date),
-                      ),
-                    ],
-                  );
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('Error: $e')),
-              ),
-            ),
-          ],
+    // On `AppScaffold`, like every other shell screen. It had a hand-rolled
+    // header, which is why its menu button sat on a different left edge from
+    // the other four.
+    return AppScaffold(
+      caption: 'Kitchen',
+      title: 'Production',
+      leading: const ShellDrawerButton(),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.ios_share_rounded),
+          color: AppColors.textPrimary,
+          tooltip: 'Share kitchen list',
+          onPressed: hasLines
+              ? () => _tabController.index == 0
+                  ? _shareItems(itemGroups, date)
+                  : _shareAllShops(lines, shopMap, productMap, date)
+              : null,
         ),
+      ],
+      bottom: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const DateSelector(),
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: AppSpace.s4),
+            decoration: const BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: AppRadius.rS,
+            ),
+            child: TabBar(
+              controller: _tabController,
+              tabs: const [
+                Tab(text: 'By Item'),
+                Tab(text: 'By Shop'),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpace.s2),
+        ],
+      ),
+      body: linesAsync.when(
+        data: (lines) {
+          if (lines.isEmpty) {
+            return const _EmptyState();
+          }
+          return TabBarView(
+            controller: _tabController,
+            children: [
+              _ByItemView(groups: itemGroups),
+              _ByShopView(
+                lines: lines,
+                shopMap: shopMap,
+                productMap: productMap,
+                onShareShop: (shopId) =>
+                    _shareShop(shopId, lines, shopMap, productMap, date),
+              ),
+            ],
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text('Error: $e')),
       ),
     );
   }
@@ -457,7 +419,7 @@ class _ByShopView extends StatelessWidget {
                           fontWeight: FontWeight.w600, color: kBrandBrown),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.share, size: 18),
+                      icon: const Icon(Icons.ios_share_rounded, size: 18),
                       onPressed: () => onShareShop(shopId),
                       visualDensity: VisualDensity.compact,
                       tooltip: 'Share ${shop?.name ?? 'shop'}',

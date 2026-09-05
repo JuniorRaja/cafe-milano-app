@@ -75,7 +75,7 @@ class ProductLeaderboardCard extends ConsumerWidget {
           padding: const EdgeInsets.only(bottom: 8),
           child: Row(
             children: [
-              const SizedBox(width: 32), // rank + emoji space
+              const SizedBox(width: 40), // rank + emoji space
               Expanded(
                 child: Text(
                   'Product',
@@ -135,9 +135,12 @@ class ProductLeaderboardCard extends ConsumerWidget {
     );
   }
 
+  // Padding, not a fixed height. An icon over a line of text inside a pinned
+  // box overflows the moment the phone's font scale goes up a notch, which is
+  // exactly the warning this was producing.
   Widget _emptyState() {
-    return SizedBox(
-      height: 80,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -171,9 +174,11 @@ class _ProductRow extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(vertical: 7),
       child: Row(
         children: [
-          // Rank + Category emoji
+          // Rank + category emoji. 32 was not enough for a two-digit rank
+          // beside a wide emoji, and the tenth row is the one this card
+          // exists to show.
           SizedBox(
-            width: 32,
+            width: 40,
             child: Row(
               children: [
                 Text(
@@ -183,9 +188,16 @@ class _ProductRow extends ConsumerWidget {
                     fontWeight: FontWeight.w700,
                     color: rank <= 3 ? kBrandBrown : Colors.grey.shade500,
                   ),
+                  maxLines: 1,
                 ),
                 const SizedBox(width: 3),
-                Text(row.categoryEmoji, style: const TextStyle(fontSize: 12)),
+                Flexible(
+                  child: Text(
+                    row.categoryEmoji,
+                    style: const TextStyle(fontSize: 12),
+                    maxLines: 1,
+                  ),
+                ),
               ],
             ),
           ),

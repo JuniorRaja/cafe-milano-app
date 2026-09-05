@@ -4,9 +4,9 @@ import 'package:intl/intl.dart';
 import '../../models/dashboard_models.dart';
 import '../../providers/category_provider.dart';
 import '../../providers/dashboard_provider.dart';
+import '../../providers/business_info_provider.dart';
 import '../../providers/dashboard_settings_provider.dart';
 import '../../providers/date_provider.dart';
-import '../../widgets/dashboard/date_range_pill.dart';
 import '../../widgets/dashboard/pulse_card.dart';
 import '../../widgets/dashboard/category_scorecards.dart';
 import '../../widgets/dashboard/revenue_mix_card.dart';
@@ -22,10 +22,31 @@ import '../../widgets/ui/ui.dart';
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
+  static const _presetLabels = {
+    DashboardPreset.today: 'Today',
+    DashboardPreset.thisWeek: 'This week',
+    DashboardPreset.lastWeek: 'Last week',
+    DashboardPreset.thisMonth: 'This month',
+    DashboardPreset.lastMonth: 'Last month',
+    DashboardPreset.last90: 'Last 90 days',
+    DashboardPreset.custom: 'Custom\u2026',
+  };
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(dashboardSettingsProvider);
     final range = ref.watch(dashboardRangeProvider);
+
+    // The owner's own business, not one of the shops they supply. Falls back
+    // to the generic title when Business Info has not been filled in, so the
+    // header is never blank and no name is ever hardcoded.
+    final businessName = ref.watch(businessInfoProvider).maybeWhen(
+          data: (info) {
+            final name = info?.name.trim() ?? '';
+            return name.isEmpty ? null : name;
+          },
+          orElse: () => null,
+        );
 
     return AppScaffold(
       // The greeting the owner asked to have back, and no name with it — see
@@ -37,7 +58,7 @@ class DashboardScreen extends ConsumerWidget {
       // deleted version did the same, and an hourly ticker for a caption is
       // not worth a timer.
       caption: greetingFor(),
-      title: 'Business Overview',
+      title: businessName ?? 'Business Overview',
       leading: const ShellDrawerButton(),
       actions: [
         IconButton(
@@ -47,20 +68,36 @@ class DashboardScreen extends ConsumerWidget {
           tooltip: 'Refresh',
         ),
       ],
-      bottom: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const DateRangePill(),
-          const SizedBox(height: AppSpace.s1),
-          Padding(
-            padding: AppSpace.page,
-            child: Text(
-              _formatDateIndicator(range),
-              style: AppType.bodyS.copyWith(color: AppColors.textTertiary),
+      // The date on the left, the period control on the right. It was a
+      // scrolling row of seven pills above the date, which spent a whole band
+      // of the screen on a control that is touched once a week — and could not
+      // be shared with the Ledger, because it was wired into this screen's own
+      // range. Both screens use `HeaderMenu` now, each on its own state.
+      bottom: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpace.s4,
+          0,
+          AppSpace.s2,
+          AppSpace.s3,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                _formatDateIndicator(range),
+                style: AppType.bodyS.copyWith(color: AppColors.textSecondary),
+              ),
             ),
-          ),
-          const SizedBox(height: AppSpace.s3),
-        ],
+            HeaderMenu<DashboardPreset>(
+              label: _presetLabels[range.preset] ?? 'Period',
+              tooltip: 'Change the period',
+              values: DashboardPreset.values,
+              labelOf: (preset) => _presetLabels[preset]!,
+              selected: range.preset,
+              onSelected: (preset) => _pickPeriod(context, ref, preset),
+            ),
+          ],
+        ),
       ),
       body: SingleChildScrollView(
         // The nav bar floats over the body now, so the room for it is this
@@ -73,8 +110,11 @@ class DashboardScreen extends ConsumerWidget {
         ),
         child: Column(
           children: [
-            // Section 1 — The Pulse
-            if (settings.showPulse) ...[
+            // Section 1 — The Pulse, on the daily view only. It answers
+            // "how is today going" — against a quarter it is not a pulse, it
+            // is a different question the cards below already answer.
+            if (settings.showPulse &&
+                range.preset == DashboardPreset.today) ...[
               const PulseCard(),
               const SizedBox(height: AppSpace.s4),
             ],
@@ -124,6 +164,32 @@ class DashboardScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _pickPeriod(
+    BuildContext context,
+    WidgetRef ref,
+    DashboardPreset preset,
+  ) async {
+    if (preset != DashboardPreset.custom) {
+      ref.read(dashboardRangeProvider.notifier).selectPreset(preset);
+      return;
+    }
+
+    final today = ref.read(todayProvider);
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: today,
+      initialDateRange: DateTimeRange(
+        start: today.subtract(const Duration(days: 7)),
+        end: today,
+      ),
+    );
+    if (picked == null) return;
+    ref
+        .read(dashboardRangeProvider.notifier)
+        .selectCustomRange(picked.start, picked.end);
   }
 
   void _refreshDashboard(WidgetRef ref) {

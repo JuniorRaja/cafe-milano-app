@@ -83,7 +83,9 @@ class RevenueMixCard extends ConsumerWidget {
 
     return Column(
       children: [
-        // Donut Chart
+        // Donut chart. The slices reach a radius of 80, so 180 is the drawing
+        // plus a margin; the figure in the middle is measured against the same
+        // box and must not be able to push past it.
         SizedBox(
           height: 180,
           child: Stack(
@@ -116,10 +118,12 @@ class RevenueMixCard extends ConsumerWidget {
                       fontWeight: FontWeight.w800,
                       color: kBrandBrown,
                     ),
+                    maxLines: 1,
                   ),
                   Text(
                     'Total',
                     style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                    maxLines: 1,
                   ),
                 ],
               ),
@@ -141,9 +145,12 @@ class RevenueMixCard extends ConsumerWidget {
     );
   }
 
+  // Padding, not a fixed height. An icon over a line of text inside a pinned
+  // box overflows the moment the phone's font scale goes up a notch, which is
+  // exactly the warning this was producing.
   Widget _emptyState() {
-    return SizedBox(
-      height: 120,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 32),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,

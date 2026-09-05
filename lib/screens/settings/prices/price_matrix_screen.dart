@@ -177,6 +177,10 @@ class _PriceMatrixScreenState extends ConsumerState<PriceMatrixScreen> {
                     padding: const EdgeInsets.all(16),
                     child: DropdownButtonFormField<int>(
                       initialValue: selectedShop?.id,
+                      // A shop name with an area can be longer than the field.
+                      // Left to wrap it overflows the menu row's fixed height,
+                      // which is the "overflowed by 3 pixels" warning.
+                      isExpanded: true,
                       decoration: const InputDecoration(
                         labelText: 'Select Shop',
                         border: OutlineInputBorder(),
@@ -189,6 +193,8 @@ class _PriceMatrixScreenState extends ConsumerState<PriceMatrixScreen> {
                                 s.area != null
                                     ? '${s.name} · ${s.area}'
                                     : s.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           )

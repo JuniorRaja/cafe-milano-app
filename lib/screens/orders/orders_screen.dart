@@ -616,13 +616,13 @@ class _BillingDetail extends ConsumerWidget {
                       ),
                       SizedBox(
                         width: 72,
+                        // Same weight as the quantity and the unit price
+                        // beside it. Bolding one column of a four-column table
+                        // makes the eye read down it instead of across the row.
                         child: Text(
                           brand.money(lineTotal),
                           textAlign: TextAlign.right,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: const TextStyle(fontSize: 14),
                         ),
                       ),
                     ],

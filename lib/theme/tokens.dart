@@ -259,6 +259,10 @@ abstract final class AppRadius {
   /// [rL] — which is how it was until this release.
   static const sheetTop = BorderRadius.vertical(top: Radius.circular(14));
 
+  /// The bottom nav bar's top edge. Larger than a sheet's, because the bar is
+  /// a permanent surface rather than something that slid up over the page.
+  static const barTop = BorderRadius.vertical(top: Radius.circular(18));
+
   /// Pills and avatars.
   static const rFull = BorderRadius.all(Radius.circular(999));
 }

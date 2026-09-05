@@ -135,6 +135,30 @@ void main() {
     expect(slide(tester), 0);
   });
 
+  testWidgets('reaching the bottom of a list brings it back', (tester) async {
+    // There is nothing left to scroll for down there, so making the owner
+    // swipe up to get the bar back would be asking for nothing.
+    await tester.pumpWidget(host());
+    await tester.pumpAndSettle();
+
+    await tester.drag(list(), const Offset(0, -400));
+    await tester.pumpAndSettle();
+    expect(slide(tester), 1);
+
+    // Keep going, all the way to the end.
+    for (var i = 0; i < 8; i++) {
+      await tester.drag(list(), const Offset(0, -600));
+      await tester.pumpAndSettle();
+    }
+
+    var metrics = tester
+        .state<ScrollableState>(find.byType(Scrollable).last)
+        .position;
+    expect(metrics.pixels, metrics.maxScrollExtent,
+        reason: 'the test must actually reach the bottom');
+    expect(slide(tester), 0);
+  });
+
   testWidgets('swiping a horizontal strip is not scrolling the page',
       (tester) async {
     await tester.pumpWidget(host());

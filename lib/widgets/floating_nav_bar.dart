@@ -3,11 +3,16 @@ import 'package:flutter/material.dart';
 import 'shell/destinations.dart';
 import 'ui/ui.dart';
 
-/// The floating pill nav bar.
+/// The bottom nav bar.
 ///
 /// Five evenly-spaced slots, built from `destinations.dart` rather than a
 /// hardcoded tuple array. Adding or reordering a slot is a change to that list
 /// and nothing else.
+///
+/// **A solid bar, not a floating pill.** The pill left a gap on all four
+/// sides, and the screen scrolling behind that gap read as a mistake rather
+/// than as depth. It now fills the width and runs to the bottom edge, with the
+/// top two corners rounded so it still reads as its own surface.
 ///
 /// The centre gap and its FAB are gone as of the 1.11 revision. The FAB opened
 /// a three-item quick-action sheet; each of those actions now sits where the
@@ -28,8 +33,8 @@ class FloatingNavBar extends StatefulWidget {
   final int selectedIndex;
   final ValueChanged<int> onDestinationSelected;
 
-  /// The pill's own height, without its margins. `AppShell.bottomInset` adds
-  /// the rest.
+  /// The height of the slots themselves. The bar draws the gesture inset
+  /// below them, and `AppShell.bottomInset` adds both.
   static const height = 62.0;
 
   @override
@@ -77,28 +82,27 @@ class _FloatingNavBarState extends State<FloatingNavBar>
 
   @override
   Widget build(BuildContext context) {
+    // The gesture inset goes *inside* the bar, so the fill reaches the bottom
+    // of the screen and the slots still sit above the home indicator.
     final bar = Container(
-      height: FloatingNavBar.height,
-      margin: EdgeInsets.fromLTRB(
-        AppSpace.s3,
-        AppSpace.s2,
-        AppSpace.s3,
-        AppSpace.s2 + MediaQuery.of(context).padding.bottom,
-      ),
       decoration: const BoxDecoration(
         color: AppColors.surface,
-        borderRadius: AppRadius.rFull,
-        boxShadow: AppShadow.card,
+        borderRadius: AppRadius.barTop,
+        boxShadow: AppShadow.raised,
       ),
-      child: Row(
-        children: [
-          for (var i = 0; i < _slots.length; i++)
-            Expanded(child: _Slot(
-              destination: _slots[i],
-              selected: widget.selectedIndex == i,
-              onTap: () => widget.onDestinationSelected(i),
-            )),
-        ],
+      padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
+      child: SizedBox(
+        height: FloatingNavBar.height,
+        child: Row(
+          children: [
+            for (var i = 0; i < _slots.length; i++)
+              Expanded(child: _Slot(
+                destination: _slots[i],
+                selected: widget.selectedIndex == i,
+                onTap: () => widget.onDestinationSelected(i),
+              )),
+          ],
+        ),
       ),
     );
 
@@ -139,7 +143,6 @@ class _Slot extends StatelessWidget {
         type: MaterialType.transparency,
         child: InkWell(
           onTap: onTap,
-          borderRadius: AppRadius.rFull,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

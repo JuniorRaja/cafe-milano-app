@@ -47,67 +47,69 @@ class ProductQtyRow extends ConsumerWidget {
     final row = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
-          children: [
-            SizedBox(
-              width: 48,
-              height: 48,
-              child: product.photoPath != null
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.file(
-                        File(product.photoPath!),
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) =>
-                            LetterAvatar(name: product.name),
-                      ),
-                    )
-                  : LetterAvatar(name: product.name),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    product.name,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 15),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    hasPrce
-                        ? '$priceLabel  ·  ${brand.moneyTrim(lineTotal)}'
-                        : 'Price not set',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                  ),
-                ],
-              ),
-            ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _StepperBtn(
-                  icon: Icons.remove,
-                  onPressed: onDecrement,
-                  onLongPressTick: onDecrementHold,
-                ),
-                SizedBox(
-                  width: 40,
-                  child: Text(
-                    qty.toString(),
-                    textAlign: TextAlign.center,
-                    style: AppType.displayL.copyWith(
-                      color: qty == 0 ? AppColors.textTertiary : null,
+        children: [
+          SizedBox(
+            width: 48,
+            height: 48,
+            child: product.photoPath != null
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.file(
+                      File(product.photoPath!),
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) =>
+                          LetterAvatar(name: product.name),
                     ),
+                  )
+                : LetterAvatar(name: product.name),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  product.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
                   ),
                 ),
-                _StepperBtn(
-                  icon: Icons.add,
-                  onPressed: onIncrement,
-                  onLongPressTick: onIncrementHold,
+                const SizedBox(height: 2),
+                Text(
+                  hasPrce
+                      ? '$priceLabel  ·  ${brand.moneyTrim(lineTotal)}'
+                      : 'Price not set',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
               ],
             ),
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _StepperBtn(
+                icon: Icons.remove,
+                onPressed: onDecrement,
+                onLongPressTick: onDecrementHold,
+              ),
+              SizedBox(
+                width: 40,
+                child: Text(
+                  qty.toString(),
+                  textAlign: TextAlign.center,
+                  style: AppType.displayL.copyWith(
+                    color: qty == 0 ? AppColors.textTertiary : null,
+                  ),
+                ),
+              ),
+              _StepperBtn(
+                icon: Icons.add,
+                onPressed: onIncrement,
+                onLongPressTick: onIncrementHold,
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -131,18 +133,20 @@ class ProductQtyRow extends ConsumerWidget {
   }
 
   void _showQtyModal(BuildContext context) {
-    unawaited(showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    unawaited(
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        builder: (_) => _QtyEditSheet(
+          product: product,
+          initialQty: qty,
+          onConfirm: onQtySet!,
+        ),
       ),
-      builder: (_) => _QtyEditSheet(
-        product: product,
-        initialQty: qty,
-        onConfirm: onQtySet!,
-      ),
-    ));
+    );
   }
 }
 
@@ -253,9 +257,8 @@ class _QtyEditSheetState extends State<_QtyEditSheet> {
           onChanged(i);
         },
         childCount: 10,
-        itemBuilder: (_, i) => Center(
-          child: Text('$i', style: AppType.displayL),
-        ),
+        itemBuilder: (_, i) =>
+            Center(child: Text('$i', style: AppType.displayL)),
       ),
     );
   }
@@ -290,9 +293,7 @@ class _QtyEditSheetState extends State<_QtyEditSheet> {
               autofocus: true,
               textAlign: TextAlign.center,
               keyboardType: TextInputType.number,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-              ],
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               style: AppType.displayL,
               decoration: InputDecoration(
                 // Ghost, not a value. An empty field confirms as 0 either way,
@@ -307,40 +308,45 @@ class _QtyEditSheetState extends State<_QtyEditSheet> {
               ),
             )
           else
-            SizedBox(
-              height: _wheelHeight,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    height: _itemExtent,
-                    width: _wheelWidth * 3,
-                    decoration: const BoxDecoration(
-                      color: AppColors.surfaceMuted,
-                      borderRadius: AppRadius.rS,
+            // Centred. The column is left-aligned so the product name and the
+            // Wheel/Input toggle start on the same edge, and the wheel block
+            // is the one child narrow enough to sit off to one side of it.
+            Center(
+              child: SizedBox(
+                height: _wheelHeight,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Container(
+                      height: _itemExtent,
+                      width: _wheelWidth * 3,
+                      decoration: const BoxDecoration(
+                        color: AppColors.surfaceMuted,
+                        borderRadius: AppRadius.rS,
+                      ),
                     ),
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _digitWheel(
-                        key: ValueKey('h$_wheelGeneration'),
-                        initial: _hundreds,
-                        onChanged: (v) => _hundreds = v,
-                      ),
-                      _digitWheel(
-                        key: ValueKey('t$_wheelGeneration'),
-                        initial: _tens,
-                        onChanged: (v) => _tens = v,
-                      ),
-                      _digitWheel(
-                        key: ValueKey('o$_wheelGeneration'),
-                        initial: _ones,
-                        onChanged: (v) => _ones = v,
-                      ),
-                    ],
-                  ),
-                ],
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _digitWheel(
+                          key: ValueKey('h$_wheelGeneration'),
+                          initial: _hundreds,
+                          onChanged: (v) => _hundreds = v,
+                        ),
+                        _digitWheel(
+                          key: ValueKey('t$_wheelGeneration'),
+                          initial: _tens,
+                          onChanged: (v) => _tens = v,
+                        ),
+                        _digitWheel(
+                          key: ValueKey('o$_wheelGeneration'),
+                          initial: _ones,
+                          onChanged: (v) => _ones = v,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           const SizedBox(height: 20),
@@ -399,8 +405,9 @@ class _StepperBtnState extends State<_StepperBtn> {
     final isActive = widget.onPressed != null;
     final reduceMotion = MediaQuery.of(context).disableAnimations;
     return GestureDetector(
-      onLongPressStart:
-          isActive && widget.onLongPressTick != null ? (_) => _startRepeat() : null,
+      onLongPressStart: isActive && widget.onLongPressTick != null
+          ? (_) => _startRepeat()
+          : null,
       onLongPressEnd: (_) => _stopRepeat(),
       onLongPressCancel: _stopRepeat,
       child: InkWell(
@@ -411,11 +418,14 @@ class _StepperBtnState extends State<_StepperBtn> {
                 widget.onPressed!();
               }
             : null,
-        onHighlightChanged:
-            isActive ? (v) => setState(() => _pressed = v) : null,
+        onHighlightChanged: isActive
+            ? (v) => setState(() => _pressed = v)
+            : null,
         child: AnimatedScale(
           scale: _pressed ? 0.88 : 1.0,
-          duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 100),
+          duration: reduceMotion
+              ? Duration.zero
+              : const Duration(milliseconds: 100),
           // No fill. Twenty-eight rows, two steppers each, was fifty-six
           // filled brown boxes on the busiest screen in the app — the owner
           // asked for the background off so the row reads as a product and a

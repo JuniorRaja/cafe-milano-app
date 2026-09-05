@@ -1,5 +1,6 @@
 import 'package:milano_orders/database/app_database.dart';
 import 'package:milano_orders/theme/app_theme.dart';
+import 'package:milano_orders/widgets/ui/ui.dart';
 import 'package:milano_orders/theme/brand_config.dart';
 import 'package:milano_orders/providers/category_provider.dart';
 import 'package:milano_orders/providers/order_provider.dart';
@@ -314,6 +315,18 @@ void main() {
       expect(find.text(label), findsOneWidget);
     });
 
+    testWidgets('wears the same header as every other shell screen',
+        (tester) async {
+      // It had a hand-rolled one, which is why its menu button sat on a
+      // different left edge from the other four.
+      await tester.pumpWidget(buildKitchen());
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AppScaffold), findsOneWidget);
+      expect(find.text('KITCHEN'), findsOneWidget);
+      expect(find.text('Production'), findsOneWidget);
+    });
+
     testWidgets('empty state shown when no orders for date', (tester) async {
       await tester.pumpWidget(buildKitchen());
       await tester.pumpAndSettle();
@@ -326,9 +339,10 @@ void main() {
       await tester.pumpAndSettle();
 
       // The share control is a header IconButton, always present and disabled
-      // when there is nothing to share.
+      // when there is nothing to share. `ios_share_rounded` is the one share
+      // glyph in the app — Kitchen used to have two of its own.
       final button = tester.widget<IconButton>(
-        find.widgetWithIcon(IconButton, Icons.share_rounded),
+        find.widgetWithIcon(IconButton, Icons.ios_share_rounded),
       );
       expect(button.onPressed, isNull);
     });
@@ -342,7 +356,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final button = tester.widget<IconButton>(
-        find.widgetWithIcon(IconButton, Icons.share_rounded),
+        find.widgetWithIcon(IconButton, Icons.ios_share_rounded),
       );
       expect(button.onPressed, isNotNull);
     });

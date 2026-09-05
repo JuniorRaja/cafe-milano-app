@@ -8,7 +8,7 @@
 | **Branch** | `release/1.11.0-navigation` |
 | **Requires** | [10b — Navigation](10b-navigation.md), built |
 | **Ships before** | [10c — Screen restyle](10c-screen-restyle.md) |
-| **Status** | A–J built — 2026-09-05 |
+| **Status** | A–K built — 2026-09-05 |
 
 ## Why
 
@@ -761,6 +761,93 @@ Shops twice for one query. The card is on the full screen only.
 
 ---
 
+## K — Second device pass
+
+The owner ran the branch again after A–J landed. Twelve points, all small, all
+from the phone.
+
+### K1 · Dashboard header
+
+- [x] The date on the left, a **period dropdown** on the right, replacing the
+      scrolling row of seven pills. That row spent a whole band of the screen on
+      a control touched once a week.
+- [x] The pill widget is deleted. `HeaderMenu` moved out of `finances_screen`
+      into the kit, so the Dashboard and the Ledger use one control on two
+      pieces of state — which is what H2 could not do while the pill existed.
+- [x] `Custom…` still opens the range picker, now reading `todayProvider`
+      rather than `DateTime.now()`.
+
+### K2 · The Pulse is a daily card
+
+- [x] Shown only when the period is **Today**. It answers "how is today going";
+      against a quarter that is a different question, and one the cards below
+      already answer. The Dashboard-sections setting still switches it off
+      entirely.
+
+### K3 · The Dashboard is named after the business
+
+- [x] The title is the **Business Name** from Settings, falling back to
+      `Business Overview` when it is blank — confirmed with the owner, who meant
+      their own bakery rather than one of the shops they supply. Read from
+      `businessInfoProvider`; nothing is hardcoded, per rule 12.
+
+### K4 · Two height overflows
+
+`Category Revenue Mix` and `Product Leaderboard` both pinned a height around an
+icon over a line of text. That fits at the default font scale and overflows one
+notch up, which is what the phone was reporting.
+
+- [x] Both empty states are padded rather than pinned, so they size to content.
+- [x] The donut's centre figure is clamped to one line, so it cannot grow past
+      the box the chart is drawn in.
+- [x] The leaderboard's rank cell was 32px for a two-digit rank beside an emoji.
+      Now 40, with the emoji flexible and the header spacer moved to match —
+      row ten is the row that card exists to show.
+
+### K5 · A solid nav bar
+
+- [x] Full width, running to the bottom edge, with the top two corners rounded
+      (`AppRadius.barTop`). The pill left a gap on all four sides and the page
+      scrolling behind that gap read as a mistake rather than as depth.
+- [x] The gesture inset moved *inside* the bar, so the fill reaches the bottom
+      of the screen while the slots stay above the home indicator.
+- [x] **Shown again at the bottom of a list.** There is nothing left to scroll
+      for down there, so making the owner swipe up to get the bar back would be
+      asking for nothing. Held by a test that scrolls to `maxScrollExtent`.
+
+### K6 · Background art on the main five only
+
+- [x] Back in `AppShell`, behind the five branches. A4 moved it up to
+      `MaterialApp.builder` so pushed screens got it too; on the phone that was
+      too much — order entry, a statement and the masters are working screens,
+      and a photograph behind a column of numbers is noise.
+- [x] It could not have come back before J1. `bottomNavigationBar` insets the
+      body, so a background inside the Scaffold was laid out ~80px shorter on
+      shell routes and `BoxFit.cover` rescaled the art when you popped back from
+      a sub-route. The bar is an overlay now, so the crop is stable.
+- [x] Pushed screens sit on flat `AppColors.bg`, painted once in the builder.
+
+### K7 · The rest
+
+- [x] **Order entry** — the quantity wheel was left-aligned. The sheet's column
+      is `crossAxisAlignment.start` so the name and the Wheel/Input toggle share
+      an edge, and the wheel block was the one child narrow enough to sit off to
+      one side of it. Centred.
+- [x] **Kitchen** — onto `AppScaffold`, like every other shell screen. Its
+      hand-rolled header is why its menu button sat on a different left edge.
+      This is A5 finally reaching the fifth screen.
+- [x] **Billing** — the line total in the expanded item list dropped from `w600`
+      to normal. Bolding one column of a four-column table makes the eye read
+      down it instead of across the row.
+- [x] **One share icon.** `Icons.ios_share_rounded` everywhere. Kitchen had two
+      of its own — `share_rounded` in the header and `share` on the shop rows.
+- [x] **Price Matrix** — the shop dropdown overflowed by 3px. A name with an
+      area is longer than the field, and left to wrap it burst the menu row's
+      fixed height. `isExpanded` plus a one-line clamp, applied to Standing
+      Orders' identical dropdown at the same time rather than leaving it latent.
+
+---
+
 ## Deferred to 10c
 
 Raised by the owner, already owned by [10c](10c-screen-restyle.md), **not planned here**:
@@ -827,7 +914,8 @@ action list as each lands, so it does not build them twice.
 | I1–I3 · Masters | `6f62c52` | Right-edge actions, price in the subtitle, search that keeps edits |
 | H1–H4 · Ledger | `2203703` | Renamed, its own period, sortable — and a `Statement` next to it |
 | J2–J4 · Nav, minus the bar | `0b58194` | Relative dates, scroll reset, Catalogue back in Settings |
-| J1 · The hiding bar | see below | Out of the Scaffold slot, into an overlay. Alone, as planned |
+| J1 · The hiding bar | `fee9802` | Out of the Scaffold slot, into an overlay. Alone, as planned |
+| K1–K7 · Second pass | see below | Twelve points from the second phone run |
 
 ### Verified — 2026-09-05, Flutter 3.44.2 / Dart 3.12.2
 
@@ -836,9 +924,9 @@ are the ones CI will see.
 
 | Gate | Result |
 |---|---|
-| `flutter test` | **327 passing, 0 failing** — was 203 when 10b was built |
-| `flutter analyze` | **0 errors, 0 warnings.** 53 infos, all deprecation |
-| `tool/check_tokens.sh` | **297**, from 354. Kit clean |
+| `flutter test` | **336 passing, 0 failing** — was 203 when 10b was built |
+| `flutter analyze` | **0 errors, 0 warnings.** 48 infos, all deprecation |
+| `tool/check_tokens.sh` | **289**, from 354. Kit clean |
 
 `flutter analyze` is **not** clean, and none of it is new:
 
