@@ -254,6 +254,45 @@ void main() {
       expect(selected, 1);
     });
 
+    // Regression, device pass 2026-09-05: the category chips on Products were
+    // cut in half. The whole of `padding` went to the horizontal `ListView`,
+    // and in a horizontal list the vertical half comes off the cross axis —
+    // 40 − 8 − 8 left the chip 24px, its own 8+8 left 8px for the text, and a
+    // 12px label needs 14.4. See docs/features/10b-device-pass.md, A3.
+    testWidgets('FilterChipRow leaves its label room to be drawn', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        host(
+          const FilterChipRow(
+            chips: [FilterChipData('🥐 Puffs')],
+            selectedIndex: 0,
+            onSelected: _ignore,
+          ),
+        ),
+      );
+
+      final label = find.text('🥐 Puffs');
+      final chip = find
+          .ancestor(of: label, matching: find.byType(InkWell))
+          .first;
+
+      // The chip must fit its own label plus its own vertical padding. This is
+      // the defect stated as an assertion, and it holds whatever the row height
+      // and the type step happen to be.
+      expect(
+        tester.getSize(chip).height,
+        greaterThanOrEqualTo(
+          tester.getSize(label).height + AppSpace.s2 * 2,
+        ),
+        reason: 'the chip is shorter than the text it contains',
+      );
+
+      // And the strip is the chip's box, not the chip's box minus the gutter.
+      expect(tester.getSize(find.byType(FilterChipRow)).height,
+          FilterChipRow.rowHeight + AppSpace.s2 * 2);
+    });
+
     testWidgets('SectionHeader renders its action', (tester) async {
       var tapped = false;
       await tester.pumpWidget(
@@ -473,3 +512,6 @@ void main() {
     });
   });
 }
+
+/// A const-able no-op, so a `FilterChipRow` under test can stay `const`.
+void _ignore(int _) {}
