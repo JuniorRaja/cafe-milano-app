@@ -8,7 +8,7 @@
 | **Branch** | `release/1.11.0-navigation` |
 | **Requires** | [10b — Navigation](10b-navigation.md), built |
 | **Ships before** | [10c — Screen restyle](10c-screen-restyle.md) |
-| **Status** | Planned — 2026-09-05 |
+| **Status** | A (defects) built · B–J planned — 2026-09-05 |
 
 ## Why
 
@@ -36,12 +36,12 @@ That has not happened yet and must not happen before this doc's success criteria
 hardcoded jump to the Overview, not a back. Open Orders → a shop → back, and you are on
 the Dashboard, having lost the tab you came from.
 
-- [ ] Replace both with `context.pop()`, guarded by `canPop()` so a deep link into
+- [x] Replace both with `context.pop()`, guarded by `canPop()` so a deep link into
       `/order/5` still has somewhere to go — fall back to `AppRoutes.orders`, which is
       the screen this one is opened from, not `/`.
-- [ ] The loading branch at `:261` has the same bug and the same fix. Do not fix only
+- [x] The loading branch at `:261` has the same bug and the same fix. Do not fix only
       the one you can see.
-- [ ] `routing_test.dart` gets a case: push `/order/1` over the Orders branch, pop,
+- [x] `routing_test.dart` gets a case: push `/order/1` over the Orders branch, pop,
       expect `/orders`.
 
 **This is a rule violation as well as a bug.** AGENTS.md rule 10 says use `AppRoutes`
@@ -60,29 +60,45 @@ null, the provider goes to `AsyncError`, and `weekday_heatmap.dart` renders
 `error: (_, _) => _emptyState()`. The card says "not enough data" for a database error.
 It has never worked with real data.
 
-- [ ] Add the modifier: `strftime('%w', o.order_date, 'unixepoch')`.
-- [ ] Group the inner query on the same expression it selects, so a day is a day and not
-      an epoch second.
-- [ ] Grep the DAOs for any other bare `strftime` on a `DateTimeColumn`. There is one
+- [x] ~~Add the modifier: `strftime('%w', o.order_date, 'unixepoch')`.~~
+      **Done differently, and better.** `'unixepoch'` fixes the null and leaves a worse
+      bug behind: epoch seconds are UTC and these dates are local midnights, so east of
+      Greenwich every order counts against the previous day — Monday's bake under
+      Sunday. The DAO now returns one row per (category, day), the same shape as
+      `getCategorySparklines`, and the provider takes the weekday from
+      `DateTime.weekday`. No timezone in the path, and the Sunday-first remap goes with
+      it.
+- [x] ~~Group the inner query on the same expression it selects.~~ Moot — there is no
+      derived expression in the query any more.
+- [x] Grep the DAOs for any other bare `strftime` on a `DateTimeColumn`. There is one
       today; there must be none after.
-- [ ] `_emptyState()` stops covering for errors. Empty and failed must look different —
+- [x] `_emptyState()` stops covering for errors. Empty and failed must look different —
       that is [10c](10c-screen-restyle.md)'s Phase 3 rule, applied here early because
       this card is the reason the rule exists.
-- [ ] A DAO test with three weeks of seeded orders that asserts a non-empty map. Without
+- [x] A DAO test with three weeks of seeded orders that asserts a non-empty map. Without
       it this silently breaks again on the Supabase port.
 
 ### A3 · Filter pill text is cut in half
 
-`filter_chip_row.dart` fixes the row at `height: 40`, and the chip label is
-`AppType.label` — 12px at `height: 1.2`. Product chips prepend a category emoji, and an
-emoji glyph is taller than a 1.2 line box, so the row clips it and the text with it.
+`filter_chip_row.dart` fixes the row at `height: 40` and hands the whole of `padding`
+to a **horizontal** `ListView`.
 
-- [ ] Let the chip size itself and give the row `44` with the chip vertically centred,
-      rather than stretching the chip to a fixed box.
-- [ ] Drop the tight line height on the chip label only. Do not change `AppType.label`
-      globally — it is correct everywhere else.
-- [ ] Check the same pattern on any other row that puts an emoji in a `caption` or
-      `label` step.
+**Corrected once the code was open.** The emoji was the suspect and is not the culprit.
+In a horizontal list the vertical half of the scroll view's padding comes off the cross
+axis: 40 − 8 − 8 left each chip 24px, the chip's own 8 + 8 left 8px for the text, and a
+12px label needs 14.4px. The engine clipped it, top and bottom — exactly "cropped into
+half". The tight emoji line box was a second squeeze behind it, and is fixed too.
+
+- [x] Move the vertical half of `padding` outside the box, where it separates the row
+      from its neighbours instead of eating it. The horizontal half stays inside the
+      scroll view so the first chip starts on the gutter and the last can scroll past.
+      Row height `44`.
+- [x] Give the chip label its own line height. Do not change `AppType.label` globally —
+      it is correct everywhere else.
+- [x] Check the same pattern on any other row that puts an emoji in a `caption` or
+      `label` step. Two candidates, both fine: the product row's subtitle (`bodyS`,
+      17.5px box at 13px) and the category avatar (`titleM`, 21.25px at 17px) each have
+      room. Left alone.
 
 ### A4 · The background art is missing on most screens
 
@@ -96,19 +112,23 @@ the rest. That is the inconsistency the owner saw.
 The owner is choosing a new image. This item is about **where it is painted**, not which
 image it is.
 
-- [ ] Move the background one level up, to a single widget wrapping
+- [x] Move the background one level up, to a single widget wrapping
       `MaterialApp.router`'s `builder`, so it is painted once for the whole app and every
       route — shell or pushed — sits on it.
-- [ ] `AppScaffold.background` defaults to transparent already. Remove the two
+- [x] `AppScaffold.background` defaults to transparent already. Remove the two
       `AppColors.bg` overrides that defeat it.
-- [ ] Keep the existing performance decisions in `app_background.dart` verbatim: no
+- [x] Keep the existing performance decisions in `app_background.dart` verbatim: no
       `ImageFiltered`, no `Opacity`, blur and alpha baked into the asset, one
       `RepaintBoundary`, `cacheWidth: 360`. Painting it higher up means it is built
       **once for the process** instead of once per shell rebuild, which is strictly
       better than today.
-- [ ] Precache the asset in the bootstrap gate so the first frame does not pop.
+- [x] ~~Precache the asset in the bootstrap gate.~~ **Not needed, so not
+      added.** The widget now mounts above the router, before the first
+      route and behind the native splash, which is already the earliest
+      point it could decode. Precaching there would be a second call site
+      for no frame.
 - [ ] When the new art lands, regenerate the blurred asset with `tool/blur_background.py`
-      and commit both. Never blur at runtime.
+      and commit both. Never blur at runtime. **Open — waiting on the image.**
 
 ### A5 · The drawer button sits too far left
 
@@ -116,11 +136,13 @@ The Dashboard, Orders and Billing headers are hand-rolled: a `Padding` of 16 the
 `IconButton`, which adds its own 8 and a 48px minimum tap target. The hamburger reads as
 floating in a gutter, and the title beside it does not line up with the content below.
 
-- [ ] Give `AppScaffold`'s header an 8px left gutter when `leading` is an icon button, so
-      the **icon** lands on the 16px grid rather than the button box.
-- [ ] Point the three hand-rolled headers at `AppScaffold`. 10c migrates every screen;
+- [x] Take the button's own inset off the header's left gutter when it leads with one,
+      so the **glyph** lands on the 16px grid rather than the button box. That is 4px of
+      padding, not 8: an `IconButton` is a 48px box around a 24px icon and so carries
+      12px of its own.
+- [x] Point the three hand-rolled headers at `AppScaffold`. 10c migrates every screen;
       these three are migrated now because the alignment cannot be fixed without it.
-- [ ] Keep the 48px tap target. This is a padding change, not a size change.
+- [x] Keep the 48px tap target. This is a padding change, not a size change.
 
 ---
 
@@ -575,6 +597,22 @@ action list as each lands, so it does not build them twice.
       [10b](10b-navigation.md)'s *What still needs the phone* table.
 - [ ] A backup exported from `1.10.0+14` restores into this build. Readiness gate step 7,
       the one that gets skipped.
+
+## Progress
+
+| | Commit | Note |
+|---|---|---|
+| A1 · back button | `f99231d` | Both buttons, including the loading branch |
+| A2 · heatmap | `894b908` | Fixed in Dart, not with `'unixepoch'` — see A2 |
+| A3 · filter pills | `f848475` | The cause was the row's own padding, not the emoji |
+| A4 · background | `9516e2b` | Painted app-wide; new artwork still to come |
+| A5 · header gutter | `480ba82` | Took Dashboard, Orders and Billing onto `AppScaffold` |
+
+`tool/check_tokens.sh` is at **342**, from 354. The kit stays clean.
+
+**Not verified here.** This container has no Flutter SDK, so `flutter test`
+and `flutter analyze` have not been run against these five commits. Run both
+before starting B.
 
 ## Order of work
 
