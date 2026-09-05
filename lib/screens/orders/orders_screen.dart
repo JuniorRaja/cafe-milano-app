@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
-import '../../app.dart';
 import '../../database/app_database.dart';
 import '../../providers/date_provider.dart';
 import '../../providers/ledger_provider.dart';
@@ -12,7 +11,7 @@ import '../../providers/order_provider.dart';
 import '../../providers/shop_provider.dart';
 import '../../providers/product_provider.dart';
 import '../../widgets/date_selector.dart';
-import '../../widgets/staggered_fade_in.dart';
+import '../../services/bill_share.dart';
 import '../ledger/record_payment_sheet.dart';
 import '../../widgets/shell/app_shell.dart';
 import '../../widgets/ui/ui.dart';
@@ -56,19 +55,11 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
       body: summariesAsync.when(
         data: (summaries) {
           if (summaries.isEmpty) {
-            return const Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.receipt_long_outlined,
-                      size: 64, color: Colors.grey),
-                  SizedBox(height: 12),
-                  Text(
-                    'No orders for this date',
-                    style: TextStyle(color: Colors.grey, fontSize: 15),
-                  ),
-                ],
-              ),
+            return const EmptyState.inert(
+              icon: Icons.receipt_long_outlined,
+              title: 'No bills for this date',
+              message: 'Bills appear here once a shop has an order on this '
+                  'day.',
             );
           }
 
@@ -79,7 +70,12 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
             children: [
               Expanded(
                 child: ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpace.s4,
+                    AppSpace.s2,
+                    AppSpace.s4,
+                    0,
+                  ),
                   itemCount: summaries.length,
                   itemBuilder: (context, i) {
                     final s = summaries[i];
@@ -87,7 +83,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                     final isExpanded = _expandedOrderId == s.order.id;
                     return RepaintBoundary(
                       key: ValueKey(s.order.id),
-                      child: _OrderCard(
+                      child: _BillCard(
                         summary: s,
                         shop: shop,
                         index: i + 1,
@@ -105,58 +101,51 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                   },
                 ),
               ),
-              // Floating grand total card
+              // The day's figure, and the way bills leave the app.
               SafeArea(
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Card(
-                    color: kBrandBrown,
-                    elevation: 6,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 14),
-                      child: Row(
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text(
-                                'Grand Total',
-                                style: TextStyle(
-                                    color: Colors.white, fontSize: 12),
-                              ),
-                              Text(
-                                ref.watch(brandProvider).moneyTrim(grandTotal),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const Spacer(),
-                          OutlinedButton.icon(
-                            onPressed: () =>
-                                _shareAll(summaries, shopMap, date),
-                            icon: const Icon(Icons.share,
-                                size: 16, color: Colors.white),
-                            label: const Text(
-                              'Share All Bills',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Colors.white),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                  padding: const EdgeInsets.all(AppSpace.s4),
+                  child: AppCard(
+                    color: AppColors.brandDeep,
+                    shadow: AppShadow.raised,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpace.s4,
+                      vertical: AppSpace.s3,
+                    ),
+                    child: Row(
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'GRAND TOTAL',
+                              style: AppType.caption.copyWith(
+                                color: AppColors.textOnDark,
                               ),
                             ),
+                            Text(
+                              ref.watch(brandProvider).moneyTrim(grandTotal),
+                              style: AppType.titleM.copyWith(
+                                color: AppColors.textOnDark,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Spacer(),
+                        OutlinedButton.icon(
+                          onPressed: () => _shareBills(summaries, shopMap, date),
+                          icon: const Icon(Icons.ios_share_rounded, size: 16),
+                          label: const Text('Share bills'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.textOnDark,
+                            side: const BorderSide(color: AppColors.textOnDark),
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: AppRadius.rS,
+                            ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -202,68 +191,71 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     final date = ref.read(selectedDateProvider);
     final owl =
         await ref.readStreamOnce(orderWithLinesProvider(summary.order.id));
-    final text = _buildBillText(shop?.name ?? 'Unknown', owl, productMap, date);
-    await Share.share(text);
+    await Share.share(billDetailText(
+      shopName: shop?.name ?? 'Unknown',
+      order: owl,
+      productMap: productMap,
+      brand: ref.read(brandProvider),
+      dateLabel: DateFormat('dd MMM yyyy').format(date),
+    ));
   }
 
-  Future<void> _shareAll(
+  /// Ask which shops, then share those.
+  ///
+  /// It used to share every bill on the date with no way to narrow it, and the
+  /// footer said `Share All Bills` because that is all it could do. The
+  /// GRAND TOTAL is now the total of what was picked: a partial share carrying
+  /// the whole day's figure is a wrong number sent to a customer.
+  Future<void> _shareBills(
     List<OrderDaySummary> summaries,
     Map<int, Shop> shopMap,
     DateTime date,
   ) async {
     final brand = ref.read(brandProvider);
-    final dateLabel = DateFormat('dd MMM yyyy').format(date);
-    final buf = StringBuffer();
-    buf.writeln('🧾 Bills — $dateLabel');
-    buf.writeln();
-    for (final s in summaries) {
-      final name = shopMap[s.order.shopId]?.name ?? 'Unknown';
-      buf.writeln('🏪 $name — ${brand.money(s.total)}');
-    }
-    buf.writeln();
-    final grand = summaries.fold<double>(0, (a, b) => a + b.total);
-    buf.writeln('GRAND TOTAL: ${brand.money(grand)}');
-    await Share.share(buf.toString().trim());
-  }
 
-  String _buildBillText(
-    String shopName,
-    OrderWithLines? owl,
-    Map<int, Product> productMap,
-    DateTime date,
-  ) {
-    final brand = ref.read(brandProvider);
-    final dateLabel = DateFormat('dd MMM yyyy').format(date);
-    final buf = StringBuffer();
-    buf.writeln('🧾 Bill — $shopName');
-    buf.writeln('Date: $dateLabel');
-    buf.writeln();
-    if (owl != null && owl.lines.isNotEmpty) {
-      final sorted = [...owl.lines]..sort((a, b) {
-          final na = productMap[a.productId]?.name.toLowerCase() ?? '';
-          final nb = productMap[b.productId]?.name.toLowerCase() ?? '';
-          return na.compareTo(nb);
-        });
-      double total = 0;
-      for (final line in sorted) {
-        final name =
-            productMap[line.productId]?.name ?? 'Product #${line.productId}';
-        final lineTotal = line.qty * line.unitPrice;
-        total += lineTotal;
-        buf.writeln(
-            '· $name × ${line.qty} — ${brand.money(lineTotal)}');
-      }
-      buf.writeln();
-      buf.writeln('TOTAL: ${brand.money(total)}');
-    } else {
-      buf.writeln('No items');
-    }
-    return buf.toString().trim();
+    final chosen = await showMultiSelectSheet(
+      context,
+      title: 'Share bills',
+      noun: 'shops',
+      options: [
+        for (final s in summaries)
+          SelectOption(
+            id: s.order.id,
+            title: shopMap[s.order.shopId]?.name ?? 'Shop #${s.order.shopId}',
+            subtitle: shopMap[s.order.shopId]?.area,
+            trailing: brand.money(s.total),
+          ),
+      ],
+      confirmLabel: (count) =>
+          'Share $count bill${count == 1 ? '' : 's'}',
+    );
+    // Null is a dismissed sheet, which is not the same as picking nothing.
+    if (chosen == null) return;
+
+    final picked =
+        summaries.where((s) => chosen.contains(s.order.id)).toList();
+    if (picked.isEmpty) return;
+
+    await Share.share(billsSummaryText(
+      bills: picked,
+      shopMap: shopMap,
+      brand: brand,
+      dateLabel: DateFormat('dd MMM yyyy').format(date),
+    ));
   }
 }
 
-class _OrderCard extends ConsumerWidget {
-  const _OrderCard({
+/// One bill, in three rows.
+///
+/// It was one row: shop, area and total on the left, then two chips, a share
+/// button and a caret squeezed into what was left. On a narrow phone with a
+/// five-digit total that cluster did not fit, and the code worked around it
+/// with a `FittedBox` that scaled the chips down until they did — so the
+/// smaller the shop's bill, the more readable its status. The strip below the
+/// hairline is that fix: the status has a line of its own, and the money keeps
+/// the right-hand column to itself.
+class _BillCard extends ConsumerWidget {
+  const _BillCard({
     required this.summary,
     required this.shop,
     required this.index,
@@ -294,126 +286,197 @@ class _OrderCard extends ConsumerWidget {
     final isConfirmed = summary.order.isConfirmed;
     final due = billDue;
     final settled = due == null || due.status == BillStatus.paid;
-    return Card(
-      color: Colors.white,
-      margin: const EdgeInsets.only(bottom: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          InkWell(
-            borderRadius: isExpanded
-                ? const BorderRadius.vertical(top: Radius.circular(12))
-                : BorderRadius.circular(12),
-            onTap: onToggle,
-            onLongPress: settled ? null : onMarkPaid,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 14),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CircleAvatar(
-                    radius: 18,
-                    backgroundColor: kBrandBrown,
-                    child: Text(
-                      index.toString(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
+
+    return AppCard(
+      margin: const EdgeInsets.only(bottom: AppSpace.s2),
+      padding: EdgeInsets.zero,
+      child: ClipRRect(
+        borderRadius: AppRadius.rM,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Material(
+              type: MaterialType.transparency,
+              child: InkWell(
+                onTap: onToggle,
+                onLongPress: settled ? null : onMarkPaid,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpace.s4,
+                    vertical: AppSpace.s3,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          shop?.name ?? 'Shop #${summary.order.shopId}',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 15),
-                        ),
-                        if (shop?.area != null)
-                          Text(
-                            shop!.area!,
-                            style: TextStyle(
-                                fontSize: 12, color: Colors.grey[600]),
-                          ),
-                        const SizedBox(height: 6),
-                        Row(
+                  child: Row(
+                    children: [
+                      _IndexDot(index: index),
+                      const SizedBox(width: AppSpace.s3),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              brand.money(summary.total),
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 15),
+                              shop?.name ?? 'Shop #${summary.order.shopId}',
+                              style: AppType.titleS,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            const Spacer(),
-                            // Two chips, a share button and a caret is more
-                            // than a narrow phone fits beside a five-digit
-                            // total, so the trailing cluster shrinks to fit
-                            // rather than overflowing the card.
-                            Flexible(
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment: Alignment.centerRight,
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (due != null) ...[
-                                      _StatusChip(
-                                        label: _payLabel(due.status),
-                                        color: _payColor(due.status),
-                                        // The chip is the discoverable half of
-                                        // Mark-as-Paid; long-pressing the card
-                                        // is the same action for anyone who
-                                        // reaches for that instead.
-                                        onTap: settled ? null : onMarkPaid,
-                                      ),
-                                      const SizedBox(width: 6),
-                                    ],
-                                    _StatusChip(
-                                      label: isConfirmed ? 'Confirmed' : 'Pending',
-                                      color: isConfirmed ? Colors.green : Colors.grey,
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.share, size: 20),
-                                      onPressed: onShare,
-                                      visualDensity: VisualDensity.compact,
-                                      tooltip: 'Share bill',
-                                    ),
-                                    Icon(
-                                      isExpanded
-                                          ? Icons.expand_less
-                                          : Icons.expand_more,
-                                      color: Colors.grey,
-                                      size: 20,
-                                    ),
-                                  ],
+                            if (shop?.area != null) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                shop!.area!,
+                                style: AppType.bodyS.copyWith(
+                                  color: AppColors.textSecondary,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
+                            ],
                           ],
                         ),
-                      ],
+                      ),
+                      const SizedBox(width: AppSpace.s2),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(brand.money(summary.total),
+                              style: AppType.titleS),
+                          Text(
+                            _secondLine(brand, due),
+                            style: AppType.bodyS.copyWith(
+                              color: settled
+                                  ? AppColors.textTertiary
+                                  : AppColors.negative,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const Divider(height: 1, color: AppColors.border),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpace.s4,
+                AppSpace.s1,
+                AppSpace.s2,
+                AppSpace.s1,
+              ),
+              child: Row(
+                children: [
+                  StatusBadge(
+                    label: isConfirmed ? 'Confirmed' : 'Pending',
+                    tone: isConfirmed ? AppTone.positive : AppTone.neutral,
+                  ),
+                  if (due != null) ...[
+                    const SizedBox(width: AppSpace.s2),
+                    // The badge is the discoverable half of Mark-as-Paid;
+                    // long-pressing the card is the same action for anyone who
+                    // reaches for that instead.
+                    _Tappable(
+                      onTap: settled ? null : onMarkPaid,
+                      child: StatusBadge(
+                        label: _payLabel(due.status),
+                        tone: _payTone(due.status),
+                      ),
                     ),
+                  ],
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.ios_share_rounded, size: 20),
+                    color: AppColors.textSecondary,
+                    onPressed: onShare,
+                    visualDensity: VisualDensity.compact,
+                    tooltip: 'Share bill',
+                  ),
+                  // The caret is the only thing on the card that says tapping
+                  // it does anything, so it survived the move out of the
+                  // trailing cluster.
+                  IconButton(
+                    icon: Icon(
+                      isExpanded
+                          ? Icons.expand_less_rounded
+                          : Icons.expand_more_rounded,
+                      size: 20,
+                    ),
+                    color: AppColors.textSecondary,
+                    onPressed: onToggle,
+                    visualDensity: VisualDensity.compact,
+                    tooltip: isExpanded ? 'Hide items' : 'Show items',
                   ),
                 ],
               ),
             ),
-          ),
-          AnimatedSize(
-            duration: MediaQuery.of(context).disableAnimations
-                ? Duration.zero
-                : const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            alignment: Alignment.topCenter,
-            child: isExpanded
-                ? _BillingDetail(
-                    orderId: summary.order.id, productMap: productMap)
-                : const SizedBox(width: double.infinity),
-          ),
-        ],
+            AnimatedSize(
+              duration: MediaQuery.of(context).disableAnimations
+                  ? Duration.zero
+                  : const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              alignment: Alignment.topCenter,
+              child: isExpanded
+                  ? _BillingDetail(
+                      orderId: summary.order.id, productMap: productMap)
+                  : const SizedBox(width: double.infinity),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Under the total: what is still owed, or how big the order was. A bill
+  /// that is settled has no outstanding figure to show, and printing `₹0 due`
+  /// on every paid row would bury the ones that are not.
+  String _secondLine(BrandConfig brand, BillDue? due) {
+    if (due != null && due.status != BillStatus.paid && due.amountDue > 0) {
+      return '${brand.money(due.amountDue)} due';
+    }
+    return '${summary.itemCount} item${summary.itemCount == 1 ? '' : 's'}';
+  }
+}
+
+/// The bill's position in the day's list.
+class _IndexDot extends StatelessWidget {
+  const _IndexDot({required this.index});
+
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 36,
+      height: 36,
+      alignment: Alignment.center,
+      decoration: const BoxDecoration(
+        color: AppColors.surfaceMuted,
+        shape: BoxShape.circle,
+      ),
+      child: Text(
+        '$index',
+        style: AppType.label.copyWith(color: AppColors.textSecondary),
+      ),
+    );
+  }
+}
+
+/// An ink ripple clipped to a pill, for a badge that is also a button.
+class _Tappable extends StatelessWidget {
+  const _Tappable({required this.onTap, required this.child});
+
+  final VoidCallback? onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (onTap == null) return child;
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.rFull,
+        child: child,
       ),
     );
   }
@@ -440,12 +503,9 @@ class _BillingDetail extends ConsumerWidget {
         }
         final total =
             data.lines.fold<double>(0, (s, l) => s + l.qty * l.unitPrice);
-        return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(
-                bottom: Radius.circular(12)),
-          ),
+        // The card clips its own corners now, so this only needs a ground.
+        return ColoredBox(
+          color: AppColors.surface,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -545,22 +605,16 @@ class _BillingDetail extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
                 child: Row(
                   children: [
-                    const Text(
+                    Text(
                       'Total',
-                      style: TextStyle(
-                        color: kBrandBrown,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                      ),
+                      style: AppType.titleS
+                          .copyWith(color: AppColors.brandDeep),
                     ),
                     const Spacer(),
                     Text(
                       brand.money(total),
-                      style: const TextStyle(
-                        color: kBrandBrown,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                      ),
+                      style: AppType.titleS
+                          .copyWith(color: AppColors.brandDeep),
                     ),
                   ],
                 ),
@@ -588,39 +642,8 @@ String _payLabel(BillStatus status) => switch (status) {
       BillStatus.unpaid => 'Unpaid',
     };
 
-Color _payColor(BillStatus status) => switch (status) {
-      BillStatus.paid => Colors.green,
-      BillStatus.partial => Colors.orange,
-      BillStatus.unpaid => Colors.red,
+AppTone _payTone(BillStatus status) => switch (status) {
+      BillStatus.paid => AppTone.positive,
+      BillStatus.partial => AppTone.warning,
+      BillStatus.unpaid => AppTone.negative,
     };
-
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.label, required this.color, this.onTap});
-  final String label;
-  final Color color;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final chip = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withAlpha(30),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withAlpha(80), width: 0.5),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-            color: color, fontSize: 11, fontWeight: FontWeight.w600),
-      ),
-    );
-
-    if (onTap == null) return chip;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: chip,
-    );
-  }
-}

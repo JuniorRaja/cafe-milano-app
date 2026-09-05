@@ -22,6 +22,7 @@ export 'hero_stat_card.dart';
 export 'list_row.dart';
 export 'master_list_page.dart';
 export 'mini_table.dart';
+export 'multi_select_list.dart';
 export 'note_banner.dart';
 export 'section_header.dart';
 export 'stat_band.dart';

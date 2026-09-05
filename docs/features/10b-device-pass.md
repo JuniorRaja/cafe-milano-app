@@ -8,7 +8,7 @@
 | **Branch** | `release/1.11.0-navigation` |
 | **Requires** | [10b — Navigation](10b-navigation.md), built |
 | **Ships before** | [10c — Screen restyle](10c-screen-restyle.md) |
-| **Status** | A, B, C, D, E, F built · G–J planned — 2026-09-05 |
+| **Status** | A–G built · H–J planned — 2026-09-05 |
 
 ## Why
 
@@ -480,25 +480,49 @@ money on the right**:
 | (order status)  (payment status)              [ share ]      |
 ```
 
-- [ ] Rows 1 and 2 are the shop and its money. Row 3 is a separated action strip: the
+- [x] Rows 1 and 2 are the shop and its money. Row 3 is a separated action strip: the
       two status pills on the left, share on the right.
-- [ ] A hairline divider between row 2 and row 3. "Clear separation" is the point.
-- [ ] Money right-aligned in one column, as D1.
-- [ ] **Keep both existing gestures unchanged**: long-press records a payment, tap
+- [x] A hairline divider between row 2 and row 3. "Clear separation" is the point.
+      Full-bleed, so the card reads as two zones rather than one with a line in it.
+- [x] Money right-aligned in one column, as D1.
+- [x] **Keep both existing gestures unchanged**: long-press records a payment, tap
       expands the line items, `_expandedOrderId` behaviour identical.
-- [ ] The share icon moves out of the crowded trailing cluster into row 3, which is what
+- [x] The share icon moves out of the crowded trailing cluster into row 3, which is what
       the `FittedBox` scale-down hack at `orders_screen.dart:396` was working around.
-      Delete the hack with it.
+      Delete the hack with it. A test asserts there is no `FittedBox` left on the screen.
+
+**The second amount.** The sketch's row 2 carries an amount under the total and does not
+say which. It is now **what is still owed** — `₹350 due`, in the negative tone — falling
+back to the order's size (`7 items`, as on the Home row) when the bill is settled. A bill
+that is paid has no outstanding figure worth showing, and printing `₹0 due` down the
+whole list would bury the three rows that are not paid. Tell me if you meant something
+else by it.
+
+**The caret stayed.** Row 3 in the sketch carries only share. But the caret is the only
+thing on the card that says tapping it does anything, and the expand gesture is how the
+line items are read, so it sits beside share rather than disappearing.
 
 ### G2 · "Share bills", with a picker
 
-- [ ] Rename `Share All Bills` → **Share bills**.
-- [ ] On tap, open a shop multi-select sheet. All selected by default — the common case
+- [x] Rename `Share All Bills` → **Share bills**.
+- [x] On tap, open a shop multi-select sheet. All selected by default — the common case
       is still all of them.
-- [ ] Share the selected shops only, and total only those. A partial share whose
+- [x] Share the selected shops only, and total only those. A partial share whose
       GRAND TOTAL is the full day's figure is a wrong number sent to a customer.
-- [ ] Reuse `catalog_share_picker_screen.dart`'s selection shape if it fits. Do not write
+- [x] Reuse `catalog_share_picker_screen.dart`'s selection shape if it fits. Do not write
       a second multi-select.
+
+**How the reuse went.** The catalogue picker's selection shape could not be *called* —
+it was a full screen, hard-wired to products, with its select-all in the app bar. So it
+was lifted instead: `MultiSelectList` in the kit owns the ticking, the select-all and the
+`3 of 8` header; `showMultiSelectSheet` wraps it in a sheet with a confirm button. The
+bills picker is the sheet. The catalogue screen keeps its own chrome and its PDF/text
+step but its body is now the same widget, and its app-bar `Select All` is gone — the
+control belongs above the list it selects. One implementation, two callers.
+
+**The number that mattered.** `billsSummaryText` moved into `lib/services/bill_share.dart`
+so it could be tested directly, alongside `billDetailText`. The test that earns its keep
+totals two of three shops and asserts the GRAND TOTAL is those two.
 
 ---
 
@@ -714,7 +738,8 @@ action list as each lands, so it does not build them twice.
 | C1 · greeting | `cd80e2d` + `409f0aa` | Greeting back, no name — the owner's call |
 | D1 + D2 · Orders row and marks | `a5c2c43` | `ShopOrderCard` deleted; 10c's Home item is done |
 | E1–E7 · Order entry | `a63bc85` | Standing order, one filter row, and a suite-hanging timer |
-| F1 + F2 · Kitchen | see below | Grouping lifted into `kitchen_list.dart`; screen and share share it |
+| F1 + F2 · Kitchen | `937e2f8` | Grouping lifted into `kitchen_list.dart`; screen and share share it |
+| G1 + G2 · Billing | see below | Three rows, a real picker, and `MultiSelectList` in the kit |
 
 ### Verified — 2026-09-05, Flutter 3.44.2 / Dart 3.12.2
 
@@ -723,24 +748,24 @@ are the ones CI will see.
 
 | Gate | Result |
 |---|---|
-| `flutter test` | **268 passing, 0 failing** — was 203 when 10b was built |
-| `flutter analyze` | **0 errors.** 62 issues: 5 warnings, 57 infos |
-| `tool/check_tokens.sh` | **317**, from 354. Kit clean |
+| `flutter test` | **281 passing, 0 failing** — was 203 when 10b was built |
+| `flutter analyze` | **0 errors.** 57 issues: 4 warnings, 53 infos |
+| `tool/check_tokens.sh` | **296**, from 354. Kit clean |
 
 `flutter analyze` is **not** clean, and none of it is new:
 
-- **57 infos**, every one a `@Deprecated` `kBrandGold` / `kBrandBrown` /
+- **53 infos**, every one a `@Deprecated` `kBrandGold` / `kBrandBrown` /
   `kSurface` alias. This is 10c's progress bar by design — see
   [10c](10c-screen-restyle.md)'s *Closing the ratchet*. It went **down** here,
   because A5 took three screens off the aliases, D deleted a widget that used
-  three more, and F's new By Item card uses none.
-- **5 warnings**, all pre-dating this branch: two unused imports
-  (`finances_screen` and `orders_screen` each import something they never call)
-  and three unused test helpers, two in `settings_test` and one in `shell_test`.
-  `kitchen_screen`'s was the third; F deleted the line it sat on, so it is gone.
+  three more, and F and G's rewrites use none.
+- **4 warnings**, all pre-dating this branch: one unused import in
+  `finances_screen`, and three unused test helpers, two in `settings_test` and
+  one in `shell_test`. Two of the original six sat on lines that F and G
+  rewrote, so they went with them.
 
-The other five are left alone rather than swept in, because they are not this
-release's and the rule is not to touch unrelated code. They are five one-line
+The other four are left alone rather than swept in, because they are not this
+release's and the rule is not to touch unrelated code. They are four one-line
 deletions and they **do** block the roadmap's readiness gate, which requires
 `flutter analyze` clean before the merge to `master`. Whoever bumps the version
 clears them.
