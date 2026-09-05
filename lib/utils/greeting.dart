@@ -7,8 +7,13 @@ import 'package:clock/clock.dart';
 /// `const _greetingNames = ['Mohan', 'JMR']` picked by `Random()` at library
 /// load — a business identity hardcoded in a widget file, which AGENTS.md rule
 /// 6 forbids, and fixed for the process anyway because the seed ran once.
-/// Deleting the line took the greeting with it. This is the greeting on its
-/// own, with no name in it.
+/// Deleting the line took the greeting with it.
+///
+/// **This is the greeting and nothing else.** It carried a name once, and the
+/// owner's call on 2026-09-05 was to leave it off: the only name the app stores
+/// is `BusinessInfo.name`, which names a shopfront rather than a person, and
+/// there is nowhere to keep a person's name without a schema change the roadmap
+/// froze at v6.
 ///
 /// The boundaries are the ones the deleted version used: morning from 05:00,
 /// afternoon from 12:00, evening from 17:00 through the small hours.
@@ -21,15 +26,4 @@ String greetingFor([DateTime? at]) {
   if (hour >= 5 && hour < 12) return 'Good morning';
   if (hour >= 12 && hour < 17) return 'Good afternoon';
   return 'Good evening';
-}
-
-/// The greeting with whoever the app is greeting, for a screen header.
-///
-/// [businessName] is `BusinessInfo.name` — the only name this app stores, and
-/// the name of a *business* rather than a person. Blank or unset, the greeting
-/// stands alone rather than addressing the owner by their shopfront.
-String greetingLine({String? businessName, DateTime? at}) {
-  final greeting = greetingFor(at);
-  final name = businessName?.trim() ?? '';
-  return name.isEmpty ? greeting : '$greeting, $name';
 }

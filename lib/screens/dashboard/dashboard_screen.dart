@@ -5,7 +5,6 @@ import '../../models/dashboard_models.dart';
 import '../../providers/category_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/dashboard_settings_provider.dart';
-import '../../providers/business_info_provider.dart';
 import '../../providers/date_provider.dart';
 import '../../widgets/dashboard/date_range_pill.dart';
 import '../../widgets/dashboard/pulse_card.dart';
@@ -27,18 +26,17 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(dashboardSettingsProvider);
     final range = ref.watch(dashboardRangeProvider);
-    // Null while the row loads, and null again if the owner never filled it
-    // in. `greetingLine` drops the name in both cases rather than greeting a
-    // blank, so this needs no loading branch of its own.
-    final business = ref.watch(businessInfoProvider).valueOrNull;
 
     return AppScaffold(
-      // The greeting the owner asked to have back. It is the caption rather
-      // than the title because the title answers what the screen *is*, and
-      // "Good morning" does not. The hour is read when this builds; a phone
-      // left open across noon keeps the old greeting until something else
-      // rebuilds the screen, which is what the deleted version did too.
-      caption: greetingLine(businessName: business?.name),
+      // The greeting the owner asked to have back, and no name with it — see
+      // `greetingFor`. It is the caption rather than the title because the
+      // title answers what the screen *is*, and "Good morning" does not.
+      //
+      // The hour is read when this builds, so a phone left open across noon
+      // keeps the old greeting until something else rebuilds the screen. The
+      // deleted version did the same, and an hourly ticker for a caption is
+      // not worth a timer.
+      caption: greetingFor(),
       title: 'Business Overview',
       leading: const ShellDrawerButton(),
       actions: [

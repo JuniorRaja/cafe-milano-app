@@ -2,8 +2,8 @@
 //
 // It existed, and commit `ddd08d8` deleted it along with the thing that was
 // actually wrong: a hardcoded `['Mohan', 'JMR']` picked by `Random()` at
-// library load. The owner asked for it back on the device pass. See
-// docs/features/10b-device-pass.md, C1.
+// library load. The owner asked for it back on the device pass, and asked for
+// it without a name. See docs/features/10b-device-pass.md, C1.
 //
 // Every boundary is asserted rather than sampled. A greeting that says "Good
 // evening" at breakfast is the only way this can be wrong, and it is wrong on
@@ -43,30 +43,6 @@ void main() {
       withClock(Clock.fixed(at(20)), () {
         expect(greetingFor(), 'Good evening');
       });
-    });
-  });
-
-  group('greetingLine', () {
-    test('appends the business name when there is one', () {
-      expect(
-        greetingLine(businessName: 'Cafe Milano', at: at(9)),
-        'Good morning, Cafe Milano',
-      );
-    });
-
-    test('stands alone when the name is missing or blank', () {
-      // Both cases reach here: the row has not loaded, and the owner never
-      // filled it in. Neither may render "Good morning, ".
-      expect(greetingLine(at: at(9)), 'Good morning');
-      expect(greetingLine(businessName: '', at: at(9)), 'Good morning');
-      expect(greetingLine(businessName: '   ', at: at(9)), 'Good morning');
-    });
-
-    test('trims, so a stray space does not become a stray comma', () {
-      expect(
-        greetingLine(businessName: '  Cafe Milano  ', at: at(15)),
-        'Good afternoon, Cafe Milano',
-      );
     });
   });
 }
