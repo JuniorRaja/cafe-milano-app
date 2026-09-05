@@ -85,4 +85,102 @@ void main() {
     expect(rowA.categoryBreadth, 2);
     expect(rowB.categoryBreadth, 1);
   });
+
+  // ─── Weekday heatmap ──────────────────────────────────────────────────────
+  //
+  // This card had never rendered a bar from real data. Its query ran
+  // `strftime('%w', o.order_date)` against a column drift stores as Unix epoch
+  // seconds; strftime read the number as a Julian day, returned NULL for every
+  // row, and `read<int>` threw. The widget rendered the error as "not enough
+  // data", so the failure looked like an empty dataset for four releases.
+  // docs/features/10b-device-pass.md, A2.
+
+  group('weekdayHeatmapProvider', () {
+    /// The most recent [weekday] on or before [from]. `DateTime.monday` etc.
+    DateTime lastOn(DateTime from, int weekday) {
+      var day = from;
+      while (day.weekday != weekday) {
+        day = day.subtract(const Duration(days: 1));
+      }
+      return day;
+    }
+
+    late int shopId;
+    late int bakeryId;
+    late int bunId;
+    late DateTime today;
+
+    setUp(() async {
+      shopId =
+          await db.shopDao.upsertShop(ShopsCompanion.insert(name: 'Shop'));
+      bakeryId = await db.into(db.categories).insert(
+          CategoriesCompanion.insert(name: 'Bakery', sortOrder: const Value(0)));
+      bunId = await db.productDao.upsertProduct(
+          ProductsCompanion.insert(name: 'Bun', categoryId: Value(bakeryId)));
+      final now = DateTime.now();
+      today = DateTime(now.year, now.month, now.day);
+    });
+
+    Future<void> order(DateTime date, int qty) async {
+      final created = await db.orderDao.getOrCreateOrder(shopId, date);
+      await db.orderDao.replaceOrderLines(created.id, [
+        OrderLinesCompanion.insert(
+            orderId: created.id, productId: bunId, qty: qty, unitPrice: 5.0),
+      ]);
+    }
+
+    test('renders averages per weekday from four weeks of orders', () async {
+      final monday = lastOn(today, DateTime.monday);
+      final wednesday = lastOn(today, DateTime.wednesday);
+
+      // Three Mondays: 10, 20, 30 → 20. One Wednesday: 7 → 7.
+      await order(monday, 10);
+      await order(monday.subtract(const Duration(days: 7)), 20);
+      await order(monday.subtract(const Duration(days: 14)), 30);
+      await order(wednesday, 7);
+
+      final heatmap = await container.read(weekdayHeatmapProvider.future);
+
+      // The bug, stated as the assertion that would have caught it.
+      expect(heatmap, isNotEmpty,
+          reason: 'the heatmap must not be empty with four weeks of orders');
+
+      // Day 0 is Monday, matching the widget's labels.
+      expect(heatmap[bakeryId]![0], 20.0);
+      expect(heatmap[bakeryId]![2], 7.0);
+      expect(heatmap[bakeryId]!.containsKey(1), isFalse,
+          reason: 'a Tuesday with no orders is absent, not zero');
+    });
+
+    test('sums every shop on the same day before averaging', () async {
+      final other =
+          await db.shopDao.upsertShop(ShopsCompanion.insert(name: 'Other'));
+      final monday = lastOn(today, DateTime.monday);
+
+      await order(monday, 10);
+      final second = await db.orderDao.getOrCreateOrder(other, monday);
+      await db.orderDao.replaceOrderLines(second.id, [
+        OrderLinesCompanion.insert(
+            orderId: second.id, productId: bunId, qty: 5, unitPrice: 5.0),
+      ]);
+
+      final heatmap = await container.read(weekdayHeatmapProvider.future);
+      expect(heatmap[bakeryId]![0], 15.0,
+          reason: 'one Monday of 10 + 5, not two Mondays averaged to 7.5');
+    });
+
+    test('puts uncategorised products under a null key', () async {
+      final loose = await db.productDao
+          .upsertProduct(ProductsCompanion.insert(name: 'Loose'));
+      final monday = lastOn(today, DateTime.monday);
+      final created = await db.orderDao.getOrCreateOrder(shopId, monday);
+      await db.orderDao.replaceOrderLines(created.id, [
+        OrderLinesCompanion.insert(
+            orderId: created.id, productId: loose, qty: 4, unitPrice: 5.0),
+      ]);
+
+      final heatmap = await container.read(weekdayHeatmapProvider.future);
+      expect(heatmap[null]![0], 4.0);
+    });
+  });
 }

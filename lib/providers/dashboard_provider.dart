@@ -280,7 +280,15 @@ final productLeaderboardProvider =
 
 // ─── Operational Patterns ────────────────────────────────────────────────────
 
-/// `Map<categoryId, Map<weekday (0=Sun..6=Sat → remapped to 0=Mon..6=Sun), avgPieces>>`
+/// `Map<categoryId, Map<weekday, avgPieces>>`, weekday 0 = Monday .. 6 = Sunday
+/// to match the widget's day labels.
+///
+/// The DAO returns one row per (category, day) with that day's total. The
+/// weekday and the average are derived here, in Dart, because
+/// `DateTime.weekday` reads the date the app's own converter wrote — SQLite's
+/// `strftime` reads epoch seconds as UTC and gets the day wrong east of
+/// Greenwich. See `DashboardDao.getWeekdayHeatmap`; that is also where the bug
+/// that made this card render empty for its whole life is written up.
 final weekdayHeatmapProvider =
     FutureProvider<Map<int?, Map<int, double>>>((ref) async {
   final db = ref.watch(databaseProvider);
@@ -289,22 +297,25 @@ final weekdayHeatmapProvider =
 
   final rows = await db.dashboardDao.getWeekdayHeatmap(fourWeeksAgo);
 
-  // SQLite strftime('%w') → 0=Sunday..6=Saturday
-  // We want 0=Monday..6=Sunday
-  int remapWeekday(int sqliteWeekday) {
-    // 0(Sun)→6, 1(Mon)→0, 2(Tue)→1, ... 6(Sat)→5
-    return (sqliteWeekday + 6) % 7;
-  }
-
-  final Map<int?, Map<int, double>> result = {};
+  // Every day's total, bucketed by category and weekday, before averaging.
+  // A Monday with no orders contributes nothing rather than a zero: the card
+  // says "how much on a normal Monday", not "how much per calendar Monday".
+  final totals = <int?, Map<int, List<int>>>{};
   for (final row in rows) {
     final catId = row['categoryId'] as int?;
-    final weekday = remapWeekday(row['weekday'] as int);
-    final avg = row['avg_pieces'] as double;
-    result.putIfAbsent(catId, () => {});
-    result[catId]![weekday] = avg;
+    // DateTime.weekday is 1 = Monday .. 7 = Sunday.
+    final weekday = (row['orderDate'] as DateTime).weekday - 1;
+    final total = row['daily_total'] as int;
+    totals.putIfAbsent(catId, () => {}).putIfAbsent(weekday, () => []).add(total);
   }
-  return result;
+
+  return {
+    for (final category in totals.entries)
+      category.key: {
+        for (final day in category.value.entries)
+          day.key: day.value.reduce((a, b) => a + b) / day.value.length,
+      },
+  };
 });
 
 // ─── Attention Flags ────────────────────────────────────────────────────────

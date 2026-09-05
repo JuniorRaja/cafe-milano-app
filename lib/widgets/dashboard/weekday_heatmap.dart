@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../services/category_emoji.dart';
+import '../ui/ui.dart';
 
 class WeekdayHeatmapWidget extends ConsumerWidget {
   const WeekdayHeatmapWidget({super.key});
@@ -53,11 +54,14 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
                   data: (scorecards) =>
                       _buildHeatmap(heatmap, scorecards, context),
                   loading: () => _loading(),
-                  error: (_, _) => _emptyState(),
+                  error: (e, _) => _failedState(ref, e),
                 );
               },
               loading: () => _loading(),
-              error: (_, _) => _emptyState(),
+              // Not `_emptyState()`. This card told the owner "not enough data"
+              // for a query that was throwing on every row, for every release
+              // it has shipped in. A failure has to look like a failure.
+              error: (e, _) => _failedState(ref, e),
             ),
           ],
         ),
@@ -202,6 +206,45 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
             Text(
               'Not enough data for heatmap (needs 4 weeks)',
               style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Distinct from [_emptyState] on purpose, and the reason this card was
+  /// broken in plain sight: "not enough data" and "the query failed" are
+  /// different sentences and must not share a widget.
+  Widget _failedState(WidgetRef ref, Object error) {
+    return SizedBox(
+      height: 80,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.error_outline_rounded,
+              size: 28,
+              color: AppColors.negative,
+            ),
+            const SizedBox(height: AppSpace.s1),
+            Text(
+              'Could not build the heatmap.',
+              style: AppType.bodyS.copyWith(color: AppColors.textSecondary),
+            ),
+            Text(
+              '$error',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppType.caption.copyWith(color: AppColors.textTertiary),
+            ),
+            TextButton(
+              onPressed: () {
+                ref.invalidate(weekdayHeatmapProvider);
+                ref.invalidate(categoryScorecardsProvider);
+              },
+              child: const Text('Try again'),
             ),
           ],
         ),

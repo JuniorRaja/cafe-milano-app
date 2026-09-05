@@ -245,24 +245,38 @@ class DashboardDao extends DatabaseAccessor<AppDatabase>
 
   // ─── Operational Patterns ──────────────────────────────────────────────
 
-  /// Weekday heatmap: avg pieces per category per weekday (last 4 weeks).
+  /// Daily piece totals per category for the last 4 weeks, one row per
+  /// (category, day). The caller groups them by weekday and averages.
+  ///
+  /// **This query used to do the weekday grouping itself and it never worked.**
+  /// It ran `CAST(strftime('%w', o.order_date) AS INTEGER)`. Drift stores a
+  /// `DateTimeColumn` as Unix epoch seconds, and `strftime` reads a bare number
+  /// as a Julian day — 1.7 billion is far out of range, so it returned NULL for
+  /// every row, and `read<int>('weekday')` threw on the null. The provider went
+  /// to `AsyncError` and the card rendered its "not enough data" state. It has
+  /// never drawn a single bar from real data.
+  ///
+  /// Adding `'unixepoch'` would have fixed the null and left a subtler bug in
+  /// place. Epoch seconds are UTC and the stored dates are local midnights, so
+  /// anywhere east of Greenwich every order would have counted against the
+  /// previous day — Monday's bake showing up under Sunday, which is the kind of
+  /// wrong that gets believed. The date now goes back to Dart through the same
+  /// converter that wrote it, and there is no timezone in the path at all.
+  ///
+  /// The shape matches [getCategorySparklines] deliberately; they are the same
+  /// query with a different window.
   Future<List<Map<String, dynamic>>> getWeekdayHeatmap(
       DateTime fourWeeksAgo) async {
     final startDay =
         DateTime(fourWeeksAgo.year, fourWeeksAgo.month, fourWeeksAgo.day);
     final query = customSelect(
-      'SELECT sub.categoryId, sub.weekday, AVG(sub.daily_total) AS avg_pieces '
-      'FROM ( '
-      '  SELECT p.category_id AS categoryId, '
-      '    CAST(strftime(\'%w\', o.order_date) AS INTEGER) AS weekday, '
-      '    SUM(ol.qty) AS daily_total '
-      '  FROM order_lines ol '
-      '  INNER JOIN daily_orders o ON ol.order_id = o.id '
-      '  INNER JOIN products p ON ol.product_id = p.id '
-      '  WHERE o.order_date >= ? '
-      '  GROUP BY o.order_date, p.category_id '
-      ') sub '
-      'GROUP BY sub.categoryId, sub.weekday',
+      'SELECT p.category_id AS categoryId, o.order_date AS orderDate, '
+      'SUM(ol.qty) AS daily_total '
+      'FROM order_lines ol '
+      'INNER JOIN daily_orders o ON ol.order_id = o.id '
+      'INNER JOIN products p ON ol.product_id = p.id '
+      'WHERE o.order_date >= ? '
+      'GROUP BY o.order_date, p.category_id',
       variables: [Variable.withDateTime(startDay)],
       readsFrom: {orderLines, dailyOrders, products},
     );
@@ -270,8 +284,8 @@ class DashboardDao extends DatabaseAccessor<AppDatabase>
     return rows
         .map((r) => {
               'categoryId': r.read<int?>('categoryId'),
-              'weekday': r.read<int>('weekday'),
-              'avg_pieces': r.read<double>('avg_pieces'),
+              'orderDate': r.read<DateTime>('orderDate'),
+              'daily_total': r.read<int>('daily_total'),
             })
         .toList();
   }
