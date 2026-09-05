@@ -451,6 +451,18 @@ have a pass but no recorded numbers. This release rewrote the router and deleted
 splash route, which is exactly what cold start would notice — worth capturing a figure
 while the phone is out.
 
+### The device pass happened — 2026-09-05
+
+The owner ran this branch on the phone and came back with 30-odd points. They are
+planned in [10b — Device pass](10b-device-pass.md), which ships on this branch as part
+of `1.11.0+15`. Two of them are dead features: order entry's back button jumps to the
+Dashboard, and the day-of-week heatmap has never rendered with real data.
+
+Build note 2 above is **wrong**. It says the masters stay in Settings as well as the
+drawer; commit `ddd08d8` removed the Catalogue card and `settings_screen.dart` carries a
+comment arguing they should not be there. The owner has asked for both again. The device
+pass doc fixes the code and this note together.
+
 **The version is deliberately not bumped.** `pubspec.yaml` stays at `1.10.0+14` so that
 merging cannot cut a release before the device pass. Bump to `1.11.0+15` as the last
 commit on this branch, per the roadmap.
