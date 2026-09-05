@@ -8,7 +8,7 @@
 | **Branch** | `release/1.11.0-navigation` |
 | **Requires** | [10b — Navigation](10b-navigation.md), built |
 | **Ships before** | [10c — Screen restyle](10c-screen-restyle.md) |
-| **Status** | A–G built · H–J planned — 2026-09-05 |
+| **Status** | A–G and I built · H, J planned — 2026-09-05 |
 
 ## Why
 
@@ -578,28 +578,51 @@ caption in `textTertiary` over the background art. It is not readable.
 
 ### I1 · Shops row
 
-- [ ] `Ledger` moves out of the footer to the **right of the row, vertically centred**.
-- [ ] `Deactivate` / `Activate` moves into a ⋮ menu on the same right edge.
-- [ ] The footer row disappears with them, so the row loses a line.
-- [ ] Deactivate keeps its confirm. It is destructive to a shop's history.
+- [x] `Ledger` moves out of the footer to the **right of the row, vertically centred**.
+      As an icon, not the word: the word plus the ⋮ eats a third of a narrow
+      row, and the name has to fit next to it.
+- [x] `Deactivate` / `Activate` moves into a ⋮ menu on the same right edge.
+- [x] The footer row disappears with them, so the row loses a line. `Inactive`
+      moved from the far right to beside the name — a state badge parked among
+      buttons reads as one of them.
+- [x] Deactivate keeps its confirm. It is destructive to a shop's history.
+      **It did not have one.** The footer button wrote straight to the dao. It
+      has one now, naming the shop and saying what deactivating takes it off.
 
 ### I2 · Products row
 
-- [ ] `Deactivate` / `Activate` into a ⋮ menu, as I1. The footer goes.
-- [ ] Subtitle carries **price · unit · category**: `₹22 · pc · 🥐 Puffs`.
-- [ ] The price is the product's own default price, not a per-shop price. Say `Price not
+- [x] `Deactivate` / `Activate` into a ⋮ menu, as I1. The footer goes.
+- [x] Subtitle carries **price · unit · category**: `₹22 · pc · 🥐 Puffs`.
+- [x] The price is the product's own default price, not a per-shop price. Say `Price not
       set` when it is null rather than leaving a gap. Per-shop prices are the price
       matrix's job and must not be implied here.
+
+No confirm on the product toggle, because I2 does not ask for one and a
+deactivated product is not a shop's history. Say if you want it symmetrical.
 
 ### I3 · Search on Standing Orders and Price Matrix
 
 Both screens list every product for a chosen shop, unsearchable.
 
-- [ ] `AppSearchField` above the product list on each, matching name.
-- [ ] **Filtering must not drop an edit.** Both hold a `Map<int, TextEditingController>`
+- [x] `AppSearchField` above the product list on each, matching name.
+- [x] **Filtering must not drop an edit.** Both hold a `Map<int, TextEditingController>`
       built per shop; filtering must hide rows, never rebuild or dispose the controllers,
       or a typed price vanishes when you clear the search.
-- [ ] Save still writes every controller, not just the visible ones.
+- [x] Save still writes every controller, not just the visible ones. The button
+      says so — `Save all 12 products` — counting what exists, not what is on
+      screen, so the label cannot quietly drift from the behaviour.
+
+**Held by tests, not by reading.** Four of the six in `masters_editors_test.dart`
+do the dangerous thing directly: type a value, search it off the screen, then
+either clear the search and read the controller back, or save and read the
+database back. The list body moved into a private `_ProductQuantities` /
+`_ProductPrices` widget on each screen, taking `products` (what exists) and
+`visible` (what is drawn) as separate parameters — so the two can be told apart
+at a glance instead of by remembering which list is which.
+
+Both files were run through `dart format`, which is why their diffs are larger
+than the change. The new code was spliced into deeply nested branches and would
+otherwise have been indented to nothing.
 
 **Collision note.** 10c rebuilds the price matrix on `ListView.builder` with a sticky
 column. The search box is additive and independent of that. Keep them separate.
@@ -739,7 +762,8 @@ action list as each lands, so it does not build them twice.
 | D1 + D2 · Orders row and marks | `a5c2c43` | `ShopOrderCard` deleted; 10c's Home item is done |
 | E1–E7 · Order entry | `a63bc85` | Standing order, one filter row, and a suite-hanging timer |
 | F1 + F2 · Kitchen | `937e2f8` | Grouping lifted into `kitchen_list.dart`; screen and share share it |
-| G1 + G2 · Billing | see below | Three rows, a real picker, and `MultiSelectList` in the kit |
+| G1 + G2 · Billing | `1755496` | Three rows, a real picker, and `MultiSelectList` in the kit |
+| I1–I3 · Masters | see below | Right-edge actions, price in the subtitle, search that keeps edits |
 
 ### Verified — 2026-09-05, Flutter 3.44.2 / Dart 3.12.2
 
@@ -748,7 +772,7 @@ are the ones CI will see.
 
 | Gate | Result |
 |---|---|
-| `flutter test` | **281 passing, 0 failing** — was 203 when 10b was built |
+| `flutter test` | **293 passing, 0 failing** — was 203 when 10b was built |
 | `flutter analyze` | **0 errors.** 57 issues: 4 warnings, 53 infos |
 | `tool/check_tokens.sh` | **296**, from 354. Kit clean |
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -10,6 +11,8 @@ import '../../../providers/category_provider.dart';
 import '../../../providers/database_provider.dart';
 import '../../../providers/product_provider.dart';
 import '../../../services/category_emoji.dart';
+import '../../../theme/brand_config.dart';
+import '../../../utils/money.dart';
 import '../../../widgets/letter_avatar.dart';
 import '../../../widgets/ui/ui.dart';
 
@@ -161,6 +164,11 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
   }
 }
 
+/// The one thing behind the ⋮. An enum rather than `void`, because
+/// `PopupMenuButton` reads a null selection as a dismissal and never calls
+/// `onSelected` for it.
+enum _ProductAction { toggleActive }
+
 class _ProductRow extends ConsumerWidget {
   const _ProductRow({required this.product, required this.category});
 
@@ -170,33 +178,44 @@ class _ProductRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final unit = product.unit;
+    final price = product.price;
+    // Price first, because it is the field this list gets opened to check.
+    // `Price not set` rather than a gap: a missing price bills the shop ₹0,
+    // and a blank space does not say that.
     final parts = [
+      price == null
+          ? 'Price not set'
+          : ref.watch(brandProvider).moneyTrim(price),
       if (unit != null && unit.isNotEmpty) unit,
       if (category != null) '${emojiFor(category!.name)} ${category!.name}',
     ];
 
     return ListRow(
       title: product.name,
-      subtitle: parts.isEmpty ? null : parts.join(' · '),
+      subtitle: parts.join(' · '),
       leading: _Thumb(product: product),
-      badge: product.isActive
+      titleBadge: product.isActive
           ? null
           : const StatusBadge(label: 'Inactive', tone: AppTone.neutral),
       onTap: () => context.push(AppRoutes.productEditFor(product.id)),
-      footer: Padding(
-        padding: const EdgeInsets.only(top: AppSpace.s2),
-        child: Row(
-          children: [
-            const Spacer(),
-            AppButton.text(
-              label: product.isActive ? 'Deactivate' : 'Activate',
-              onPressed: () => ref
-                  .read(databaseProvider)
-                  .productDao
-                  .setProductActive(product.id, !product.isActive),
-            ),
-          ],
+      badge: PopupMenuButton<_ProductAction>(
+        icon: const Icon(
+          Icons.more_vert_rounded,
+          color: AppColors.textSecondary,
         ),
+        tooltip: 'More actions',
+        onSelected: (_) => unawaited(
+          ref
+              .read(databaseProvider)
+              .productDao
+              .setProductActive(product.id, !product.isActive),
+        ),
+        itemBuilder: (_) => [
+          PopupMenuItem<_ProductAction>(
+            value: _ProductAction.toggleActive,
+            child: Text(product.isActive ? 'Deactivate' : 'Activate'),
+          ),
+        ],
       ),
     );
   }

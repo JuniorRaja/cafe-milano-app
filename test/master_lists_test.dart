@@ -20,11 +20,19 @@ void main() {
   Shop shop(int id, String name, {String? area, bool active = true}) =>
       Shop(id: id, name: name, area: area, phone: null, isActive: active);
 
-  Product product(int id, String name, {int? categoryId, bool active = true}) =>
+  Product product(
+    int id,
+    String name, {
+    int? categoryId,
+    bool active = true,
+    String? unit,
+    double? price,
+  }) =>
       Product(
         id: id,
         name: name,
-        unit: null,
+        unit: unit,
+        price: price,
         photoPath: null,
         isActive: active,
         categoryId: categoryId,
@@ -114,6 +122,46 @@ void main() {
       await search(tester, 'zzz');
       expect(find.text('No shop matches'), findsOneWidget);
     });
+
+    testWidgets('Ledger is on the row, the rest is behind the menu',
+        (tester) async {
+      await pump(tester, const ShopListScreen(), shops: [shop(1, 'Hotel Raj')]);
+
+      // The footer row is gone; both actions live on the right edge.
+      expect(find.byIcon(Icons.receipt_long_outlined), findsOneWidget);
+      expect(find.text('Ledger'), findsNothing);
+      expect(find.text('Deactivate'), findsNothing);
+
+      await tester.tap(find.byIcon(Icons.more_vert_rounded));
+      await tester.pumpAndSettle();
+      expect(find.text('Deactivate'), findsOneWidget);
+    });
+
+    testWidgets('the menu says Activate for a shop that is off',
+        (tester) async {
+      await pump(
+        tester,
+        const ShopListScreen(),
+        shops: [shop(1, 'Hotel Raj', active: false)],
+      );
+
+      await tester.tap(find.byIcon(Icons.more_vert_rounded));
+      await tester.pumpAndSettle();
+      expect(find.text('Activate'), findsOneWidget);
+      expect(find.text('Deactivate'), findsNothing);
+    });
+
+    testWidgets('deactivating asks first', (tester) async {
+      await pump(tester, const ShopListScreen(), shops: [shop(1, 'Hotel Raj')]);
+
+      await tester.tap(find.byIcon(Icons.more_vert_rounded));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Deactivate'));
+      await tester.pumpAndSettle();
+
+      // Named, so it cannot be confused with the shop below it in the list.
+      expect(find.text('Deactivate Hotel Raj?'), findsOneWidget);
+    });
   });
 
   group('products', () {
@@ -159,6 +207,44 @@ void main() {
       await search(tester, 'bun');
       expect(find.text('Nothing in this category'), findsNothing);
       expect(find.text('No product matches'), findsOneWidget);
+    });
+
+    testWidgets('the subtitle carries price, unit and category',
+        (tester) async {
+      await pump(
+        tester,
+        const ProductListScreen(),
+        products: [product(1, 'Veg Puff', categoryId: 1, unit: 'pc', price: 22)],
+        categories: [category(1, 'Puffs')],
+      );
+
+      expect(find.text('₹22 · pc · 🥟 Puffs'), findsOneWidget);
+    });
+
+    testWidgets('a product with no price says so rather than leaving a gap',
+        (tester) async {
+      // A missing price bills the shop zero. A blank space does not say that.
+      await pump(
+        tester,
+        const ProductListScreen(),
+        products: [product(1, 'Veg Puff', unit: 'pc')],
+      );
+
+      expect(find.text('Price not set · pc'), findsOneWidget);
+    });
+
+    testWidgets('deactivate moved into the menu, and the footer went',
+        (tester) async {
+      await pump(
+        tester,
+        const ProductListScreen(),
+        products: [product(1, 'Veg Puff')],
+      );
+
+      expect(find.text('Deactivate'), findsNothing);
+      await tester.tap(find.byIcon(Icons.more_vert_rounded));
+      await tester.pumpAndSettle();
+      expect(find.text('Deactivate'), findsOneWidget);
     });
 
     testWidgets('offers an action when empty', (tester) async {
