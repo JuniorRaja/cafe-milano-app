@@ -8,7 +8,7 @@
 | **Branch** | `release/1.11.0-navigation` |
 | **Requires** | [10b — Navigation](10b-navigation.md), built |
 | **Ships before** | [10c — Screen restyle](10c-screen-restyle.md) |
-| **Status** | A, B, C, D built · E–J planned — 2026-09-05 |
+| **Status** | A, B, C, D, E built · F–J planned — 2026-09-05 |
 
 ## Why
 
@@ -308,7 +308,8 @@ screen and the row every other list already uses.
 The info card is two columns: `Order Date` and `Order Type: Regular Order`. The second is
 a hardcoded string. There is one order type. It has never told the owner anything.
 
-- [ ] Remove the Order Type column and the `VerticalDivider`.
+- [x] Removed the Order Type column. The divider stays — there are still two
+      columns.
 
 **What to put there instead.** Ranked, from what the screen can already answer:
 
@@ -319,53 +320,79 @@ a hardcoded string. There is one order type. It has never told the owner anythin
 | 3 | **Standing order** — `Set · 24 items` or `Not set` | Says whether the ⋮ *Load standing order* action will do anything before you tap it | Free — already read on this screen |
 | 4 | **Priced** — `26 of 28 priced` | Duplicates the orange banner below it | Free |
 
-**Recommendation: 1 in the freed column, 2 as a small badge beside the shop name in the
-header.** They answer different questions — one is about this order, the other is about
-this shop — and putting a debt figure inside a card labelled *Order Date* mixes them.
-3 belongs in the ⋮ menu label, not in a card. 4 already has a home.
+~~**Recommendation: 1 in the freed column, 2 as a badge beside the shop name.**~~
+
+**The owner picked 3 — the standing order.** Better than the recommendation, and the
+reason is one the ranking undersold: it is the only candidate that changes what the
+*next tap* does. `Standing Order · 12 items` in the card and
+`Load standing order (12 items)` in the menu are the same fact said twice, so the menu
+answers "will this do anything" before it is opened, and the card answers it before the
+menu is. Last order and Owes are things to know; this is a thing to act on.
+
+It also costs nothing: `_init` already reads the standing orders to seed a new order and
+was throwing the total away.
 
 ### E2 · Search and category filter under the Order Date card
 
 28 products, one flat alphabetical list, at 5 a.m.
 
-- [ ] `AppSearchField` directly under the info card, matching product name.
-- [ ] `FilterChipRow` of categories beneath it — `All`, then the active categories, in
-      the same order as the products master, so the two screens agree.
-- [ ] **Filtering must never touch a quantity.** A hidden row keeps its value, and the
-      sticky total keeps counting it. Verify with a test: set a quantity, filter it out,
-      confirm, expect the quantity saved.
-- [ ] Clearing the search restores the full list at the same scroll position.
-- [ ] Fix A3 before this ships or the category chips clip here too.
+- [x] `AppSearchField` directly under the info card, matching product name.
+- [x] ~~`FilterChipRow` of categories beneath it.~~ **The owner's call: one row, not
+      two.** The filter is a button beside the search box that opens a sheet. Two
+      full-width rows of controls above a list is the list getting shorter, on the
+      screen that can least afford it — 28 products on a phone at 5 a.m. The button
+      shows when a filter is on, because a filter you cannot see is a list that is
+      wrong for no visible reason.
+- [x] **Filtering never touches a quantity.** `_qtys` is keyed by product id and `_save`
+      walks `_products`, not the visible list. Three tests hold it: a quantity set then
+      filtered away is still saved, clearing the search brings the row back with its
+      value, and Clear reaches rows it cannot see.
+- [x] Clearing the search restores the full list.
+- [x] A3 shipped first. Moot in the end — the chips became a sheet.
+- [x] **One thing the plan did not foresee.** The category list is read through
+      `categoriesProvider`, the one-shot, **not** a watched stream. A drift `QueryStream`
+      schedules a zero-duration timer when it closes, and that lands after the widget
+      tree is torn down: `order_entry_flush_test` failed on *"A Timer is still pending
+      even after the widget tree was disposed"* and then hung the whole suite for three
+      minutes. Categories are a master edited twice a year and never mid-order, so the
+      live stream bought nothing and cost that.
 
 ### E3 · Steppers lose their background
 
 `_StepperBtn` draws a 36×36 filled brown box behind each icon. Two of them per row, 28
 rows, is 56 brown boxes on the busiest screen in the app.
 
-- [ ] Icon only. Keep the 36×36 tap target, drop the `BoxDecoration` fill.
-- [ ] Keep the press scale animation and the 400 ms long-press repeat from
+- [x] Icon only. 36×36 target kept, `BoxDecoration` gone. The owner's note was to
+      match the surrounding surface so it "looks the same"; no fill does that at every
+      surface the row is ever drawn on, including the background art, where a white or
+      cream pill would stand out more than the brown one did. Glyph up to 22 to hold
+      its weight without the box.
+- [x] Kept the press scale animation and the 400 ms long-press repeat from
       [doc 08](08-order-entry-swipe.md). Those are the feel; the box is not.
-- [ ] Disabled stays visibly disabled — `textTertiary`, not an invisible target.
+- [x] Disabled stays visibly disabled — `textTertiary`, not an invisible target.
 
 ### E4 · The whole row opens the quantity sheet
 
 Today only the 40px number between the steppers is tappable.
 
-- [ ] Wrap the row in the `InkWell`, minus the two stepper hit boxes.
-- [ ] The steppers keep working in place. A tap on `+` must not also open the sheet.
-- [ ] An unpriced product opens nothing, as now.
+- [x] The row is the `InkWell`. The steppers are children, so they win the hit test.
+- [x] A tap on `+` does not also open the sheet.
+- [x] The old `GestureDetector` around the number is gone with it — one handler, not
+      two doing the same thing.
+- [x] An unpriced product opens nothing, as before.
 
 ### E5 · Bigger wheels
 
 `itemExtent: 40`, `width: 56`, box `height: 120`. Three digits in a 168px-wide cluster
 is a thumb-width target for a swipe.
 
-- [ ] `itemExtent` 40 → **48**. Wheel width 56 → **72**. Box height 120 → **200**, which
-      shows two neighbours above and below instead of one.
-- [ ] Add the iOS selection overlay — a tinted band across the middle row — so the
-      selected digit reads as selected. `CupertinoPicker` takes one.
-- [ ] Digit size 22 → 28, weight unchanged.
-- [ ] Keep the per-notch haptic. It is why the wheel feels like anything at all.
+- [x] `itemExtent` 40 → **48**. Wheel width 56 → **72**. Box height 120 → **200**.
+- [x] The selection band is drawn **once, behind all three wheels**, not three times.
+      `CupertinoPicker`'s own overlay is per-picker and would have drawn three separate
+      bands with gaps between them; each wheel passes `SizedBox.shrink()` and the sheet
+      paints one band under the row, so it reads as one control.
+- [x] Digit size 22 → 28, via `AppType.displayL` rather than another literal.
+- [x] Kept the per-notch haptic. It is why the wheel feels like anything at all.
 
 ### E6 · `0` is a placeholder, not a value
 
@@ -373,24 +400,27 @@ is a thumb-width target for a swipe.
 owner types `5` into a field containing `0` and gets `50` or `05` depending on where the
 caret sits.
 
-- [ ] Seed the controller **empty** when the quantity is 0.
-- [ ] `hintText: '0'` for the ghost.
-- [ ] Empty on confirm means 0. It does not mean "leave unchanged".
-- [ ] A non-zero quantity still seeds its real value, selected, so typing replaces it.
+- [x] The controller is **empty** at 0.
+- [x] `hintText: '0'` for the ghost.
+- [x] Empty on confirm means 0, not "leave unchanged".
+- [x] A non-zero quantity seeds its real value, **selected**, so typing replaces it.
+      The row's own quantity column also greys a zero now, so the two agree about what
+      "nothing ordered" looks like.
 
 ### E7 · Three-dot menu in the header
 
 `Load Standing Order` is a text button in `AppBar.actions`, competing with the shop name
 for width.
 
-- [ ] One `PopupMenuButton` with two items:
+- [x] One `PopupMenuButton` with two items:
       - **Load standing order** — the existing action, existing confirm dialog.
       - **Clear all quantities** — new. Sets every quantity to 0.
-- [ ] Clear goes through `confirmDestructive`, per AGENTS.md rule 16. Never hand-roll it.
-- [ ] Clear writes through the same debounced save path. It is not a special case.
-- [ ] Clearing a confirmed order un-confirms it, exactly as editing a quantity does.
-- [ ] Label *Load standing order* with its state — `Load standing order (24 items)`, or
-      disabled with `No standing order set` — so the menu answers E1's item 3.
+- [x] Clear goes through `confirmDestructive`, per AGENTS.md rule 16.
+- [x] Clear writes through the same debounced save path — it is an edit, not a
+      special case — and reaches filtered-out rows.
+- [x] Clearing a confirmed order un-confirms it, exactly as editing a quantity does.
+- [x] The item names its own size — `Load standing order (12 items)` — or is disabled
+      reading `No standing order set`.
 
 ---
 
@@ -664,7 +694,8 @@ action list as each lands, so it does not build them twice.
 | A1 test fix | `5ff1187` | `io()` gapped before the route was built |
 | B1 + B2 · radius and face | `4d2a46b` | One commit — they land together on every screen |
 | C1 · greeting | `cd80e2d` + `409f0aa` | Greeting back, no name — the owner's call |
-| D1 + D2 · Orders row and marks | see below | `ShopOrderCard` deleted; 10c's Home item is done |
+| D1 + D2 · Orders row and marks | `a5c2c43` | `ShopOrderCard` deleted; 10c's Home item is done |
+| E1–E7 · Order entry | see below | Standing order, one filter row, and a suite-hanging timer |
 
 ### Verified — 2026-09-05, Flutter 3.44.2 / Dart 3.12.2
 
@@ -673,21 +704,21 @@ are the ones CI will see.
 
 | Gate | Result |
 |---|---|
-| `flutter test` | **244 passing, 0 failing** — was 203 when 10b was built |
-| `flutter analyze` | **0 errors.** 67 issues: 6 warnings, 61 infos |
-| `tool/check_tokens.sh` | **330**, from 354. Kit clean |
+| `flutter test` | **254 passing, 0 failing** — was 203 when 10b was built |
+| `flutter analyze` | **0 errors.** 65 issues: 6 warnings, 59 infos |
+| `tool/check_tokens.sh` | **322**, from 354. Kit clean |
 
 `flutter analyze` is **not** clean, and none of it is new:
 
-- **61 infos**, every one a `@Deprecated` `kBrandGold` / `kBrandBrown` /
+- **59 infos**, every one a `@Deprecated` `kBrandGold` / `kBrandBrown` /
   `kSurface` alias. This is 10c's progress bar by design — see
   [10c](10c-screen-restyle.md)'s *Closing the ratchet*. It went **down** here,
   because A5 took three screens off the aliases and D deleted a widget that
   used three more.
-- **6 warnings**, all pre-dating this branch's work and all confirmed against
-  `76ff7d6`: three unused imports (`finances_screen`, `kitchen_screen`,
-  `orders_screen` each import something they never call) and three unused
-  helpers in `settings_test`, `shell_test` and `product_qty_row_test`.
+- **6 warnings**, unchanged since `76ff7d6` and each confirmed against it:
+  three unused imports (`finances_screen`, `kitchen_screen` and `orders_screen`
+  each import something they never call) and three unused test helpers, two in
+  `settings_test` and one in `shell_test`.
 
 Left alone rather than swept in, because they are not this release's and the
 rule is not to touch unrelated code. They are six one-line deletions and they
