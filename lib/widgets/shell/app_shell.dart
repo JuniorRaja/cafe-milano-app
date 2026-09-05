@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../app_background.dart';
 import '../floating_nav_bar.dart';
 import '../ui/ui.dart';
 import 'app_drawer.dart';
@@ -55,40 +54,37 @@ class _AppShellState extends State<AppShell> {
     final location = GoRouterState.of(context).uri.path;
     final showNavBar = AppShell.showsNavBarAt(location);
 
-    // The background sits *outside* the Scaffold, not in its body.
+    // The background is no longer painted here. It is painted once for the
+    // whole app, in `app.dart`'s `MaterialApp.builder`, because only the five
+    // shell branches ever reached this widget: every pushed screen — order
+    // entry, the ledger, the masters, settings — drew on flat cream, which is
+    // the inconsistency the device pass found. One layer above the router
+    // covers both, and is built once for the process rather than on every
+    // shell rebuild.
     //
+    // The reason it had to sit outside the Scaffold still holds up there.
     // `bottomNavigationBar` insets the body, so a body-level background is
-    // laid out ~80px shorter on shell routes than on sub-routes, where the
-    // nav bar is absent. `BoxFit.cover` recomputes its crop against that
-    // shorter box, so popping back from a sub-route visibly rescaled the
-    // artwork mid-transition. Out here its box is the whole screen in both
-    // states and never changes.
-    return ColoredBox(
-      color: AppColors.bg,
-      child: Stack(
-        children: [
-          const Positioned.fill(child: AppBackground()),
-          _ShellScope(
-            scaffoldKey: _scaffoldKey,
-            child: Scaffold(
-              key: _scaffoldKey,
-              backgroundColor: Colors.transparent,
-              drawer: const AppDrawer(),
-              body: widget.navigationShell,
-              bottomNavigationBar: showNavBar
-                  ? FloatingNavBar(
-                      selectedIndex: widget.navigationShell.currentIndex,
-                      onDestinationSelected: (index) =>
-                          widget.navigationShell.goBranch(
-                        index,
-                        initialLocation:
-                            index == widget.navigationShell.currentIndex,
-                      ),
-                    )
-                  : null,
-            ),
-          ),
-        ],
+    // laid out ~80px shorter on shell routes than on sub-routes. `BoxFit.cover`
+    // recomputes its crop against that shorter box, so popping back from a
+    // sub-route visibly rescaled the artwork mid-transition.
+    return _ShellScope(
+      scaffoldKey: _scaffoldKey,
+      child: Scaffold(
+        key: _scaffoldKey,
+        backgroundColor: Colors.transparent,
+        drawer: const AppDrawer(),
+        body: widget.navigationShell,
+        bottomNavigationBar: showNavBar
+            ? FloatingNavBar(
+                selectedIndex: widget.navigationShell.currentIndex,
+                onDestinationSelected: (index) =>
+                    widget.navigationShell.goBranch(
+                  index,
+                  initialLocation:
+                      index == widget.navigationShell.currentIndex,
+                ),
+              )
+            : null,
       ),
     );
   }

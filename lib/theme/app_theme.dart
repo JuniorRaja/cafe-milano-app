@@ -64,7 +64,14 @@ ThemeData buildAppTheme(BrandConfig brand) {
     visualDensity: VisualDensity.compact,
     fontFamily: 'Raleway',
     colorScheme: scheme,
-    scaffoldBackgroundColor: AppColors.bg,
+    // Transparent, not `AppColors.bg`. The decorative background is painted
+    // once for the whole app in `app.dart`'s builder; an opaque Scaffold ground
+    // would cover it on every screen, which is what it did before the device
+    // pass. The cream is still there — it is the `ColoredBox` under the art.
+    //
+    // Dialogs, sheets, snackbars and the date picker all set their own opaque
+    // surfaces below, so none of them go see-through with this.
+    scaffoldBackgroundColor: Colors.transparent,
     canvasColor: AppColors.bg,
     dividerColor: AppColors.border,
     textTheme: AppType.textTheme,

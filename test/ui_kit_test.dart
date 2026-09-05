@@ -116,6 +116,21 @@ void main() {
       }
     });
 
+    // Structural, not a brand colour: the decorative background is painted
+    // once for the whole app in `app.dart`'s builder, and anything opaque
+    // between it and the user hides it. That is what happened before the
+    // device pass — the art reached only the five shell branches, and two
+    // screens covered it even there. See docs/features/10b-device-pass.md, A4.
+    test('nothing between the art and the user is opaque', () {
+      expect(buildAppTheme(BrandConfig.milano).scaffoldBackgroundColor,
+          Colors.transparent);
+      expect(
+        const AppScaffold(title: 't', body: SizedBox()).background,
+        Colors.transparent,
+        reason: 'AppScaffold must not default to an opaque ground',
+      );
+    });
+
     testWidgets('the brand seam reaches the whole theme', (tester) async {
       // Changing the brand must restyle the app with no other edit. Asserting
       // the scheme follows the config, not that it equals any particular value.

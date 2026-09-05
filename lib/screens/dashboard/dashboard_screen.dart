@@ -27,7 +27,7 @@ class DashboardScreen extends ConsumerWidget {
     final range = ref.watch(dashboardRangeProvider);
 
     return Scaffold(
-      backgroundColor: kSurface,
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         top: true,
         bottom: false,

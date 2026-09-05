@@ -68,7 +68,6 @@ class _MasterListPageState extends State<MasterListPage> {
       title: widget.title,
       leading: widget.leading,
       actions: widget.actions,
-      background: AppColors.bg,
       floatingActionButton: widget.floatingActionButton,
       bottom: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

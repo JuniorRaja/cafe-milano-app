@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'theme/app_theme.dart';
 import 'theme/brand_config.dart';
 import 'theme/tokens.dart';
+import 'widgets/app_background.dart';
 import 'widgets/shell/app_bootstrap_gate.dart';
 import 'widgets/shell/app_lifecycle_scope.dart';
 import 'widgets/shell/app_shell.dart';
@@ -311,11 +312,31 @@ class OrdersApp extends ConsumerWidget {
       title: brand.appName,
       theme: buildAppTheme(brand),
       routerConfig: ref.watch(routerProvider),
+      // Three layers, outermost first.
+      //
+      // The background art is painted **once, for every route**. It used to be
+      // painted inside `AppShell`, which meant only the five bottom-bar
+      // branches had it: order entry, the ledger, the masters and settings are
+      // all pushed over the shell and drew on flat cream. Up here it is one
+      // widget for the process, built before the first route and never rebuilt
+      // by navigation — cheaper than where it was, as well as consistent.
+      //
+      // `scaffoldBackgroundColor` is transparent in `app_theme.dart` so the
+      // screens above it do not paint over the thing they are sitting on.
+      //
       // The gate holds the first frame until the bootstrap provider has opened
       // the database, and shows a real error screen if it cannot. The lifecycle
       // scope is the app's single AppLifecycleListener.
-      builder: (context, child) =>
-          AppLifecycleScope(child: AppBootstrapGate(child: child)),
+      builder: (context, child) => ColoredBox(
+        color: AppColors.bg,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            const AppBackground(),
+            AppLifecycleScope(child: AppBootstrapGate(child: child)),
+          ],
+        ),
+      ),
     );
   }
 }

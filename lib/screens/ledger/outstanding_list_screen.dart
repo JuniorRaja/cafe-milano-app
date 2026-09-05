@@ -28,7 +28,6 @@ class OutstandingListScreen extends ConsumerWidget {
     return AppScaffold(
       caption: 'Money',
       title: 'Outstanding',
-      background: AppColors.bg,
       body: shopsAsync.when(
         loading: AppSkeleton.list,
         error: (e, _) => AppErrorView(

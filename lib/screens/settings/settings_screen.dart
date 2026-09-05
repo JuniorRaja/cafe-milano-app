@@ -71,7 +71,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return AppScaffold(
       caption: 'Manage',
       title: 'Settings',
-      background: AppColors.bg,
       bottom: Padding(
         padding: const EdgeInsets.fromLTRB(
           AppSpace.s4,
