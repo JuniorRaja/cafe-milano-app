@@ -160,10 +160,20 @@ void main() {
         (tester) async {
       await pump(tester);
 
-      // "receivables" is a keyword on Finances, not its label.
+      // "receivables" is a keyword on Ledger, not its label.
       await tester.enterText(find.byType(TextField), 'receivables');
       await tester.pumpAndSettle();
-      expect(find.text('Finances'), findsOneWidget);
+      expect(find.text('Ledger'), findsOneWidget);
+    });
+
+    testWidgets('the old name still finds the renamed screen', (tester) async {
+      await pump(tester);
+
+      // Finances became Ledger. `finances` stayed a keyword, so the owner's
+      // muscle memory and every note they wrote still land on it.
+      await tester.enterText(find.byType(TextField), 'finances');
+      await tester.pumpAndSettle();
+      expect(find.text('Ledger'), findsOneWidget);
     });
 
     testWidgets('a settings row is found by keyword too', (tester) async {

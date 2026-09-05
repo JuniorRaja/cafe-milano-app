@@ -8,7 +8,7 @@
 | **Branch** | `release/1.11.0-navigation` |
 | **Requires** | [10b — Navigation](10b-navigation.md), built |
 | **Ships before** | [10c — Screen restyle](10c-screen-restyle.md) |
-| **Status** | A–G and I built · H, J planned — 2026-09-05 |
+| **Status** | A–I built · J planned — 2026-09-05 |
 
 ## Why
 
@@ -530,15 +530,15 @@ totals two of three shops and asserts the GRAND TOTAL is those two.
 
 ### H1 · Rename
 
-- [ ] `Finances` → **Ledger**, in `destinations.dart` and nowhere else. Rule 12.
-- [ ] Keep the route `/finances`. A path rename buys nothing and costs a redirect rule.
-- [ ] **Watch the collision.** There is already a per-shop *Shop Ledger* at
-      `/shops/:id/ledger`, in `lib/screens/ledger/`, and `ledger` is already a search
-      keyword on this destination. After the rename the drawer says Ledger and a shop row
-      opens something also called Ledger. Distinguish them in the UI: this one is
-      **Ledger**, that one is **`<Shop name>` statement** — its header already shows the
-      shop name, so the change is the word under it.
-- [ ] Do not rename the files. `finances_screen.dart` staying put is a smaller diff than
+- [x] `Finances` → **Ledger**, in `destinations.dart` and nowhere else. Rule 12.
+- [x] Keep the route `/finances`. A path rename buys nothing and costs a redirect rule.
+      `finances` became a *keyword* on the destination, so the old name still finds the
+      screen from the settings search. A test holds that.
+- [x] **Watch the collision.** Confirmed by the owner: the per-shop screen is a
+      **Statement**. Its header now reads `<Shop name>` over `Statement · <area>`, the
+      fallback title is `Statement`, and the Shops master's row button says Statement.
+      Its PDF export already said "Export Statement", so the word was half there.
+- [x] Do not rename the files. `finances_screen.dart` staying put is a smaller diff than
       a rename nobody can grep for later.
 
 ### H2 · Period filter, defaulting to All time
@@ -546,31 +546,46 @@ totals two of three shops and asserts the GRAND TOTAL is those two.
 The screen is fixed at 30 days, deliberately, per its own doc comment. The owner has
 overruled that. Record it rather than silently deleting the comment.
 
-- [ ] Reuse `DateRangePill` from the dashboard. Do not write a second range control.
-- [ ] Add an **All time** option; make it the default here. The dashboard's default does
+- [x] ~~Reuse `DateRangePill`~~ — **it could not be reused, and the owner chose a
+      dropdown.** The pill is bound to `dashboardRangeProvider`: sharing it would have
+      meant changing the period on Ledger also changed it on the Dashboard, and adding
+      `All time` to the shared preset list would have put it on the Dashboard's pill too,
+      which this section forbids two lines down. A `PopupMenuButton` in the section
+      header instead, on its own state.
+- [x] Add an **All time** option; make it the default here. The dashboard's default does
       not change.
-- [ ] The filter drives the summary band and the outstanding figure.
-- [ ] **Outstanding is a balance, not a period figure.** "What is owed to me as of today"
+- [x] The filter drives the summary band. **Not the outstanding figure** — see below.
+- [x] **Outstanding is a balance, not a period figure.** "What is owed to me as of today"
       does not change because you asked about last week. Filter the *billed / collected /
-      net* band; leave the hero total as the live balance and label it so.
+      net* band; leave the hero total as the live balance and label it so. The hero
+      caption is now `Outstanding right now`, and a test changes the period and asserts
+      the figure does not move.
+
+`LedgerPeriod` lives in `lib/utils/ledger_period.dart` with seven tests on its date
+arithmetic alone — year boundaries, leap February, and the fact that `Last 30 days` is
+now thirty days rather than the thirty-one the old fixed window counted.
 
 ### H3 · Fold the caption into the stat card
 
 `SectionHeader(title: 'Last 30 days', caption: 'Billed against collected')` draws the
 caption in `textTertiary` over the background art. It is not readable.
 
-- [ ] Move `billed · collected · net` into the stat card itself, labelled in place.
-- [ ] Delete the separate caption row. The labels under each figure say it better than a
-      heading above three of them.
-- [ ] Check the same pattern anywhere else a tertiary caption sits directly on the
-      background.
+- [x] Move `billed · collected · net` into the stat card itself, labelled in place.
+      `StatBand` already labelled each figure, so this was the caption's deletion.
+- [x] Delete the separate caption row. The labels under each figure say it better than a
+      heading above three of them. The header now reads `Billed and collected` with the
+      period control on its right.
+- [x] Check the same pattern anywhere else a tertiary caption sits directly on the
+      background. **This was the only one.** Every other `caption:` in the app belongs to
+      `AppScaffold` or `HeroStatCard`, which draw it on a header or inside a card.
 
 ### H4 · Sort "Who owes"
 
-- [ ] A sort control on the section header: **by amount** (default, as now) and
+- [x] A sort control on the section header: **by amount** (default, as now) and
       **by name**.
-- [ ] Sort in the screen, not in a new query. 18 rows.
-- [ ] The choice does not need to persist across launches.
+- [x] Sort in the screen, not in a new query. 18 rows.
+- [x] The choice does not need to persist across launches. It is a field on the screen's
+      state, which is also what let the period control be one.
 
 ---
 
@@ -763,7 +778,8 @@ action list as each lands, so it does not build them twice.
 | E1–E7 · Order entry | `a63bc85` | Standing order, one filter row, and a suite-hanging timer |
 | F1 + F2 · Kitchen | `937e2f8` | Grouping lifted into `kitchen_list.dart`; screen and share share it |
 | G1 + G2 · Billing | `1755496` | Three rows, a real picker, and `MultiSelectList` in the kit |
-| I1–I3 · Masters | see below | Right-edge actions, price in the subtitle, search that keeps edits |
+| I1–I3 · Masters | `6f62c52` | Right-edge actions, price in the subtitle, search that keeps edits |
+| H1–H4 · Ledger | see below | Renamed, its own period, sortable — and a `Statement` next to it |
 
 ### Verified — 2026-09-05, Flutter 3.44.2 / Dart 3.12.2
 
@@ -772,7 +788,7 @@ are the ones CI will see.
 
 | Gate | Result |
 |---|---|
-| `flutter test` | **293 passing, 0 failing** — was 203 when 10b was built |
+| `flutter test` | **306 passing, 0 failing** — was 203 when 10b was built |
 | `flutter analyze` | **0 errors.** 57 issues: 4 warnings, 53 infos |
 | `tool/check_tokens.sh` | **296**, from 354. Kit clean |
 

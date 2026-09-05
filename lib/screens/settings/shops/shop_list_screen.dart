@@ -167,7 +167,7 @@ class _Actions extends ConsumerWidget {
         IconButton(
           icon: const Icon(Icons.receipt_long_outlined),
           color: AppColors.textSecondary,
-          tooltip: 'Ledger',
+          tooltip: 'Statement',
           onPressed: () => context.push(AppRoutes.shopLedgerFor(shop.id)),
         ),
         PopupMenuButton<_ShopAction>(

@@ -213,16 +213,19 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(shop?.name ?? 'Shop Ledger',
+            Text(shop?.name ?? 'Statement',
                 style: const TextStyle(fontWeight: FontWeight.bold)),
-            if (shop?.area != null)
-              Text(
-                shop!.area!,
-                style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade500,
-                    fontWeight: FontWeight.normal),
-              ),
+            // `Statement`, not `Ledger`. The drawer's Ledger is the whole
+            // business; this is one shop's bills, payments and running
+            // balance. Two screens called the same word is how the owner ends
+            // up on the wrong one.
+            Text(
+              shop?.area == null ? 'Statement' : 'Statement · ${shop!.area}',
+              style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade500,
+                  fontWeight: FontWeight.normal),
+            ),
           ],
         ),
         actions: [

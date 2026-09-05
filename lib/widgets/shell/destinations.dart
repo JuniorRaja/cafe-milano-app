@@ -108,17 +108,21 @@ const appDestinations = <AppDestination>[
   ),
 
   // --- Money ---------------------------------------------------------------
+  // The route stays `/finances`. A path rename buys nothing and costs a
+  // redirect rule for every link that already exists. `finances` stays a search
+  // keyword for the same reason.
   AppDestination(
-    label: 'Finances',
+    label: 'Ledger',
     icon: Icons.account_balance_wallet_outlined,
     activeIcon: Icons.account_balance_wallet,
     route: AppRoutes.finances,
     group: DestGroup.money,
     keywords: [
+      'finances',
+      'money',
       'receivables',
       'owed',
       'dues',
-      'ledger',
       'balance',
       'outstanding',
       'payment',
