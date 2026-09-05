@@ -62,7 +62,8 @@ class _FinancesScreenState extends ConsumerState<FinancesScreen> {
           ref.invalidate(outstandingSummaryProvider);
         },
         child: ListView(
-          padding: const EdgeInsets.only(bottom: AppSpace.s6 * 3),
+          // The nav bar floats over the body now. See `AppShell.bottomInset`.
+          padding: EdgeInsets.only(bottom: AppShell.bottomInset(context)),
           children: [
             _Hero(summary: summaryAsync, today: today, brand: brand),
             _Window(

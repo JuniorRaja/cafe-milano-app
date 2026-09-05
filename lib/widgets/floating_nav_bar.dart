@@ -28,6 +28,10 @@ class FloatingNavBar extends StatefulWidget {
   final int selectedIndex;
   final ValueChanged<int> onDestinationSelected;
 
+  /// The pill's own height, without its margins. `AppShell.bottomInset` adds
+  /// the rest.
+  static const height = 62.0;
+
   @override
   State<FloatingNavBar> createState() => _FloatingNavBarState();
 }
@@ -74,7 +78,7 @@ class _FloatingNavBarState extends State<FloatingNavBar>
   @override
   Widget build(BuildContext context) {
     final bar = Container(
-      height: 62,
+      height: FloatingNavBar.height,
       margin: EdgeInsets.fromLTRB(
         AppSpace.s3,
         AppSpace.s2,

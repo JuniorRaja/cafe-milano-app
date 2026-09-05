@@ -63,11 +63,13 @@ class DashboardScreen extends ConsumerWidget {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(
+        // The nav bar floats over the body now, so the room for it is this
+        // screen's to leave. See `AppShell.bottomInset`.
+        padding: EdgeInsets.fromLTRB(
           AppSpace.s4,
           0,
           AppSpace.s4,
-          AppSpace.s6 * 3,
+          AppShell.bottomInset(context),
         ),
         child: Column(
           children: [

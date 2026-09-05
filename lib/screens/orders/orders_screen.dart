@@ -32,20 +32,23 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   Widget build(BuildContext context) {
     final date = ref.watch(selectedDateProvider);
     final summariesAsync = ref.watch(orderSummariesForDateProvider(date));
-    final shopMap = ref.watch(allShopsProvider).maybeWhen(
-      data: (shops) => {for (final s in shops) s.id: s},
-      orElse: () => <int, Shop>{},
-    );
-    final productMap = ref.watch(allProductsProvider).maybeWhen(
-      data: (products) => {for (final p in products) p.id: p},
-      orElse: () => <int, Product>{},
-    );
+    final shopMap = ref
+        .watch(allShopsProvider)
+        .maybeWhen(
+          data: (shops) => {for (final s in shops) s.id: s},
+          orElse: () => <int, Shop>{},
+        );
+    final productMap = ref
+        .watch(allProductsProvider)
+        .maybeWhen(
+          data: (products) => {for (final p in products) p.id: p},
+          orElse: () => <int, Product>{},
+        );
     // One watched query for every bill on this date. Per-row lookups would be
     // an N+1, and a one-shot read would leave the chips stale until restart.
-    final billDues = ref.watch(billDuesForDateProvider(date)).maybeWhen(
-      data: (dues) => dues,
-      orElse: () => <int, BillDue>{},
-    );
+    final billDues = ref
+        .watch(billDuesForDateProvider(date))
+        .maybeWhen(data: (dues) => dues, orElse: () => <int, BillDue>{});
 
     return AppScaffold(
       caption: 'Daily billing',
@@ -58,13 +61,13 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
             return const EmptyState.inert(
               icon: Icons.receipt_long_outlined,
               title: 'No bills for this date',
-              message: 'Bills appear here once a shop has an order on this '
+              message:
+                  'Bills appear here once a shop has an order on this '
                   'day.',
             );
           }
 
-          final grandTotal =
-              summaries.fold<double>(0, (s, e) => s + e.total);
+          final grandTotal = summaries.fold<double>(0, (s, e) => s + e.total);
 
           return Column(
             children: [
@@ -92,8 +95,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                         onMarkPaid: () => _markPaid(s, billDues[s.order.id]),
                         isExpanded: isExpanded,
                         onToggle: () => setState(() {
-                          _expandedOrderId =
-                              isExpanded ? null : s.order.id;
+                          _expandedOrderId = isExpanded ? null : s.order.id;
                         }),
                         onShare: () => _shareOne(s, shop, productMap),
                       ),
@@ -101,60 +103,64 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                   },
                 ),
               ),
-              // The day's figure, and the way bills leave the app.
-              SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpace.s4),
-                  child: AppCard(
-                    color: AppColors.brandDeep,
-                    shadow: AppShadow.raised,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpace.s4,
-                      vertical: AppSpace.s3,
-                    ),
-                    child: Row(
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'GRAND TOTAL',
-                              style: AppType.caption.copyWith(
-                                color: AppColors.textOnDark,
-                              ),
-                            ),
-                            Text(
-                              ref.watch(brandProvider).moneyTrim(grandTotal),
-                              style: AppType.titleM.copyWith(
-                                color: AppColors.textOnDark,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const Spacer(),
-                        OutlinedButton.icon(
-                          onPressed: () => _shareBills(summaries, shopMap, date),
-                          icon: const Icon(Icons.ios_share_rounded, size: 16),
-                          label: const Text('Share bills'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.textOnDark,
-                            side: const BorderSide(color: AppColors.textOnDark),
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: AppRadius.rS,
+              // The day's figure, and the way bills leave the app. It sits
+              // above the floating nav bar rather than under it, so the inset
+              // is on this padding rather than on the list.
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  AppSpace.s4,
+                  AppSpace.s4,
+                  AppSpace.s4,
+                  AppShell.bottomInset(context),
+                ),
+                child: AppCard(
+                  color: AppColors.brandDeep,
+                  shadow: AppShadow.raised,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpace.s4,
+                    vertical: AppSpace.s3,
+                  ),
+                  child: Row(
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'GRAND TOTAL',
+                            style: AppType.caption.copyWith(
+                              color: AppColors.textOnDark,
                             ),
                           ),
+                          Text(
+                            ref.watch(brandProvider).moneyTrim(grandTotal),
+                            style: AppType.titleM.copyWith(
+                              color: AppColors.textOnDark,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      OutlinedButton.icon(
+                        onPressed: () => _shareBills(summaries, shopMap, date),
+                        icon: const Icon(Icons.ios_share_rounded, size: 16),
+                        label: const Text('Share bills'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.textOnDark,
+                          side: const BorderSide(color: AppColors.textOnDark),
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: AppRadius.rS,
+                          ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ],
           );
         },
-        loading: () =>
-            const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
       ),
     );
@@ -165,22 +171,24 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   /// rather than a trip through the ledger screen.
   void _markPaid(OrderDaySummary summary, BillDue? due) {
     if (due == null || due.status == BillStatus.paid) return;
-    unawaited(showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      // Daily Billing sits inside the shell, which draws the nav bar and the
-      // dashboard FAB above its body — so a sheet on the branch navigator comes
-      // up *under* that FAB. The root navigator puts it above everything.
-      useRootNavigator: true,
-      builder: (_) => RecordPaymentSheet(
-        shopId: summary.order.shopId,
-        pinned: (
-          orderId: summary.order.id,
-          date: summary.order.orderDate,
-          amountDue: due.amountDue,
+    unawaited(
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        // Daily Billing sits inside the shell, which draws the nav bar and the
+        // dashboard FAB above its body — so a sheet on the branch navigator comes
+        // up *under* that FAB. The root navigator puts it above everything.
+        useRootNavigator: true,
+        builder: (_) => RecordPaymentSheet(
+          shopId: summary.order.shopId,
+          pinned: (
+            orderId: summary.order.id,
+            date: summary.order.orderDate,
+            amountDue: due.amountDue,
+          ),
         ),
       ),
-    ));
+    );
   }
 
   Future<void> _shareOne(
@@ -189,15 +197,18 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     Map<int, Product> productMap,
   ) async {
     final date = ref.read(selectedDateProvider);
-    final owl =
-        await ref.readStreamOnce(orderWithLinesProvider(summary.order.id));
-    await Share.share(billDetailText(
-      shopName: shop?.name ?? 'Unknown',
-      order: owl,
-      productMap: productMap,
-      brand: ref.read(brandProvider),
-      dateLabel: DateFormat('dd MMM yyyy').format(date),
-    ));
+    final owl = await ref.readStreamOnce(
+      orderWithLinesProvider(summary.order.id),
+    );
+    await Share.share(
+      billDetailText(
+        shopName: shop?.name ?? 'Unknown',
+        order: owl,
+        productMap: productMap,
+        brand: ref.read(brandProvider),
+        dateLabel: DateFormat('dd MMM yyyy').format(date),
+      ),
+    );
   }
 
   /// Ask which shops, then share those.
@@ -226,22 +237,22 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
             trailing: brand.money(s.total),
           ),
       ],
-      confirmLabel: (count) =>
-          'Share $count bill${count == 1 ? '' : 's'}',
+      confirmLabel: (count) => 'Share $count bill${count == 1 ? '' : 's'}',
     );
     // Null is a dismissed sheet, which is not the same as picking nothing.
     if (chosen == null) return;
 
-    final picked =
-        summaries.where((s) => chosen.contains(s.order.id)).toList();
+    final picked = summaries.where((s) => chosen.contains(s.order.id)).toList();
     if (picked.isEmpty) return;
 
-    await Share.share(billsSummaryText(
-      bills: picked,
-      shopMap: shopMap,
-      brand: brand,
-      dateLabel: DateFormat('dd MMM yyyy').format(date),
-    ));
+    await Share.share(
+      billsSummaryText(
+        bills: picked,
+        shopMap: shopMap,
+        brand: brand,
+        dateLabel: DateFormat('dd MMM yyyy').format(date),
+      ),
+    );
   }
 }
 
@@ -339,8 +350,10 @@ class _BillCard extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(brand.money(summary.total),
-                              style: AppType.titleS),
+                          Text(
+                            brand.money(summary.total),
+                            style: AppType.titleS,
+                          ),
                           Text(
                             _secondLine(brand, due),
                             style: AppType.bodyS.copyWith(
@@ -417,7 +430,9 @@ class _BillCard extends ConsumerWidget {
               alignment: Alignment.topCenter,
               child: isExpanded
                   ? _BillingDetail(
-                      orderId: summary.order.id, productMap: productMap)
+                      orderId: summary.order.id,
+                      productMap: productMap,
+                    )
                   : const SizedBox(width: double.infinity),
             ),
           ],
@@ -473,11 +488,7 @@ class _Tappable extends StatelessWidget {
     if (onTap == null) return child;
     return Material(
       type: MaterialType.transparency,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: AppRadius.rFull,
-        child: child,
-      ),
+      child: InkWell(onTap: onTap, borderRadius: AppRadius.rFull, child: child),
     );
   }
 }
@@ -497,12 +508,16 @@ class _BillingDetail extends ConsumerWidget {
         if (data == null || data.lines.isEmpty) {
           return const Padding(
             padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: Text('No items',
-                style: TextStyle(color: Colors.grey, fontSize: 13)),
+            child: Text(
+              'No items',
+              style: TextStyle(color: Colors.grey, fontSize: 13),
+            ),
           );
         }
-        final total =
-            data.lines.fold<double>(0, (s, l) => s + l.qty * l.unitPrice);
+        final total = data.lines.fold<double>(
+          0,
+          (s, l) => s + l.qty * l.unitPrice,
+        );
         // The card clips its own corners now, so this only needs a ground.
         return ColoredBox(
           color: AppColors.surface,
@@ -517,38 +532,50 @@ class _BillingDetail extends ConsumerWidget {
                   child: Row(
                     children: [
                       Expanded(
-                        child: Text('Item',
-                            style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey)),
+                        child: Text(
+                          'Item',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey,
+                          ),
+                        ),
                       ),
                       SizedBox(
                         width: 44,
-                        child: Text('Qty',
-                            style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey),
-                            textAlign: TextAlign.center),
+                        child: Text(
+                          'Qty',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                       SizedBox(
                         width: 64,
-                        child: Text('Price',
-                            style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey),
-                            textAlign: TextAlign.right),
+                        child: Text(
+                          'Price',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey,
+                          ),
+                          textAlign: TextAlign.right,
+                        ),
                       ),
                       SizedBox(
                         width: 72,
-                        child: Text('Total',
-                            style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey),
-                            textAlign: TextAlign.right),
+                        child: Text(
+                          'Total',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey,
+                          ),
+                          textAlign: TextAlign.right,
+                        ),
                       ),
                     ],
                   ),
@@ -560,13 +587,14 @@ class _BillingDetail extends ConsumerWidget {
                 final lineTotal = line.qty * line.unitPrice;
                 return Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 9),
+                    horizontal: 16,
+                    vertical: 9,
+                  ),
                   child: Row(
                     children: [
                       Expanded(
                         child: Text(
-                          product?.name ??
-                              'Product #${line.productId}',
+                          product?.name ?? 'Product #${line.productId}',
                           style: const TextStyle(fontSize: 14),
                         ),
                       ),
@@ -592,8 +620,9 @@ class _BillingDetail extends ConsumerWidget {
                           brand.money(lineTotal),
                           textAlign: TextAlign.right,
                           style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
@@ -607,14 +636,16 @@ class _BillingDetail extends ConsumerWidget {
                   children: [
                     Text(
                       'Total',
-                      style: AppType.titleS
-                          .copyWith(color: AppColors.brandDeep),
+                      style: AppType.titleS.copyWith(
+                        color: AppColors.brandDeep,
+                      ),
                     ),
                     const Spacer(),
                     Text(
                       brand.money(total),
-                      style: AppType.titleS
-                          .copyWith(color: AppColors.brandDeep),
+                      style: AppType.titleS.copyWith(
+                        color: AppColors.brandDeep,
+                      ),
                     ),
                   ],
                 ),
@@ -629,21 +660,20 @@ class _BillingDetail extends ConsumerWidget {
       ),
       error: (e, _) => Padding(
         padding: const EdgeInsets.all(16),
-        child: Text('Error: $e',
-            style: const TextStyle(color: Colors.red)),
+        child: Text('Error: $e', style: const TextStyle(color: Colors.red)),
       ),
     );
   }
 }
 
 String _payLabel(BillStatus status) => switch (status) {
-      BillStatus.paid => 'Paid',
-      BillStatus.partial => 'Partial',
-      BillStatus.unpaid => 'Unpaid',
-    };
+  BillStatus.paid => 'Paid',
+  BillStatus.partial => 'Partial',
+  BillStatus.unpaid => 'Unpaid',
+};
 
 AppTone _payTone(BillStatus status) => switch (status) {
-      BillStatus.paid => AppTone.positive,
-      BillStatus.partial => AppTone.warning,
-      BillStatus.unpaid => AppTone.negative,
-    };
+  BillStatus.paid => AppTone.positive,
+  BillStatus.partial => AppTone.warning,
+  BillStatus.unpaid => AppTone.negative,
+};

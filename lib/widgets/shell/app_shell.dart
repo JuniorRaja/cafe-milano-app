@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:go_router/go_router.dart';
 
 import '../floating_nav_bar.dart';
@@ -21,6 +22,20 @@ class AppShell extends StatefulWidget {
   /// inside a branch gets neither.
   static bool showsNavBarAt(String location) =>
       bottomBarRoutes.contains(location);
+
+  /// What a shell screen must leave at the bottom of its scroll view.
+  ///
+  /// The bar used to sit in `Scaffold.bottomNavigationBar`, which insets the
+  /// body, so screens got this space for free and then guessed at a little
+  /// more — 96 here, 100 there, `AppSpace.s6 * 3` somewhere else. The bar now
+  /// floats over the body, so the space is theirs to leave, and it is one
+  /// number: the bar's own height and margins, plus the gesture inset it sits
+  /// above, plus a gap so the last row is not tucked under its edge.
+  static double bottomInset(BuildContext context) =>
+      FloatingNavBar.height +
+      AppSpace.s2 * 2 +
+      AppSpace.s3 +
+      MediaQuery.paddingOf(context).bottom;
 
   /// Opens the shell drawer from anywhere below it. Returns false when the
   /// caller is not inside the shell, so a shared header can offer the
@@ -49,6 +64,36 @@ class _AppShellState extends State<AppShell> {
   // The key is how a screen reaches *this* Scaffold specifically.
   final _scaffoldKey = GlobalKey<ScaffoldState>();
 
+  bool _barVisible = true;
+
+  /// Hide on the way down, show on the way up, show at the top.
+  ///
+  /// `idle` deliberately does **not** show the bar on its own. Scrolling down
+  /// and lifting your finger would bring it straight back, which is a flicker
+  /// rather than a feature — so at rest it stays where the last gesture left
+  /// it, unless that rest is at the top of the list.
+  bool _onUserScroll(UserScrollNotification notification) {
+    final metrics = notification.metrics;
+    // Horizontal strips — the date-range pills, the category chips — are
+    // scroll views too, and swiping them is not a scroll down the page.
+    if (metrics.axis != Axis.vertical) return false;
+
+    final atTop = metrics.pixels <= metrics.minScrollExtent;
+    // A list that does not scroll cannot ask for more room than it has.
+    final scrolls = metrics.maxScrollExtent > 0;
+
+    final next = switch (notification.direction) {
+      ScrollDirection.reverse => !scrolls,
+      ScrollDirection.forward => true,
+      ScrollDirection.idle => atTop || _barVisible,
+    };
+
+    if (next != _barVisible) setState(() => _barVisible = next);
+    // Never swallow it: other listeners, and the screens themselves, still
+    // want to know.
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).uri.path;
@@ -67,24 +112,54 @@ class _AppShellState extends State<AppShell> {
     // laid out ~80px shorter on shell routes than on sub-routes. `BoxFit.cover`
     // recomputes its crop against that shorter box, so popping back from a
     // sub-route visibly rescaled the artwork mid-transition.
+
+    // Reduced motion keeps the bar where it is. A control that disappears is
+    // the kind of movement the setting exists to switch off, and hiding it
+    // without the slide would be worse, not better.
+    final reducedMotion = MediaQuery.disableAnimationsOf(context);
+    final hidden = showNavBar && !_barVisible && !reducedMotion;
+
+    // The bar is no longer in `bottomNavigationBar`. That slot insets the
+    // body, so animating the bar's height would relayout every screen on every
+    // frame of the slide — the same reason the background had to leave the
+    // Scaffold. It is a bottom-positioned overlay now, and shell screens leave
+    // room for it themselves with `AppShell.bottomInset`.
     return _ShellScope(
       scaffoldKey: _scaffoldKey,
       child: Scaffold(
         key: _scaffoldKey,
         backgroundColor: Colors.transparent,
         drawer: const AppDrawer(),
-        body: widget.navigationShell,
-        bottomNavigationBar: showNavBar
-            ? FloatingNavBar(
-                selectedIndex: widget.navigationShell.currentIndex,
-                onDestinationSelected: (index) =>
-                    widget.navigationShell.goBranch(
-                  index,
-                  initialLocation:
-                      index == widget.navigationShell.currentIndex,
+        body: Stack(
+          children: [
+            NotificationListener<UserScrollNotification>(
+              onNotification: _onUserScroll,
+              child: widget.navigationShell,
+            ),
+            if (showNavBar)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: AnimatedSlide(
+                  offset: Offset(0, hidden ? 1 : 0),
+                  duration: reducedMotion
+                      ? Duration.zero
+                      : const Duration(milliseconds: 220),
+                  curve: Curves.easeOut,
+                  child: FloatingNavBar(
+                    selectedIndex: widget.navigationShell.currentIndex,
+                    onDestinationSelected: (index) =>
+                        widget.navigationShell.goBranch(
+                      index,
+                      initialLocation:
+                          index == widget.navigationShell.currentIndex,
+                    ),
+                  ),
                 ),
-              )
-            : null,
+              ),
+          ],
+        ),
       ),
     );
   }

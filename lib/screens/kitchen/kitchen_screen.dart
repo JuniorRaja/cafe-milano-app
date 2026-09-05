@@ -306,11 +306,12 @@ class _ByItemView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(
+      // The nav bar floats over the body now. See `AppShell.bottomInset`.
+      padding: EdgeInsets.fromLTRB(
         AppSpace.s4,
         AppSpace.s2,
         AppSpace.s4,
-        80,
+        AppShell.bottomInset(context),
       ),
       itemCount: groups.length,
       itemBuilder: (context, i) {
@@ -401,7 +402,8 @@ class _ByShopView extends StatelessWidget {
     shopOrder.sort((a, b) => _KitchenScreenState._cmpShops(shopMap[a], shopMap[b]));
 
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+      // The nav bar floats over the body now. See `AppShell.bottomInset`.
+      padding: EdgeInsets.fromLTRB(16, 8, 16, AppShell.bottomInset(context)),
       itemCount: shopOrder.length,
       itemBuilder: (context, i) {
         final shopId = shopOrder[i];

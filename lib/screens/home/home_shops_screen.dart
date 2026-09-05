@@ -50,6 +50,11 @@ class HomeShopsScreen extends ConsumerWidget {
                     ? const _EmptyState()
                     : ListFadeIn(
                         child: ListView.builder(
+                          // The nav bar floats over the body now. See
+                          // `AppShell.bottomInset`.
+                          padding: EdgeInsets.only(
+                            bottom: AppShell.bottomInset(context),
+                          ),
                           itemCount: shops.length,
                           itemBuilder: (context, index) {
                             final shop = shops[index];

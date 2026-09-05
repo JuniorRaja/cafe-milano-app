@@ -8,7 +8,7 @@
 | **Branch** | `release/1.11.0-navigation` |
 | **Requires** | [10b — Navigation](10b-navigation.md), built |
 | **Ships before** | [10c — Screen restyle](10c-screen-restyle.md) |
-| **Status** | A–I built · J planned — 2026-09-05 |
+| **Status** | A–J built — 2026-09-05 |
 
 ## Why
 
@@ -648,18 +648,37 @@ column. The search box is additive and independent of that. Keep them separate.
 
 ### J1 · The bottom bar hides on scroll down
 
-- [ ] Hide on scroll down, show on scroll up, show at rest.
-- [ ] **This means moving the bar out of `Scaffold.bottomNavigationBar`.** That slot
+- [x] Hide on scroll down, show on scroll up, show at rest.
+- [x] **This means moving the bar out of `Scaffold.bottomNavigationBar`.** That slot
       insets the body, so animating the bar's height reflows every screen on every
       frame. It goes into `AppShell`'s existing `Stack` as a bottom-positioned overlay
       with a slide transition — which is also where `app_shell.dart`'s own comment says
       the background had to go, for the same reason.
-- [ ] Every shell screen then needs bottom padding of its own. Most already carry
+- [x] Every shell screen then needs bottom padding of its own. Most already carry
       `bottom: 96` or `100`; make it one constant instead of four guesses.
-- [ ] Respect `MediaQuery.disableAnimations` — no slide, bar always visible.
-- [ ] **This is the riskiest item in this doc.** It changes the layout contract of all
+      `AppShell.bottomInset(context)` — the bar's own height, its margins, a gap, and the
+      gesture inset it sits above. It is a function rather than a constant because the
+      last of those is only known from the `MediaQuery`, and 96 was wrong on a phone with
+      a home indicator.
+- [x] Respect `MediaQuery.disableAnimations` — no slide, bar always visible. A control
+      that disappears is exactly the movement the setting turns off, and hiding it
+      *without* the slide would be worse rather than better.
+- [x] **This is the riskiest item in this doc.** It changes the layout contract of all
       five branch screens. Land it on its own commit, after everything else, so it can be
       reverted without taking the rest with it.
+
+**`idle` does not show the bar.** Scrolling down and lifting your finger would bring it
+straight back, which is a flicker rather than a feature. At rest the bar stays where the
+last gesture left it — unless that rest is at the top of the list, which is the "show at
+rest" that matters. A list too short to scroll never hides it at all.
+
+**Horizontal strips are scroll views too.** The date-range pills and the category chips
+would each have hidden the bar on a sideways swipe. The listener takes vertical
+notifications only, and a test swipes a chip row to hold that.
+
+**Billing's grand-total card was the awkward one.** It is not in the scrolling list — it
+sits under it, in the same `Column` — so the inset went on the card's padding rather than
+the list's, and the day's figure stays above the bar rather than behind it.
 
 ### J2 · Relative date labels
 
@@ -807,7 +826,8 @@ action list as each lands, so it does not build them twice.
 | G1 + G2 · Billing | `1755496` | Three rows, a real picker, and `MultiSelectList` in the kit |
 | I1–I3 · Masters | `6f62c52` | Right-edge actions, price in the subtitle, search that keeps edits |
 | H1–H4 · Ledger | `2203703` | Renamed, its own period, sortable — and a `Statement` next to it |
-| J2–J4 · Nav, minus the bar | see below | Relative dates, scroll reset, Catalogue back in Settings |
+| J2–J4 · Nav, minus the bar | `0b58194` | Relative dates, scroll reset, Catalogue back in Settings |
+| J1 · The hiding bar | see below | Out of the Scaffold slot, into an overlay. Alone, as planned |
 
 ### Verified — 2026-09-05, Flutter 3.44.2 / Dart 3.12.2
 
@@ -816,8 +836,8 @@ are the ones CI will see.
 
 | Gate | Result |
 |---|---|
-| `flutter test` | **321 passing, 0 failing** — was 203 when 10b was built |
-| `flutter analyze` | **0 errors.** 57 issues: 4 warnings, 53 infos |
+| `flutter test` | **327 passing, 0 failing** — was 203 when 10b was built |
+| `flutter analyze` | **0 errors, 0 warnings.** 53 infos, all deprecation |
 | `tool/check_tokens.sh` | **297**, from 354. Kit clean |
 
 `flutter analyze` is **not** clean, and none of it is new:
@@ -826,17 +846,17 @@ are the ones CI will see.
   `kSurface` alias. This is 10c's progress bar by design — see
   [10c](10c-screen-restyle.md)'s *Closing the ratchet*. It went **down** here,
   because A5 took three screens off the aliases, D deleted a widget that used
-  three more, and F and G's rewrites use none.
-- **4 warnings**, all pre-dating this branch: one unused import in
-  `finances_screen`, and three unused test helpers, two in `settings_test` and
-  one in `shell_test`. Two of the original six sat on lines that F and G
-  rewrote, so they went with them.
+  three more, and F, G and H's rewrites use none.
+- **No warnings.** There were six when this branch started, all pre-dating it:
+  three unused imports and three unused test helpers. Five of them sat on lines
+  that F, G, H and J rewrote, so they went with the rewrites. The last, a dead
+  `owes` helper in `shell_test`, was deleted here rather than left for whoever
+  bumps the version — one dead local function is not worth carrying to block a
+  gate.
 
-The other four are left alone rather than swept in, because they are not this
-release's and the rule is not to touch unrelated code. They are four one-line
-deletions and they **do** block the roadmap's readiness gate, which requires
-`flutter analyze` clean before the merge to `master`. Whoever bumps the version
-clears them.
+`flutter analyze` is therefore **clean** by the roadmap's readiness definition:
+zero errors and zero warnings. The infos are the deprecation ratchet 10c
+closes.
 
 ## Order of work
 

@@ -21,9 +21,6 @@ void main() {
   Shop shop(int id, String name, {String? area, bool active = true}) =>
       Shop(id: id, name: name, area: area, phone: null, isActive: active);
 
-  ShopOutstanding owes(int id, String name, double amount) =>
-      ShopOutstanding(shopId: id, shopName: name, outstanding: amount);
-
   Widget host({
     required Widget child,
     List<Shop> shops = const [],
