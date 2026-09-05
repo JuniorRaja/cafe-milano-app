@@ -8,7 +8,7 @@
 | **Branch** | `release/1.11.0-navigation` |
 | **Requires** | [10b — Navigation](10b-navigation.md), built |
 | **Ships before** | [10c — Screen restyle](10c-screen-restyle.md) |
-| **Status** | A, B, C, D, E built · F–J planned — 2026-09-05 |
+| **Status** | A, B, C, D, E, F built · G–J planned — 2026-09-05 |
 
 ## Why
 
@@ -431,20 +431,38 @@ for width.
 `ListTile(subtitle: unit != null ? Text('per $unit') : null)`. "per pc" under every row,
 on the screen that exists to be read across a kitchen.
 
-- [ ] Remove the subtitle. The quantity column already carries the meaning.
-- [ ] Match By Shop's row shape, which has no second line.
+- [x] Remove the subtitle. The quantity column already carries the meaning.
+- [x] Match By Shop's row shape, which has no second line. The identical
+      `bakery_dining` avatar went with it — under a category header carrying the
+      category's own emoji, a leading icon that is the same on every row says
+      even less than it did before.
 
 ### F2 · By Item groups by category
 
 By Shop groups by shop. By Item is a flat list, and the bake order is by category.
 
-- [ ] Group by `categoryId`, using the same category sort order as the share text
+- [x] Group by `categoryId`, using the same category sort order as the share text
       already does in `_shareItems`. That grouping logic exists; reuse it rather than
       writing a second one that can disagree.
-- [ ] Uncategorised products fall into an **Others** group, last.
-- [ ] Category header carries the emoji and the group's total quantity.
-- [ ] The share text and the screen must produce the same grouping. One function, two
+- [x] Uncategorised products fall into an **Others** group, last.
+- [x] Category header carries the emoji and the group's total quantity. Written
+      `50 pcs`, the way By Shop already writes a group total — and the row below
+      it writes a bare `50`, so the two numbers never read as one.
+- [x] The share text and the screen must produce the same grouping. One function, two
       renderers.
+
+**How it landed.** `_shareItems` did the grouping inline, so reusing it meant
+lifting it out first: `lib/services/kitchen_list.dart` now holds
+`groupKitchenLines()` and `kitchenListText()`, and `KitchenScreen.build` calls
+the grouper **once** and hands the same `List<KitchenGroup>` to the By Item tab
+and to the share sheet. There is no second code path left to drift.
+
+Two rules the old inline version already had, kept and now tested: a product
+whose category has since been **deleted** falls into Others rather than off the
+list, and a quantity that nets to zero across shops is not a bake instruction.
+By Item became a list of cards, one per category, matching By Shop — it was a
+single fixed card with an internal scroll and a `Item / Quantity` column header
+that the new group headers make redundant.
 
 ---
 
@@ -695,7 +713,8 @@ action list as each lands, so it does not build them twice.
 | B1 + B2 · radius and face | `4d2a46b` | One commit — they land together on every screen |
 | C1 · greeting | `cd80e2d` + `409f0aa` | Greeting back, no name — the owner's call |
 | D1 + D2 · Orders row and marks | `a5c2c43` | `ShopOrderCard` deleted; 10c's Home item is done |
-| E1–E7 · Order entry | see below | Standing order, one filter row, and a suite-hanging timer |
+| E1–E7 · Order entry | `a63bc85` | Standing order, one filter row, and a suite-hanging timer |
+| F1 + F2 · Kitchen | see below | Grouping lifted into `kitchen_list.dart`; screen and share share it |
 
 ### Verified — 2026-09-05, Flutter 3.44.2 / Dart 3.12.2
 
@@ -704,26 +723,27 @@ are the ones CI will see.
 
 | Gate | Result |
 |---|---|
-| `flutter test` | **254 passing, 0 failing** — was 203 when 10b was built |
-| `flutter analyze` | **0 errors.** 65 issues: 6 warnings, 59 infos |
-| `tool/check_tokens.sh` | **322**, from 354. Kit clean |
+| `flutter test` | **268 passing, 0 failing** — was 203 when 10b was built |
+| `flutter analyze` | **0 errors.** 62 issues: 5 warnings, 57 infos |
+| `tool/check_tokens.sh` | **317**, from 354. Kit clean |
 
 `flutter analyze` is **not** clean, and none of it is new:
 
-- **59 infos**, every one a `@Deprecated` `kBrandGold` / `kBrandBrown` /
+- **57 infos**, every one a `@Deprecated` `kBrandGold` / `kBrandBrown` /
   `kSurface` alias. This is 10c's progress bar by design — see
   [10c](10c-screen-restyle.md)'s *Closing the ratchet*. It went **down** here,
-  because A5 took three screens off the aliases and D deleted a widget that
-  used three more.
-- **6 warnings**, unchanged since `76ff7d6` and each confirmed against it:
-  three unused imports (`finances_screen`, `kitchen_screen` and `orders_screen`
-  each import something they never call) and three unused test helpers, two in
-  `settings_test` and one in `shell_test`.
+  because A5 took three screens off the aliases, D deleted a widget that used
+  three more, and F's new By Item card uses none.
+- **5 warnings**, all pre-dating this branch: two unused imports
+  (`finances_screen` and `orders_screen` each import something they never call)
+  and three unused test helpers, two in `settings_test` and one in `shell_test`.
+  `kitchen_screen`'s was the third; F deleted the line it sat on, so it is gone.
 
-Left alone rather than swept in, because they are not this release's and the
-rule is not to touch unrelated code. They are six one-line deletions and they
-**do** block the roadmap's readiness gate, which requires `flutter analyze`
-clean before the merge to `master`. Whoever bumps the version clears them.
+The other five are left alone rather than swept in, because they are not this
+release's and the rule is not to touch unrelated code. They are five one-line
+deletions and they **do** block the roadmap's readiness gate, which requires
+`flutter analyze` clean before the merge to `master`. Whoever bumps the version
+clears them.
 
 ## Order of work
 

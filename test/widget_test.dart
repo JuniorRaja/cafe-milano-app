@@ -1,6 +1,7 @@
 import 'package:milano_orders/database/app_database.dart';
 import 'package:milano_orders/theme/app_theme.dart';
 import 'package:milano_orders/theme/brand_config.dart';
+import 'package:milano_orders/providers/category_provider.dart';
 import 'package:milano_orders/providers/order_provider.dart';
 import 'package:milano_orders/providers/product_provider.dart';
 import 'package:milano_orders/providers/shop_provider.dart';
@@ -270,13 +271,24 @@ void main() {
     KitchenRawLine makeLine(int shopId, int productId, int qty) =>
         KitchenRawLine(shopId: shopId, productId: productId, qty: qty);
 
-    Product makeProduct(int id, String name, {String? unit}) =>
-        Product(id: id, name: name, unit: unit, photoPath: null, isActive: true);
+    Product makeProduct(int id, String name, {String? unit, int? categoryId}) =>
+        Product(
+          id: id,
+          name: name,
+          unit: unit,
+          photoPath: null,
+          isActive: true,
+          categoryId: categoryId,
+        );
+
+    Category makeCategory(int id, String name, int sortOrder) =>
+        Category(id: id, name: name, sortOrder: sortOrder, isActive: true);
 
     Widget buildKitchen({
       List<KitchenRawLine> lines = const [],
       List<Shop> shops = const [],
       List<Product> products = const [],
+      List<Category> categories = const [],
     }) {
       return ProviderScope(
         overrides: [
@@ -285,6 +297,7 @@ void main() {
           ),
           allShopsProvider.overrideWith((ref) => Stream.value(shops)),
           allProductsProvider.overrideWith((ref) => Stream.value(products)),
+          allCategoriesProvider.overrideWith((ref) => Stream.value(categories)),
         ],
         child: MaterialApp(
           theme: buildAppTheme(BrandConfig.milano),
@@ -360,6 +373,55 @@ void main() {
       // Only one Bun row should exist with combined total
       expect(find.text('Bun'), findsOneWidget);
       expect(find.text('50'), findsOneWidget);
+    });
+
+    testWidgets('By Item tab: groups under a category header with its total',
+        (tester) async {
+      await tester.pumpWidget(buildKitchen(
+        lines: [makeLine(1, 1, 30), makeLine(1, 2, 12)],
+        shops: [makeShop(1, 'Hotel Raj')],
+        products: [
+          makeProduct(1, 'Bun', categoryId: 1),
+          makeProduct(2, 'Cream Cake', categoryId: 2),
+        ],
+        categories: [makeCategory(1, 'Bread', 0), makeCategory(2, 'Cakes', 1)],
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('\u{1F956} Bread'), findsOneWidget);
+      expect(find.text('\u{1F370} Cakes'), findsOneWidget);
+      // The header carries the group's total; the row carries the item's.
+      expect(find.text('30 pcs'), findsOneWidget);
+      expect(find.text('30'), findsOneWidget);
+    });
+
+    testWidgets('By Item tab: a product with no category lands in Others',
+        (tester) async {
+      await tester.pumpWidget(buildKitchen(
+        lines: [makeLine(1, 1, 8)],
+        shops: [makeShop(1, 'Hotel Raj')],
+        products: [makeProduct(1, 'Loose Item')],
+        categories: [makeCategory(1, 'Bread', 0)],
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('\u{1F37D}\u{FE0F} Others'), findsOneWidget);
+      expect(find.text('Loose Item'), findsOneWidget);
+    });
+
+    testWidgets('By Item tab: no unit line under the product name',
+        (tester) async {
+      // "per pc" under every row, on the screen that exists to be read across
+      // a kitchen. See docs/features/10b-device-pass.md, F1.
+      await tester.pumpWidget(buildKitchen(
+        lines: [makeLine(1, 1, 30)],
+        shops: [makeShop(1, 'Hotel Raj')],
+        products: [makeProduct(1, 'Bun', unit: 'pc')],
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bun'), findsOneWidget);
+      expect(find.text('per pc'), findsNothing);
     });
 
     testWidgets('By Shop tab: shop name header is shown', (tester) async {
