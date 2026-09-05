@@ -620,13 +620,35 @@ action list as each lands, so it does not build them twice.
 | A3 · filter pills | `f848475` | The cause was the row's own padding, not the emoji |
 | A4 · background | `9516e2b` | Painted app-wide; new artwork still to come |
 | A5 · header gutter | `480ba82` | Took Dashboard, Orders and Billing onto `AppScaffold` |
-| B1 + B2 · radius and face | see below | One commit, as asked |
+| A1 test fix | `5ff1187` | `io()` gapped before the route was built |
+| B1 + B2 · radius and face | `4d2a46b` | One commit — they land together on every screen |
 
-`tool/check_tokens.sh` is at **342**, from 354. The kit stays clean.
+### Verified — 2026-09-05, Flutter 3.44.2 / Dart 3.12.2
 
-**Not verified here.** This container has no Flutter SDK, so `flutter test`
-and `flutter analyze` have not been run against these five commits. Run both
-before starting B.
+The same version CI pins in `.github/workflows/release.yml`, so these numbers
+are the ones CI will see.
+
+| Gate | Result |
+|---|---|
+| `flutter test` | **237 passing, 0 failing** — was 203 when 10b was built |
+| `flutter analyze` | **0 errors.** 70 issues: 6 warnings, 64 infos |
+| `tool/check_tokens.sh` | **342**, from 354. Kit clean |
+
+`flutter analyze` is **not** clean, and none of it is new:
+
+- **64 infos**, every one a `@Deprecated` `kBrandGold` / `kBrandBrown` /
+  `kSurface` alias. This is 10c's progress bar by design — see
+  [10c](10c-screen-restyle.md)'s *Closing the ratchet*. It went **down** here,
+  because A5 took three screens off the aliases.
+- **6 warnings**, all pre-dating this branch's work and all confirmed against
+  `76ff7d6`: three unused imports (`finances_screen`, `kitchen_screen`,
+  `orders_screen` each import something they never call) and three unused
+  helpers in `settings_test`, `shell_test` and `product_qty_row_test`.
+
+Left alone rather than swept in, because they are not this release's and the
+rule is not to touch unrelated code. They are six one-line deletions and they
+**do** block the roadmap's readiness gate, which requires `flutter analyze`
+clean before the merge to `master`. Whoever bumps the version clears them.
 
 ## Order of work
 
