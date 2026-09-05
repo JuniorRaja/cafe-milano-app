@@ -404,7 +404,11 @@ green** (was 136), `tool/check_tokens.sh` passes with the screen count down from
    on the shop list. That section predated [07](07-ledger-statements.md) shipping the
    screen.
 2. Masters stay in Settings *and* appear in the drawer. The doc contradicted itself;
-   the owner chose both.
+   the owner chose both. **This note was wrong for one release.** The code shipped with
+   them removed from Settings, and `settings_screen.dart` carried a comment arguing for
+   the removal — so the doc said one thing and the screen did the other. The owner asked
+   for them back on the device pass;
+   [10b-device-pass](10b-device-pass.md) J4 restored the card and deleted the comment.
 3. **A second DAO exception.** Doc 10 allowed one — the two outstanding queries on
    `ledger_dao.dart`. Settings' state summaries needed a second of exactly the same
    character: `PriceDao.watchCatalogueCoverage()`, read-only, additive, over tables that

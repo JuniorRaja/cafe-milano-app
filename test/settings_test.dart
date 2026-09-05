@@ -124,16 +124,54 @@ void main() {
       expect(find.text('Installed v1.11.0 (build 15)'), findsOneWidget);
     });
 
-    testWidgets('the masters are not listed here', (tester) async {
-      // They live in the drawer's Catalogue group and nowhere else. Two doors
-      // to one room is how "Profile" became a filing cabinet.
+    testWidgets('the masters are listed here, as a Catalogue card',
+        (tester) async {
+      // They were taken out of Settings in 10b and put back on the device
+      // pass. See docs/features/10b-device-pass.md, J4.
       await pump(tester, shops: [shop(1, 'Hotel Raj')]);
 
-      expect(find.text('Catalogue'), findsNothing);
-      expect(find.text('Shops'), findsNothing);
-      expect(find.text('Products'), findsNothing);
-      expect(find.text('Price Matrix'), findsNothing);
+      expect(find.text('Catalogue'), findsOneWidget);
+      expect(find.text('Shops'), findsOneWidget);
+      expect(find.text('Products'), findsOneWidget);
+      expect(find.text('Categories'), findsOneWidget);
+      expect(find.text('Price Matrix'), findsOneWidget);
       expect(find.text('Configuration'), findsOneWidget);
+    });
+
+    testWidgets('each catalogue row reports its own state', (tester) async {
+      await pump(
+        tester,
+        shops: [shop(1, 'Hotel Raj'), shop(2, 'Closed Down', active: false)],
+        products: [product(1, 'Bun')],
+        categories: [category(1, 'Bread')],
+        coverage: const CatalogueCoverage(
+          pricesSet: 212,
+          priceSlots: 504,
+          shopsWithStandingOrders: 3,
+        ),
+      );
+
+      expect(find.text('1 active · 1 inactive'), findsOneWidget);
+      // Products and Categories both read `1 active`.
+      expect(find.text('1 active'), findsNWidgets(2));
+      expect(find.text('212 of 504 prices set'), findsOneWidget);
+    });
+
+    testWidgets('an empty master says so rather than showing a zero',
+        (tester) async {
+      await pump(tester);
+      expect(find.text('None yet'), findsNWidgets(3));
+      expect(find.text('No shops or products yet'), findsOneWidget);
+    });
+
+    testWidgets('a master is not offered twice by the search', (tester) async {
+      // The Screens section already lists every destination. Repeating them as
+      // Settings rows would return Shops twice for one query.
+      await pump(tester, shops: [shop(1, 'Hotel Raj')]);
+
+      await tester.enterText(find.byType(TextField), 'shops');
+      await tester.pumpAndSettle();
+      expect(find.text('Shops'), findsOneWidget);
     });
   });
 

@@ -9,7 +9,10 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../app.dart';
 import '../../providers/business_info_provider.dart';
 import '../../providers/dashboard_settings_provider.dart';
+import '../../providers/category_provider.dart';
 import '../../providers/price_provider.dart';
+import '../../providers/product_provider.dart';
+import '../../providers/shop_provider.dart';
 import '../../providers/settings_summary_provider.dart';
 import '../../services/update_service.dart';
 import '../../theme/brand_config.dart';
@@ -26,11 +29,12 @@ import '../../widgets/ui/ui.dart';
 /// inactive" answers a question. Each summary is one aggregate, never a
 /// per-row read.
 ///
-/// **The masters are not listed here.** Shops, Products, Categories and the
-/// Price Matrix live in the drawer's Catalogue group and nowhere else. They
-/// were briefly in both; two doors to one room is how "Profile" became a
-/// filing cabinet in the first place. The search below still reaches them, so
-/// nothing got further away.
+/// **The masters are listed here too, as a Catalogue card.** They were taken
+/// out on the argument that two doors to one room is how "Profile" became a
+/// filing cabinet. The owner put them back on the device pass: the drawer is a
+/// swipe or a reach to the top-left, and Settings is a tab. The rows are built
+/// from `destinationsIn(DestGroup.catalogue)` rather than written out, so a new
+/// master still means one edit, in `destinations.dart`.
 ///
 /// **The search field searches the whole app**, not this screen. It reads
 /// `destinations.dart` as well as the rows below, which is what makes ~28
@@ -109,6 +113,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget _searchResults() {
     final destinations =
         visibleDestinations.where((d) => d.matches(_query)).toList();
+    // Config rows only. The catalogue rows are the same four destinations the
+    // Screens section above already lists, and searching "shops" should not
+    // return Shops twice.
     final rows = _configRows().where((r) => r.matches(_query)).toList();
 
     if (destinations.isEmpty && rows.isEmpty) {
@@ -165,6 +172,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return ListView(
       padding: const EdgeInsets.only(bottom: AppSpace.s6),
       children: [
+        const SectionHeader(title: 'Catalogue'),
+        _card(_catalogueRows()),
+        const SizedBox(height: AppSpace.s5),
         const SectionHeader(title: 'Configuration'),
         _card(_configRows()),
         const SizedBox(height: AppSpace.s5),
@@ -198,6 +208,63 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   // ---------------------------------------------------------------------------
   // Rows, each with a live summary
   // ---------------------------------------------------------------------------
+
+  /// Shops, Products, Categories and the Price Matrix, each with the one
+  /// aggregate that answers "is this set up".
+  ///
+  /// Built from the destination list, not written out, so the icon, the label
+  /// and the route stay in one place. The Price Matrix sits in the Money group
+  /// rather than Catalogue, so it is added by route.
+  List<_Row> _catalogueRows() {
+    final shops = ref.watch(allShopsProvider);
+    final products = ref.watch(allProductsProvider);
+    final categories = ref.watch(allCategoriesProvider);
+    final coverage = ref.watch(catalogueCoverageProvider);
+
+    String activeSplit<T>(AsyncValue<List<T>> list, bool Function(T) isActive) =>
+        list.maybeWhen(
+          data: (rows) {
+            final active = rows.where(isActive).length;
+            final off = rows.length - active;
+            if (rows.isEmpty) return 'None yet';
+            return off == 0
+                ? '$active active'
+                : '$active active · $off inactive';
+          },
+          orElse: () => '…',
+        );
+
+    final summaries = <String, String>{
+      AppRoutes.shops: activeSplit(shops, (s) => s.isActive),
+      AppRoutes.products: activeSplit(products, (p) => p.isActive),
+      AppRoutes.categories: activeSplit(categories, (c) => c.isActive),
+      AppRoutes.prices: coverage.maybeWhen(
+        data: (c) => c.priceSlots == 0
+            ? 'No shops or products yet'
+            : '${c.pricesSet} of ${c.priceSlots} prices set',
+        orElse: () => '…',
+      ),
+    };
+
+    final rows = [
+      ...destinationsIn(DestGroup.catalogue),
+      // Priced per shop, so it lives in Money on the drawer. It is still part
+      // of setting the catalogue up, which is what this card is.
+      ...visibleDestinations.where((d) => d.route == AppRoutes.prices),
+    ];
+
+    return [
+      for (final dest in rows)
+        _Row(
+          icon: dest.icon,
+          title: dest.label,
+          subtitle: summaries[dest.route] ?? dest.route,
+          tone: summaries[dest.route] == 'None yet' ? AppTone.warning : null,
+          keywords: dest.keywords,
+          onTap: () => unawaited(context.push(dest.route)),
+        ),
+    ];
+  }
 
   List<_Row> _configRows() {
     final businessInfo = ref.watch(businessInfoProvider);

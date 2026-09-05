@@ -665,9 +665,12 @@ column. The search box is additive and independent of that. Keep them separate.
 
 `DateSelector` shows `05 Sep 2026, Fri` and nothing else, on Orders, Kitchen and Billing.
 
-- [ ] One `relativeDayLabel(DateTime, {required DateTime today})` in `lib/utils/`, pure,
-      unit-tested, used by all three screens. Never three copies.
-- [ ] The ladder:
+- [x] One `relativeDayLabel(DateTime, {required DateTime today})` in `lib/utils/`, pure,
+      unit-tested, used by all three screens. Never three copies — they share one
+      `DateSelector`, so it is one call site.
+- [x] The ladder, with one change: **the last row returns null, not `12 Sep`.** The
+      owner chose date-first (below), so the date is already the line above. `12 Sep`
+      under `12 Sep 2026, Sat` is the same fact twice.
       | Distance | Label |
       |---|---|
       | 0 | `Today` |
@@ -675,27 +678,44 @@ column. The search box is additive and independent of that. Keep them separate.
       | same calendar week | `This Mon` … `This Sun` |
       | next / previous calendar week | `Next Tue` / `Last Tue` |
       | anything else | `12 Sep`, with the year when it is not this year |
-- [ ] **Keep the full date visible underneath, small.** A bill for "Next Tue" is a bill
-      whose actual date the owner still needs to read.
-- [ ] Weeks are Monday-start, matching the heatmap's day labels.
-- [ ] Read today through `todayProvider`, so the label re-derives at midnight along with
+- [x] **The owner chose the other way round: date big, word small.** `05 Sep 2026, Fri`
+      stays the headline it already was, with `Today` / `Next Tue` in small type under
+      it. Less of a change from what is there, and the date a bill is read out from
+      never moves.
+- [x] Weeks are Monday-start, matching the heatmap's day labels.
+- [x] Read today through `todayProvider`, so the label re-derives at midnight along with
       everything else.
 
-> **Assumption to confirm.** The owner's list says "fortnite". Read as *fortnight*, and
-> covered by the `Next` / `Last` week rows above — a fortnight is not a day, so it cannot
-> be a label on a single-day selector. If something else was meant, say so.
+Day arithmetic goes through a UTC day number, not `DateTime.difference`. Between two
+local midnights across a daylight-saving boundary that difference is 23 hours, and
+`inDays` truncates it to zero — so tomorrow would read as `Today`. India has no DST, so
+this would never have been caught here.
+
+> **Confirmed by the owner.** "fortnite" was *fortnight*, and it is covered by the
+> `Next` / `Last` week rows above — a fortnight is a span, not a day, so it cannot be a
+> label on a single-day selector.
 
 ### J3 · Scroll to top on screen change
 
 `StatefulShellRoute.indexedStack` preserves each branch's scroll position by design,
 which is right for a back press and wrong for a tab switch.
 
-- [ ] When a branch becomes visible, jump its primary scroll view to 0.
-- [ ] Jump, do not animate. An animated scroll on a screen you are already looking at
+- [x] ~~When a branch becomes visible~~ — **when it stops being visible.** Same result,
+      one fewer frame wrong: resetting on the way in paints the old offset once before
+      the jump lands. On the way out the branch is already offstage.
+- [x] Jump, do not animate. An animated scroll on a screen you are already looking at
       reads as a glitch.
-- [ ] Tapping the current tab already resets it via `goBranch(initialLocation: true)`.
-      Do not add a second mechanism that fights it.
-- [ ] A back press returning to a branch keeps its position. Only a switch resets.
+- [x] Tapping the current tab already resets it via `goBranch(initialLocation: true)`.
+      Do not add a second mechanism that fights it. Nothing was added to the bar.
+- [x] A back press returning to a branch keeps its position. Only a switch resets. A push
+      inside a branch does not change its `TickerMode`, which is what this hangs off.
+
+**The signal.** `StatefulShellRoute` wraps each branch in a `TickerMode`, and that
+notifies its dependents. `StatefulNavigationShell.of` looks like the obvious hook but is
+`findAncestorStateOfType` — no notification, so nothing can be woken by it.
+`BranchScrollScope` gives each branch its own `PrimaryScrollController`, which a bare
+`ListView` attaches to; a screen that passes its own controller opts out silently, so a
+test asserts the attachment.
 
 ### J4 · Catalogue returns to Settings
 
@@ -703,15 +723,22 @@ which is right for a back press and wrong for a tab switch.
 listed there, and 10b's own build notes say the opposite ("the owner chose both"). The
 code won. The owner has now chosen both again.
 
-- [ ] A **Catalogue** card in Settings: Shops, Products, Categories, Price Matrix.
-- [ ] Build it from `destinationsIn(DestGroup.catalogue)` plus the Price Matrix, not from
+- [x] A **Catalogue** card in Settings: Shops, Products, Categories, Price Matrix.
+- [x] Build it from `destinationsIn(DestGroup.catalogue)` plus the Price Matrix, not from
       a hand-written list. Rule 12: a destination is added in `destinations.dart` and
       nowhere else.
-- [ ] Each row gets a live summary, like every other Settings row —
-      `18 active · 2 inactive`, `212 of 504 prices set`. The aggregates exist already on
-      `catalogueCoverageProvider`.
-- [ ] Delete the comment that says they are not there, and fix 10b's build note. A doc
-      that describes the opposite of the code is worse than no doc.
+- [x] Each row gets a live summary, like every other Settings row —
+      `18 active · 2 inactive`, `212 of 504 prices set`. ~~The aggregates exist already
+      on `catalogueCoverageProvider`~~ — only the price ones do. The active/inactive
+      splits come from the three `all*Provider` streams the screen already watched. No
+      new query.
+- [x] Delete the comment that says they are not there, and fix 10b's build note. A doc
+      that describes the opposite of the code is worse than no doc. 10b's deviation note
+      #2 now records that the note and the code disagreed for a release.
+
+**The search does not list them twice.** Settings search already returns every
+destination under *Screens*; repeating the catalogue rows under *Settings* would return
+Shops twice for one query. The card is on the full screen only.
 
 ---
 
@@ -779,7 +806,8 @@ action list as each lands, so it does not build them twice.
 | F1 + F2 · Kitchen | `937e2f8` | Grouping lifted into `kitchen_list.dart`; screen and share share it |
 | G1 + G2 · Billing | `1755496` | Three rows, a real picker, and `MultiSelectList` in the kit |
 | I1–I3 · Masters | `6f62c52` | Right-edge actions, price in the subtitle, search that keeps edits |
-| H1–H4 · Ledger | see below | Renamed, its own period, sortable — and a `Statement` next to it |
+| H1–H4 · Ledger | `2203703` | Renamed, its own period, sortable — and a `Statement` next to it |
+| J2–J4 · Nav, minus the bar | see below | Relative dates, scroll reset, Catalogue back in Settings |
 
 ### Verified — 2026-09-05, Flutter 3.44.2 / Dart 3.12.2
 
@@ -788,9 +816,9 @@ are the ones CI will see.
 
 | Gate | Result |
 |---|---|
-| `flutter test` | **306 passing, 0 failing** — was 203 when 10b was built |
+| `flutter test` | **321 passing, 0 failing** — was 203 when 10b was built |
 | `flutter analyze` | **0 errors.** 57 issues: 4 warnings, 53 infos |
-| `tool/check_tokens.sh` | **296**, from 354. Kit clean |
+| `tool/check_tokens.sh` | **297**, from 354. Kit clean |
 
 `flutter analyze` is **not** clean, and none of it is new:
 

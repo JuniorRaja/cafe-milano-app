@@ -8,6 +8,7 @@ import 'widgets/app_background.dart';
 import 'widgets/shell/app_bootstrap_gate.dart';
 import 'widgets/shell/app_lifecycle_scope.dart';
 import 'widgets/shell/app_shell.dart';
+import 'widgets/shell/branch_scroll.dart';
 import 'screens/home/home_shops_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/finances/finances_screen.dart';
@@ -166,31 +167,36 @@ GoRouter buildRouter() => GoRouter(
             StatefulShellBranch(routes: [
               GoRoute(
                 path: AppRoutes.overview,
-                builder: (context, state) => const DashboardScreen(),
+                builder: (context, state) =>
+                    const BranchScrollScope(child: DashboardScreen()),
               ),
             ]),
             StatefulShellBranch(routes: [
               GoRoute(
                 path: AppRoutes.orders,
-                builder: (context, state) => const HomeShopsScreen(),
+                builder: (context, state) =>
+                    const BranchScrollScope(child: HomeShopsScreen()),
               ),
             ]),
             StatefulShellBranch(routes: [
               GoRoute(
                 path: AppRoutes.kitchen,
-                builder: (context, state) => const KitchenScreen(),
+                builder: (context, state) =>
+                    const BranchScrollScope(child: KitchenScreen()),
               ),
             ]),
             StatefulShellBranch(routes: [
               GoRoute(
                 path: AppRoutes.billing,
-                builder: (context, state) => const OrdersScreen(),
+                builder: (context, state) =>
+                    const BranchScrollScope(child: OrdersScreen()),
               ),
             ]),
             StatefulShellBranch(routes: [
               GoRoute(
                 path: AppRoutes.finances,
-                builder: (context, state) => const FinancesScreen(),
+                builder: (context, state) =>
+                    const BranchScrollScope(child: FinancesScreen()),
               ),
             ]),
           ],

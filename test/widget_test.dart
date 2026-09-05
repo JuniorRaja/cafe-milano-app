@@ -465,6 +465,23 @@ void main() {
       expect(find.text(label), findsOneWidget);
     });
 
+    testWidgets('the date carries a relative word under it', (tester) async {
+      // The date stays the headline; the word is the small line beneath.
+      // See docs/features/10b-device-pass.md, J2.
+      await tester.pumpWidget(buildKitchen());
+      await tester.pumpAndSettle();
+      expect(find.text('Today'), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.chevron_left));
+      await tester.pumpAndSettle();
+      expect(find.text('Yesterday'), findsOneWidget);
+      // The full date is still there to read out.
+      expect(
+        find.text(DateFormat('dd MMM yyyy, EEE').format(yesterday)),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('> button increments date by one day', (tester) async {
       await tester.pumpWidget(buildKitchen());
       await tester.pumpAndSettle();
