@@ -8,7 +8,7 @@
 | **Branch** | `release/1.11.0-navigation` |
 | **Requires** | [10b — Navigation](10b-navigation.md), built |
 | **Ships before** | [10c — Screen restyle](10c-screen-restyle.md) |
-| **Status** | A, B built · C–J planned — 2026-09-05 |
+| **Status** | A, B, C built · D–J planned — 2026-09-05 |
 
 ## Why
 
@@ -209,14 +209,35 @@ Commit `ddd08d8` deleted it, for a good reason badly applied: the name came from
 business identity hardcoded in a widget file, which AGENTS.md rule 6 forbids. The
 greeting itself was never the problem.
 
-- [ ] Restore `Good morning / Good afternoon / Good evening` above the screen title, in
-      the header's caption slot.
-- [ ] Take the name from **Business Info** (`businessInfoProvider`), falling back to
-      `BrandConfig.appName`. No literal names in `lib/`.
-- [ ] Read the hour through `package:clock`, per AGENTS.md rule 14, so the rollover is
-      testable.
-- [ ] The title stays `Business Overview`. The greeting is the caption above it, not a
+- [x] Restored `Good morning / Good afternoon / Good evening` above the screen title, in
+      the header's caption slot. The title answers what the screen *is*, and
+      "Good morning" does not.
+- [x] Takes the name from **Business Info** (`businessInfoProvider`). No literal names
+      in `lib/`.
+- [x] ~~falling back to `BrandConfig.appName`~~ — **dropped, and the plan was wrong to
+      ask for it.** `appName` is *Milano Orders*: the name of the software. "Good
+      morning, Milano Orders" greets the app rather than the person holding it. With no
+      name set the greeting stands alone, which is right in both of the cases that
+      reach it — the row still loading, and an owner who never filled the form in.
+- [x] Reads the hour through `package:clock`, per AGENTS.md rule 14. All three
+      boundaries are asserted rather than sampled — a greeting that says "Good evening"
+      at breakfast is the only way this can be wrong, and it is wrong on the app's first
+      screen.
+- [x] The title stays `Business Overview`. The greeting is the caption above it, not a
       replacement for it.
+
+**Two things to know.**
+
+The name is the **business**, not a person. `BusinessInfo.name` is the only name the app
+stores, and the greeting the owner is remembering said *Mohan*. There is no person field
+and adding one is a schema change, which the roadmap froze at v6. So it reads "Good
+morning, Cafe Milano". If the owner wants their own name there, that is a decision about
+where to keep it, not a formatting change.
+
+The hour is read **when the header builds**. A phone left open across noon keeps the old
+greeting until something else rebuilds the screen. The deleted version behaved the same
+way, an hourly ticker for a caption is not worth a timer, and the screen rebuilds on
+every refresh, range change and tab return.
 
 ---
 
@@ -622,6 +643,7 @@ action list as each lands, so it does not build them twice.
 | A5 · header gutter | `480ba82` | Took Dashboard, Orders and Billing onto `AppScaffold` |
 | A1 test fix | `5ff1187` | `io()` gapped before the route was built |
 | B1 + B2 · radius and face | `4d2a46b` | One commit — they land together on every screen |
+| C1 · greeting | see below | Greeting back; no name fallback, see C1 |
 
 ### Verified — 2026-09-05, Flutter 3.44.2 / Dart 3.12.2
 
@@ -630,7 +652,7 @@ are the ones CI will see.
 
 | Gate | Result |
 |---|---|
-| `flutter test` | **237 passing, 0 failing** — was 203 when 10b was built |
+| `flutter test` | **244 passing, 0 failing** — was 203 when 10b was built |
 | `flutter analyze` | **0 errors.** 70 issues: 6 warnings, 64 infos |
 | `tool/check_tokens.sh` | **342**, from 354. Kit clean |
 

@@ -5,6 +5,7 @@ import '../../models/dashboard_models.dart';
 import '../../providers/category_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/dashboard_settings_provider.dart';
+import '../../providers/business_info_provider.dart';
 import '../../providers/date_provider.dart';
 import '../../widgets/dashboard/date_range_pill.dart';
 import '../../widgets/dashboard/pulse_card.dart';
@@ -16,6 +17,7 @@ import '../../widgets/dashboard/weekday_heatmap.dart';
 import '../../widgets/dashboard/attention_flags.dart';
 import '../../widgets/dashboard/outstanding_card.dart';
 import '../../widgets/shell/app_shell.dart';
+import '../../utils/greeting.dart';
 import '../../widgets/ui/ui.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -25,9 +27,18 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(dashboardSettingsProvider);
     final range = ref.watch(dashboardRangeProvider);
+    // Null while the row loads, and null again if the owner never filled it
+    // in. `greetingLine` drops the name in both cases rather than greeting a
+    // blank, so this needs no loading branch of its own.
+    final business = ref.watch(businessInfoProvider).valueOrNull;
 
     return AppScaffold(
-      caption: 'Dashboard',
+      // The greeting the owner asked to have back. It is the caption rather
+      // than the title because the title answers what the screen *is*, and
+      // "Good morning" does not. The hour is read when this builds; a phone
+      // left open across noon keeps the old greeting until something else
+      // rebuilds the screen, which is what the deleted version did too.
+      caption: greetingLine(businessName: business?.name),
       title: 'Business Overview',
       leading: const ShellDrawerButton(),
       actions: [
