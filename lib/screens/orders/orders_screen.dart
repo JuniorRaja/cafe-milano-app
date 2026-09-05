@@ -15,6 +15,7 @@ import '../../widgets/date_selector.dart';
 import '../../widgets/staggered_fade_in.dart';
 import '../ledger/record_payment_sheet.dart';
 import '../../widgets/shell/app_shell.dart';
+import '../../widgets/ui/ui.dart';
 import '../../utils/money.dart';
 import '../../theme/brand_config.dart';
 
@@ -47,169 +48,125 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
       orElse: () => <int, BillDue>{},
     );
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: SafeArea(
-        top: true,
-        bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Row(
+    return AppScaffold(
+      caption: 'Daily billing',
+      title: 'Shop Bills',
+      leading: const ShellDrawerButton(),
+      bottom: const DateSelector(),
+      body: summariesAsync.when(
+        data: (summaries) {
+          if (summaries.isEmpty) {
+            return const Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  const ShellDrawerButton(),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'DAILY BILLING',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade500,
-                          letterSpacing: 1.1,
-                        ),
-                      ),
-                      const Text(
-                        'Shop Bills',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          color: kBrandBrown,
-                          height: 1.15,
-                        ),
-                      ),
-                    ],
+                  Icon(Icons.receipt_long_outlined,
+                      size: 64, color: Colors.grey),
+                  SizedBox(height: 12),
+                  Text(
+                    'No orders for this date',
+                    style: TextStyle(color: Colors.grey, fontSize: 15),
                   ),
                 ],
               ),
-            ),
-            // Date selector
-            const DateSelector(),
-            // Content
-            Expanded(
-              child: summariesAsync.when(
-                data: (summaries) {
-                  if (summaries.isEmpty) {
-                    return const Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.receipt_long_outlined,
-                              size: 64, color: Colors.grey),
-                          SizedBox(height: 12),
-                          Text(
-                            'No orders for this date',
-                            style: TextStyle(color: Colors.grey, fontSize: 15),
-                          ),
-                        ],
+            );
+          }
+
+          final grandTotal =
+              summaries.fold<double>(0, (s, e) => s + e.total);
+
+          return Column(
+            children: [
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  itemCount: summaries.length,
+                  itemBuilder: (context, i) {
+                    final s = summaries[i];
+                    final shop = shopMap[s.order.shopId];
+                    final isExpanded = _expandedOrderId == s.order.id;
+                    return RepaintBoundary(
+                      key: ValueKey(s.order.id),
+                      child: _OrderCard(
+                        summary: s,
+                        shop: shop,
+                        index: i + 1,
+                        productMap: productMap,
+                        billDue: billDues[s.order.id],
+                        onMarkPaid: () => _markPaid(s, billDues[s.order.id]),
+                        isExpanded: isExpanded,
+                        onToggle: () => setState(() {
+                          _expandedOrderId =
+                              isExpanded ? null : s.order.id;
+                        }),
+                        onShare: () => _shareOne(s, shop, productMap),
                       ),
                     );
-                  }
-
-                  final grandTotal =
-                      summaries.fold<double>(0, (s, e) => s + e.total);
-
-                  return Column(
-                    children: [
-                      Expanded(
-                        child: ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                          itemCount: summaries.length,
-                          itemBuilder: (context, i) {
-                            final s = summaries[i];
-                            final shop = shopMap[s.order.shopId];
-                            final isExpanded = _expandedOrderId == s.order.id;
-                            return RepaintBoundary(
-                              key: ValueKey(s.order.id),
-                              child: _OrderCard(
-                                summary: s,
-                                shop: shop,
-                                index: i + 1,
-                                productMap: productMap,
-                                billDue: billDues[s.order.id],
-                                onMarkPaid: () => _markPaid(s, billDues[s.order.id]),
-                                isExpanded: isExpanded,
-                                onToggle: () => setState(() {
-                                  _expandedOrderId =
-                                      isExpanded ? null : s.order.id;
-                                }),
-                                onShare: () => _shareOne(s, shop, productMap),
+                  },
+                ),
+              ),
+              // Floating grand total card
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Card(
+                    color: kBrandBrown,
+                    elevation: 6,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14),
+                      child: Row(
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text(
+                                'Grand Total',
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 12),
                               ),
-                            );
-                          },
-                        ),
-                      ),
-                      // Floating grand total card
-                      SafeArea(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Card(
-                            color: kBrandBrown,
-                            elevation: 6,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 14),
-                              child: Row(
-                                children: [
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Text(
-                                        'Grand Total',
-                                        style: TextStyle(
-                                            color: Colors.white, fontSize: 12),
-                                      ),
-                                      Text(
-                                        ref.watch(brandProvider).moneyTrim(grandTotal),
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const Spacer(),
-                                  OutlinedButton.icon(
-                                    onPressed: () =>
-                                        _shareAll(summaries, shopMap, date),
-                                    icon: const Icon(Icons.share,
-                                        size: 16, color: Colors.white),
-                                    label: const Text(
-                                      'Share All Bills',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    style: OutlinedButton.styleFrom(
-                                      side: const BorderSide(color: Colors.white),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                              Text(
+                                ref.watch(brandProvider).moneyTrim(grandTotal),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Spacer(),
+                          OutlinedButton.icon(
+                            onPressed: () =>
+                                _shareAll(summaries, shopMap, date),
+                            icon: const Icon(Icons.share,
+                                size: 16, color: Colors.white),
+                            label: const Text(
+                              'Share All Bills',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Colors.white),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
                               ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
-                  );
-                },
-                loading: () =>
-                    const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('Error: $e')),
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          );
+        },
+        loading: () =>
+            const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text('Error: $e')),
       ),
     );
   }

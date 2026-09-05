@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../../app.dart';
 import '../../models/dashboard_models.dart';
 import '../../providers/category_provider.dart';
 import '../../providers/dashboard_provider.dart';
@@ -17,6 +16,7 @@ import '../../widgets/dashboard/weekday_heatmap.dart';
 import '../../widgets/dashboard/attention_flags.dart';
 import '../../widgets/dashboard/outstanding_card.dart';
 import '../../widgets/shell/app_shell.dart';
+import '../../widgets/ui/ui.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -26,132 +26,89 @@ class DashboardScreen extends ConsumerWidget {
     final settings = ref.watch(dashboardSettingsProvider);
     final range = ref.watch(dashboardRangeProvider);
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: SafeArea(
-        top: true,
-        bottom: false,
+    return AppScaffold(
+      caption: 'Dashboard',
+      title: 'Business Overview',
+      leading: const ShellDrawerButton(),
+      actions: [
+        IconButton(
+          onPressed: () => _refreshDashboard(ref),
+          icon: const Icon(Icons.refresh_rounded),
+          color: AppColors.textPrimary,
+          tooltip: 'Refresh',
+        ),
+      ],
+      bottom: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const DateRangePill(),
+          const SizedBox(height: AppSpace.s1),
+          Padding(
+            padding: AppSpace.page,
+            child: Text(
+              _formatDateIndicator(range),
+              style: AppType.bodyS.copyWith(color: AppColors.textTertiary),
+            ),
+          ),
+          const SizedBox(height: AppSpace.s3),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpace.s4,
+          0,
+          AppSpace.s4,
+          AppSpace.s6 * 3,
+        ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // App bar area
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Row(
-                children: [
-                  const ShellDrawerButton(),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'DASHBOARD',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey.shade500,
-                            letterSpacing: 1.1,
-                          ),
-                        ),
-                        const Text(
-                          'Business Overview',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            color: kBrandBrown,
-                            height: 1.15,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Refresh button
-                  IconButton(
-                    onPressed: () => _refreshDashboard(ref),
-                    icon: const Icon(Icons.refresh_rounded),
-                    color: kBrandBrown,
-                    tooltip: 'Refresh',
-                  ),
-                ],
-              ),
-            ),
+            // Section 1 — The Pulse
+            if (settings.showPulse) ...[
+              const PulseCard(),
+              const SizedBox(height: AppSpace.s4),
+            ],
 
-            // Date range selector
-            const DateRangePill(),
-            const SizedBox(height: 6),
+            // Section 2 — Outstanding Receivables
+            if (settings.showOutstanding) ...[
+              const OutstandingCard(),
+              const SizedBox(height: AppSpace.s4),
+            ],
 
-            // Date indicator — shows resolved range
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                _formatDateIndicator(range),
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey.shade500,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
+            // Section 3 — Category Scorecards
+            if (settings.showCategoryCards) ...[
+              const CategoryScorecardsWidget(),
+              const SizedBox(height: AppSpace.s4),
+            ],
 
-            // Scrollable sections
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
-                child: Column(
-                  children: [
-                    // Section 1 — The Pulse
-                    if (settings.showPulse) ...[
-                      const PulseCard(),
-                      const SizedBox(height: 16),
-                    ],
+            // Section 3 — Revenue Anatomy
+            if (settings.showRevenueAnatomy) ...[
+              if (settings.showCategoryMix) ...[
+                const RevenueMixCard(),
+                const SizedBox(height: AppSpace.s3),
+              ],
+              if (settings.showShopConcentration) ...[
+                const ShopConcentrationCard(),
+                const SizedBox(height: AppSpace.s3),
+              ],
+              if (settings.showProductLeaderboard) ...[
+                const ProductLeaderboardCard(),
+                const SizedBox(height: AppSpace.s4),
+              ],
+            ],
 
-                    // Section 2 — Outstanding Receivables
-                    if (settings.showOutstanding) ...[
-                      const OutstandingCard(),
-                      const SizedBox(height: 16),
-                    ],
+            // Section 4 — Operational Patterns
+            if (settings.showOperationalPatterns) ...[
+              if (settings.showHeatmap) ...[
+                const WeekdayHeatmapWidget(),
+                const SizedBox(height: AppSpace.s4),
+              ],
+            ],
 
-                    // Section 3 — Category Scorecards
-                    if (settings.showCategoryCards) ...[
-                      const CategoryScorecardsWidget(),
-                      const SizedBox(height: 16),
-                    ],
-
-                    // Section 3 — Revenue Anatomy
-                    if (settings.showRevenueAnatomy) ...[
-                      if (settings.showCategoryMix) ...[
-                        const RevenueMixCard(),
-                        const SizedBox(height: 12),
-                      ],
-                      if (settings.showShopConcentration) ...[
-                        const ShopConcentrationCard(),
-                        const SizedBox(height: 12),
-                      ],
-                      if (settings.showProductLeaderboard) ...[
-                        const ProductLeaderboardCard(),
-                        const SizedBox(height: 16),
-                      ],
-                    ],
-
-                    // Section 4 — Operational Patterns
-                    if (settings.showOperationalPatterns) ...[
-                      if (settings.showHeatmap) ...[
-                        const WeekdayHeatmapWidget(),
-                        const SizedBox(height: 16),
-                      ],
-                    ],
-
-                    // Section 5 — Attention Flags (at the bottom)
-                    if (settings.showAttentionFlags) ...[
-                      const AttentionFlagsWidget(),
-                      const SizedBox(height: 16),
-                    ],
-                  ],
-                ),
-              ),
-            ),
+            // Section 5 — Attention Flags (at the bottom)
+            if (settings.showAttentionFlags) ...[
+              const AttentionFlagsWidget(),
+              const SizedBox(height: AppSpace.s4),
+            ],
           ],
         ),
       ),
