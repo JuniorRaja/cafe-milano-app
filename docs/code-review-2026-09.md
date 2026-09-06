@@ -41,6 +41,13 @@ Below that: an unguarded backup import (§2.1), a release build that will sign
 itself with the debug key (§2.2), a router that crashes on a malformed link
 (§1.5), and a layering rule the codebase breaks 30 times (§3.1).
 
+**§7 is a dedicated pass on code standards, reuse and hardcoded values**, added
+after the first draft. It carries two more live defects: an order quantity above
+999 is silently truncated because one bound is written as a literal in four
+places and one of them is a different number (§7.5), and order entry computes its
+own "today" instead of reading `todayProvider`, so it can write against the wrong
+day after midnight (§7.4).
+
 ---
 
 ## 1. Correctness and data safety
@@ -416,8 +423,14 @@ lines. `orders_screen.dart:39-51` does it three times, including for
 `billDuesForDateProvider` — so a failure to load payment status renders every
 bill as unpaid.
 
-`AppErrorView` exists and is good. It is used by the bootstrap gate and almost
-nowhere else.
+`AppErrorView` exists and is good. Its adoption is **split along the line of
+which screens have been rewritten**: the seven newer files use it —
+`outstanding_list_screen`, `finances_screen` (twice), the three master lists,
+`shop_picker_sheet`, and the bootstrap gate. The four older shell screens do
+not, and those are precisely the four with the `orElse` sites.
+
+Twelve `Text('Error: $e')` sites also remain. See §7.6 — the count and the
+consequence are worse than this section alone suggests.
 
 ### 3.3 The dashboard's freshness is still hand-maintained · **Medium**
 
@@ -671,7 +684,369 @@ several important ways, and a reader cannot tell which parts still hold.
 
 ---
 
-## 7. What is right, and should not be "improved"
+---
+
+## 7. Code standards, reuse and hardcoded values
+
+A dedicated pass, added after the first draft. The earlier sections touched this
+ground and undersold it. **Two of the findings below are live bugs**, and both
+are caused by the same thing: a value or a rule written down twice, and the two
+copies drifting apart.
+
+The repository already knows how to solve this. `lib/utils/money.dart`,
+`lib/utils/relative_day.dart`, `lib/utils/ledger_period.dart` and
+`lib/theme/tokens.dart` each exist precisely to give one rule one home, and each
+carries a comment explaining what went wrong before it existed. The problem is
+not that the pattern is unknown. It is that the pattern is applied to a rule
+*after* the rule has already been copied, and the copies are not always hunted
+down.
+
+### 7.1 Two implementations of "relative day", and the copy carries a bug · **Medium**
+
+`lib/utils/relative_day.dart` is a careful, tested, well-argued utility. Its own
+header says why it exists:
+
+> *"One function, called by the one `DateSelector` that Orders, Kitchen and
+> Billing all use. Three copies of a date ladder is three chances to disagree
+> about what 'next week' means."*
+
+`lib/screens/settings/settings_screen.dart:442-452` is a fourth copy:
+
+```dart
+String _relativeDay(DateTime at) {
+  final now = DateTime.now();
+  final days = DateTime(now.year, now.month, now.day)
+      .difference(DateTime(at.year, at.month, at.day))
+      .inDays;
+  ...
+}
+```
+
+The two disagree in three ways. Different capitalisation (`today` vs `Today`).
+Different vocabulary past two days (`3 days ago` vs `This Wed`). And only one of
+them is tested — `relative_day_test.dart` covers the shared one; the private copy
+has no tests at all.
+
+**The copy also carries the exact bug the shared one documents fixing.**
+`relative_day.dart:41-45`:
+
+> *"Built in UTC on purpose. `DateTime.difference` between two local midnights
+> is 23 or 25 hours across a daylight-saving boundary, and `inDays` truncates
+> that to zero — so a date one day away would read as today."*
+
+The private copy does `difference(...).inDays` between two **local** midnights.
+It is the precise construction the shared utility was written to avoid.
+
+India does not observe daylight saving, so this does not fire today. It is
+listed as Medium rather than Low because the copy is invisible: a reader who
+finds `relative_day.dart` and its comment will reasonably assume the rule has one
+home.
+
+Delete `_relativeDay` and call `relativeDayLabel`. It needs a lowercase variant
+or a `sentenceCase` flag for the "Last exported today" sentence at `:323`.
+
+### 7.2 `startOfDay` is written by hand 31 times · **Medium**
+
+`DateTime(x.year, x.month, x.day)` appears **31 times** across 11 files — 21 of
+them in `dashboard_dao.dart` and `order_dao.dart` alone.
+
+A `_startOfDay` helper exists at `date_provider.dart:26`. It is private.
+`relative_day.dart:43` has a second, better one (`_dayNumber`, in UTC). It is
+also private. So the codebase has two correct implementations of the idea, both
+sealed inside the files that happen to use them, and thirty-one hand-written
+copies everywhere else.
+
+Nothing is wrong today — every one of the 31 is correct. The cost is that this is
+the single most-repeated expression in the codebase, it is date arithmetic (the
+category most prone to subtle error), and there is no one place to fix it if the
+rule ever needs to change.
+
+One public `startOfDay(DateTime)` in `lib/utils/dates.dart`, and a
+`ledger_dao.dart`-style comment on why it exists.
+
+### 7.3 Ten date formats, two of which disagree with each other · **Medium**
+
+22 `DateFormat` sites, 10 distinct patterns, all inline literals:
+
+| Pattern | Sites | Renders |
+|---|---:|---|
+| `'dd MMM yyyy'` | 10 | `05 Sep 2026` |
+| `'d MMM yyyy'` | 2 | `5 Sep 2026` |
+| `'dd MMM'` | 2 | `05 Sep` |
+| `'d MMM'` | 1 | `5 Sep` |
+| `'dd MMM yyyy, EEE'` | 2 | `05 Sep 2026, Sat` |
+| `'dd MMM yy'` | 1 | `05 Sep 26` |
+| `'d MMMM yyyy'` | 1 | `5 September 2026` |
+| others | 4 | |
+
+The `dd`/`d` pairs are not two decisions. They are the same decision made twice,
+differently, so **the same date renders with and without a leading zero depending
+on which screen you are looking at** — and in the ledger's case, on which part of
+the same screen.
+
+This is exactly the problem `money.dart` was written to solve for currency, with
+the same reasoning ("Replaces ~30 call sites that each wrote … by hand"). Dates
+never got the same treatment. `lib/utils/dates.dart` alongside `money.dart`,
+with named formats (`dayMonthYear`, `dayMonthShort`, `dayWithWeekday`), closes
+it. Roughly an hour, and it makes the app look composed rather than assembled.
+
+### 7.4 `DateTime.now()` against `AGENTS.md` rule 14 · **Medium**
+
+Rule 14: *"Read the wall clock through `package:clock` when the answer is
+*what day is it*."*
+
+**18 `DateTime.now()` sites against 5 `clock.now()`.** Several of the 18 are
+squarely answering "what day is it":
+
+| Site | What it computes |
+|---|---|
+| `order_entry_screen.dart:89` | the default order date when no `?date=` is given |
+| `models/dashboard_models.dart:28` | every dashboard preset range |
+| `shop_ledger_screen.dart:324, 737` | how many days a bill is overdue |
+| `settings_screen.dart:443` | "last exported today / yesterday" |
+| `dashboard_screen.dart:217` | whether the selected range is "Today" |
+| `record_payment_sheet.dart:30` | the date a payment defaults to |
+
+Two consequences, and the first is real.
+
+`order_entry_screen.dart:89` computes its own today rather than reading
+`todayProvider`. Everything else in the app now rolls over at midnight —
+`TodayNotifier` has a timer, `AppLifecycleScope` has a resume hook, and both were
+built for exactly this. Order entry opted out. Open the app before midnight,
+open a shop after it, and the order is written against the wrong day, with the
+app's own header showing the new date. The overnight defect the lifecycle work
+closed is still open on this one path, which is the app's primary write path.
+
+Second: none of the 18 are testable by advancing a clock, which is the whole
+reason `package:clock` was added.
+
+Route the date-shaped ones through `todayProvider` or `clock.now()`. The genuine
+timestamps — `backup_service.dart`'s `exportedAt` and its filename — are fine as
+they are, and the rule agrees: they are not answering *what day is it*.
+
+### 7.5 Two different maximum quantities · **Medium — live defect**
+
+`order_entry_screen.dart:693-707` clamps every stepper and hold action to
+`(0, 9999)`. The quantity sheet at `product_qty_row.dart:226` clamps typed input
+to `(0, 9999)` too.
+
+But the three-digit wheel that seeds that sheet clamps to `(0, 999)`, twice:
+
+```dart
+// product_qty_row.dart:181  — initState
+final seed = widget.initialQty.clamp(0, 999);
+
+// product_qty_row.dart:212  — switching back from the text field
+final seed = (int.tryParse(_ctrl.text) ?? 0).clamp(0, 999);
+```
+
+And `_wheelValue` is `_hundreds * 100 + _tens * 10 + _ones`, which cannot exceed
+999 by construction.
+
+So a quantity between 1000 and 9999 — reachable by typing it, and reachable by
+holding the stepper, both of which the app explicitly permits — **is silently
+truncated to 999** the moment the sheet is reopened and confirmed in wheel mode,
+or the moment the user toggles from the text field back to the wheel.
+
+No error, no warning, no way for the operator to notice except by re-reading a
+number they just entered. On the app's main data-entry screen.
+
+The trigger is narrow — a bakery ordering 1000+ of one item for one shop in one
+day is unusual — which is why this is Medium and not High. But it is a real,
+silent, money-affecting defect, and it exists purely because a bound was written
+as a literal in four places and one of them is a different number.
+
+Fix: one `kMaxOrderQty` constant, and either give the wheel a fourth digit or
+clamp the stepper and the text field to what the wheel can represent. Decide the
+number once. `order_entry_filter_test.dart` and `product_qty_row_test.dart` are
+the homes for the case.
+
+### 7.6 `Text('Error: $e')` at twelve sites, and a docstring that says otherwise · **Medium**
+
+`lib/widgets/ui/app_error_view.dart:8` opens with:
+
+> *"It replaces the sixteen `Text('Error: $e')` sites the lifecycle audit
+> found…"*
+
+Twelve of the sixteen are still there:
+
+`kitchen_screen.dart:130`, `orders_screen.dart:164` and `:663`,
+`shop_ledger_screen.dart:290`, `:433` and `:650`,
+`standing_orders_screen.dart:122` and `:134`,
+`price_matrix_screen.dart:161` and `:173`,
+`catalog_share_picker_screen.dart:123`, `home_shops_screen.dart:79`.
+
+Three things are wrong at each one. The user is shown a raw exception —
+a Drift `SqliteException` with SQL in it, to a bakery owner at 5 a.m. There is no
+retry, so the screen is a dead end. And the stack trace is discarded by the `(e, _)`
+pattern, so the `ProviderObserver` and `reportError` seam that block 1 of the
+lifecycle work built has nothing to log.
+
+The docstring is the more interesting half of this finding. A widget that
+documents a migration as done, when a quarter of it was done, is worse than no
+docstring: it stops the next reader from checking. This is the one place in the
+repository where the comments — otherwise its best feature — are actively
+misleading.
+
+### 7.7 The kit is bypassed by hand-rolled copies of the kit · **Low**
+
+Two `_EmptyState` classes, in `kitchen_screen.dart:240` and
+`home_shops_screen.dart:145`, structurally identical:
+
+```dart
+Icon(Icons.<x>_outlined, size: 64, color: Colors.grey),
+SizedBox(height: 12),
+Text('<message>', style: TextStyle(color: Colors.grey, fontSize: 15)),
+```
+
+That is precisely the shape `app-audit.md` §3.3 named as a defect —
+*"a grey icon at size 64 and one line of grey text. There is no action offered"* —
+and precisely what `EmptyState` was built to replace. `EmptyState`'s own
+docstring makes the action **required**, with `EmptyState.inert` as the
+deliberate exception, and argues the case:
+
+> *"An empty shop list offers 'Add your first shop', not sympathy."*
+
+`home_shops_screen.dart:145` says "No shops yet" and offers nothing. It is the
+exact example from the docstring.
+
+Both copies also contribute four violations to the token ratchet
+(`Colors.grey` ×2, `fontSize: 15` ×2), so fixing them moves that number too.
+
+Same pattern at `shop_ledger_screen.dart:888` (`_StatusBadge`, against the kit's
+`StatusBadge`, whose docstring says it "replaces three separate private
+`_StatusChip` classes") and `:695` (`_StatTile`, against `StatBand`).
+
+### 7.8 Three kit widgets have zero production callers · **Low**
+
+`MiniTable`, `NoteBanner` and `DeltaPill` are built, documented and tested
+(`ui_kit_test.dart:408-456`), and used nowhere in `lib/screens` or
+`lib/widgets`.
+
+`DeltaPill`'s docstring describes the job it was built for:
+
+> *"A signed change: `↑8%`, `+₹240`, `−₹120`. New — the app previously drew…"*
+
+The dashboard still draws its own deltas. So the kit contains the fix, the
+screens contain the problem, and the tests pass either way.
+
+This is the mirror image of §7.7 and the same root cause: the kit was built
+ahead of the screens that were meant to adopt it, doc 10c is the adoption, and
+10c has not landed. That is a defensible plan. It is worth being explicit that
+until 10c lands, the kit's test coverage and its README describe an app that does
+not exist yet — `check_tokens.sh`'s 289 remaining violations are the honest
+measure of the gap.
+
+Either adopt them in 10c or delete them. A widget with tests and no callers is
+maintained code that protects nothing.
+
+### 7.9 Dead production code, kept alive by its own tests · **Low**
+
+`order_dao.upsertOrderWithLines` (`order_dao.dart:54-67`) has **no production
+caller**. The app writes order lines through `replaceOrderLines`.
+
+It has thirteen references in `dao_test.dart`, including the four dedicated tests
+that pin the zero-quantity rule:
+
+```
+'upsertOrderWithLines skips zero-qty lines'
+'upsertOrderWithLines replaces previous lines on re-save'
+'upsertOrderWithLines with all zero qty leaves no lines'
+'never returns zero-qty lines (upsertOrderWithLines guards them)'
+```
+
+`replaceOrderLines` — the method that actually runs on every keystroke of every
+order, every morning — has **two** dedicated tests.
+
+So the suite's most careful coverage of the order-write rules is pointed at the
+method production does not call. The two methods do implement the same rule
+today, which is why nothing is broken. But if `replaceOrderLines` ever stops
+guarding zero quantities, three of the four tests that should catch it will still
+pass.
+
+Delete `upsertOrderWithLines` and repoint its tests at `replaceOrderLines`.
+
+`ledgerDao.getBillStatus` and `priceDao.getPrice` are also test-only. Both are
+fine — they are the single-row reads that make the batch queries testable, which
+is a legitimate reason for a method to exist. Say so in a comment so the next
+reader does not delete them.
+
+### 7.10 Hardcoded calendar boundaries · **Low**
+
+**`DateTime(2020)` is the app's earliest selectable date, written at six sites:**
+`record_payment_sheet.dart:53`, `shop_form_screen.dart:78`,
+`date_selector.dart:59`, `shop_ledger_screen.dart:115` and `:495`,
+`dashboard_screen.dart:182`. `date_selector.dart:60` uses `DateTime(2100)` as its
+ceiling; the others use `DateTime.now()`.
+
+Nothing is broken. It is six copies of one business decision, and no comment
+anywhere says what the decision was or whether 2020 was chosen for a reason.
+
+**Two sentinels for "the beginning of time":** `ledger_period.dart:29` uses
+`DateTime(1970)` with a good comment explaining why not `DateTime(0)`.
+`ledger_dao.dart:393` uses `DateTime.fromMillisecondsSinceEpoch(0)` for the same
+concept. They agree numerically, so this is cosmetic — but a reader comparing
+them has to prove that, and the comment on one does not cover the other.
+
+### 7.11 The deprecated-alias count is better than the comment claims · *not a defect*
+
+`app.dart:35` says *"60+ files import these."* The real figure today is
+**49 references across 26 files**, concentrated in
+`shop_ledger_screen.dart` (6), `pulse_card.dart` (5) and the dashboard widgets.
+
+The ratchet is working. The comment is stale in the codebase's favour. Update the
+number so it stays a useful progress bar, per `AGENTS.md` rule 18.
+
+### 7.12 Standards, minor
+
+- **All imports are relative; 57 are three levels deep** (`../../../`). Zero
+  `package:milano_orders/` imports in `lib/`. Relative imports are legal and
+  consistent here, so this is a style choice rather than an error. It does mean
+  every file move rewrites import lines, and it makes `lib/screens/settings/
+  products/product_form_screen.dart`'s header hard to read. The Dart convention
+  for `lib/` is `package:`. Worth deciding once and enforcing, in either
+  direction.
+- **26 files import `app.dart` for four colour constants.** The colours are
+  deprecated aliases onto `tokens.dart`, so the import is a dependency on a file
+  that also holds every route and the root widget, purchased for a value that
+  lives elsewhere. It disappears with §7.11's remaining 49.
+- **No localisation.** 85 literal `Text('…')` strings, no `l10n/`, no
+  `AppLocalizations`. Correct for a single-user app in one language, and adding
+  it now would be exactly the speculative abstraction `claude.md` warns against.
+  Noted only because `BrandConfig` already establishes the seam for
+  white-labelling, and a white-label customer in another language would need
+  this. Not work for now.
+- **`// ignore:` comments are compliant with rule 11.** All three name the reason
+  and the doc that removes them. Good.
+- **`// ponytail:` at `backup_service.dart:141`** appears to be an editing
+  artifact — the comment reads as an ordinary note and the word does nothing.
+  Delete it or replace it with `Note:`.
+- **A stale `TODO` at `android/app/build.gradle.kts:29`** telling you to set a
+  unique application ID. It was set. Delete the boilerplate.
+- **`record_payment_sheet.dart:193`** has a `TODO(doc 06)` for the manual
+  allocation panel. Correctly formed, points at a real doc. Fine.
+
+### 7.13 The standard the rest of the code should be held to
+
+Three files in this repository do the thing this section is asking for, and they
+should be the reference:
+
+- **`lib/utils/ledger_period.dart`.** Five named periods, the arithmetic in one
+  `switch`, and a comment on `last30` explaining why it subtracts 29 and not 30 —
+  *"The fixed window this replaced subtracted 30 and counted thirty-one."* The
+  magic number is named, correct, and its history is recorded.
+- **`lib/utils/money.dart`.** One rule, one home, six named formats, and a
+  header saying what it replaced and why the grouping is not just a symbol swap.
+- **`lib/theme/tokens.dart` plus `tool/check_tokens.sh`.** A token set and a
+  ratchet that makes the remaining violations a number instead of an opinion.
+
+Every finding in §7 is a case where that standard was met once and then not
+applied to the next instance of the same problem. The fix is not a new
+convention. It is finishing the ones that already exist.
+
+---
+
+## 8. What is right, and should not be "improved"
 
 Stated so that the plan does not break it.
 
@@ -700,7 +1075,7 @@ Stated so that the plan does not break it.
 
 ---
 
-## 8. Findings, ranked
+## 9. Findings, ranked
 
 | # | Finding | Severity | § |
 |---|---|---|---|
@@ -721,12 +1096,25 @@ Stated so that the plan does not break it.
 | 15 | Backup export/restore unbatched and fully in memory | Medium | 4.3 |
 | 16 | Dashboard freshness hand-maintained across 14 invalidations | Medium | 3.3 |
 | 17 | Money formatting bypassed in five places | Medium | 3.4 |
-| 18 | Update URL used without host or scheme check | Low | 2.3 |
-| 19 | `didUpdateWidget` absent; three latent stale-state widgets | Low | 3.5 |
-| 20 | Concurrent-save race in order entry | Low | 1.8 |
-| 21 | Dashboard settings toggle can silently not persist | Low | 1.9 |
-| 22 | `watchOutstandingByShop` re-runs on every order write | Low | 4.4 |
-| 23 | Release-notes heredoc delimiter is guessable | Low | 5.2 |
+| 18 | Quantity clamped to 999 in one place and 9999 in three — silent truncation | Medium | 7.5 |
+| 19 | `Text('Error: $e')` at twelve sites; stack traces discarded | Medium | 7.6 |
+| 20 | `DateTime.now()` at 18 sites; order entry computes its own today | Medium | 7.4 |
+| 21 | Two implementations of "relative day"; the copy carries the DST bug | Medium | 7.1 |
+| 22 | Ten date-format literals, two of which disagree | Medium | 7.3 |
+| 23 | `startOfDay` hand-written 31 times | Medium | 7.2 |
+| 24 | Update URL used without host or scheme check | Low | 2.3 |
+| 25 | `didUpdateWidget` absent; three latent stale-state widgets | Low | 3.5 |
+| 26 | Concurrent-save race in order entry | Low | 1.8 |
+| 27 | Dashboard settings toggle can silently not persist | Low | 1.9 |
+| 28 | `watchOutstandingByShop` re-runs on every order write | Low | 4.4 |
+| 29 | Release-notes heredoc delimiter is guessable | Low | 5.2 |
+| 30 | Hand-rolled `_EmptyState` / `_StatusBadge` / `_StatTile` bypass the kit | Low | 7.7 |
+| 31 | `MiniTable`, `NoteBanner`, `DeltaPill` have zero production callers | Low | 7.8 |
+| 32 | `upsertOrderWithLines` is dead, and holds the order-write tests | Low | 7.9 |
+| 33 | `DateTime(2020)` at six sites; two "beginning of time" sentinels | Low | 7.10 |
 
-Nine of these are carried over from the two earlier audits. Fourteen are new.
-None of them are in the migration chain or the FIFO allocation logic.
+Nine are carried over from the two earlier audits. Twenty-four are new.
+
+**None are in the migration chain, the FIFO allocation, or the money rules
+themselves.** Findings 18 and 21 are the two live defects in §7, and both come
+from the same cause: one rule written down twice, and the copies drifting.

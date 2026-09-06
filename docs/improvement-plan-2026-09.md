@@ -6,41 +6,48 @@
 >
 > Every block below is independently shippable and independently revertable.
 > Effort is in focused working days for one developer who knows the codebase.
-> None of blocks A–D require a schema change. Block F does, and is the only one
-> that does.
+> None of blocks A–E or G require a schema change. Block F does, and is the only
+> one that does.
+>
+> Blocks A–F followed the first draft of the review. **Block G was added with
+> review §7**, the dedicated pass on code standards, reuse and hardcoded values.
+> Its two live defects went into block B rather than G.
 
 ---
 
 ## 0. The shape of the plan
 
-Six blocks, ordered so that each one makes the next one cheaper.
+Seven blocks, ordered so that each one makes the next one cheaper.
 
 ```
 A  Make the suite mean something     ░ 0.5d   ← nothing else is safe without it
-B  Six small defects                 ██ 1d    ← highest value per hour in the repo
+B  Ten small defects                 ███ 1.5d ← highest value per hour in the repo
 C  The repository seam               ████ 2d  ← the unlock for D and for doc 14
 D  AsyncValue discipline             ██ 1d    ← closes the "nothing to bake" defect
 E  Performance, where it is felt     ██ 1d
+G  One rule, one home                ██ 1d    ← pair with D; they touch the same files
 F  Money as integer paise            ██████ 3d ← schedule deliberately, not opportunistically
                                      ──────
-                                     ~8.5 days
+                                     ~10 days
 ```
 
 **If only one block gets done, do A.** It is half a day and it is what stops
 everything else from silently regressing.
 
-**If two, do A and B.** Together they are a day and a half, and they close every
-finding that can lose the owner's data or leave them looking at a screen that is
-lying to them.
+**If two, do A and B.** Together they are two days, and they close every finding
+that can lose the owner's data or leave them looking at a screen that is lying to
+them — including the two live defects from the standards pass.
 
-Blocks C, D and E are the structural work that keeps those closed. F is a
-separate decision, argued in its own section.
+Blocks C, D, E and G are the structural work that keeps those closed. G is
+lettered after F only because it was added later; **run it with D**, since both
+sweep the same screen files and doing them separately means touching each file
+twice. F is a separate decision, argued in its own section.
 
 ---
 
 ## A · Make the test suite mean something
 
-**~0.5 day · no code change · no behaviour change**
+**~0.5 day · fixes findings 1, 7, 29 · no application code changes**
 
 There are 324 test cases across 6,735 lines. They are concentrated on money,
 migrations, routing and lifecycle — exactly the right places. Nothing runs them.
@@ -70,7 +77,34 @@ mechanical.
 
 5. **Fix the release-notes heredoc** while in the file. `release.yml:96-105`
    uses a fixed `NOTES_EOF` delimiter around `git log` output. Use a random one.
-   *(Finding 23.)*
+   *(Finding 29.)*
+
+6. **Stop the release build signing itself with the debug key.** *(Finding 7.)*
+   `android/app/build.gradle.kts:52-58` falls back to `signingConfigs.debug`
+   when `key.properties` is absent. The debug key's private half ships with the
+   Android SDK and is the same on every machine, so an APK signed with it can be
+   replaced by anyone — and this app distributes sideloaded updates.
+
+   CI does write `key.properties` before building, so published releases are
+   correctly signed today. The risk is a release APK built any other way.
+
+   ```kotlin
+   release {
+       signingConfig = if (keystorePropertiesFile.exists()) {
+           signingConfigs.getByName("release")
+       } else {
+           throw GradleException(
+               "android/key.properties is missing. A release build must not " +
+               "fall back to the debug signing key. See key.properties.example."
+           )
+       }
+   }
+   ```
+
+   This does break `flutter build apk --release` on a machine with no keystore,
+   which is what the fallback was for. That is the point: it should break loudly
+   rather than produce an unsafe artefact. `--debug` and `--profile` are
+   unaffected.
 
 ### Why this first
 
@@ -80,14 +114,15 @@ without a gate means finding out about a regression when the owner does, at
 
 ### Done when
 
-A pull request with a deliberately broken test cannot be merged, and a push to
-`master` with a failing analyze does not publish an APK.
+A pull request with a deliberately broken test cannot be merged; a push to
+`master` with a failing analyze does not publish an APK; and a release build
+without a keystore fails instead of signing itself with the debug key.
 
 ---
 
-## B · Six small defects
+## B · Ten small defects
 
-**~1 day · fixes findings 4, 5, 6, 9, 10, 11, 12, 18**
+**~1.5 days · fixes findings 4, 5, 6, 9, 10, 11, 12, 18, 20, 24**
 
 Every item here is small, local, and closes something that either loses data or
 shows the user something untrue. None of them wait on any other block. Ship them
@@ -239,13 +274,61 @@ Extend the same id-set filter to `dailyOrders` (→ shops), `orderLines`
 (→ payments, dailyOrders). Count what was dropped and report it in the success
 dialog, rather than silently.
 
-### B8 · Constrain the update URL · *finding 18*
+### B8 · Constrain the update URL · *finding 24*
 
 `update_service.dart:75`. Before returning the `UpdateInfo`, require the URL to
 parse, to be `https`, and to have a GitHub host. Throw
 `UpdateCheckException('The latest release has an unexpected download link.')`
 otherwise. Four lines, and it means the app can never point the user's browser
 somewhere unexpected on a flow whose next step is installing an APK.
+
+### B9 · One maximum quantity, not two · *finding 18*
+
+`order_entry_screen.dart:693-707` clamps the steppers to `(0, 9999)`.
+`product_qty_row.dart:226` clamps typed input to `(0, 9999)`. But the wheel that
+seeds the same sheet clamps to `(0, 999)` at `:181` and `:212`, and
+`_wheelValue` is three digits by construction.
+
+A quantity between 1000 and 9999 — which both the stepper and the text field
+permit — is therefore **silently truncated to 999** when the sheet is reopened
+and confirmed, or when the user toggles from the text field back to the wheel.
+No warning. On the main data-entry screen.
+
+Decide the number once, as `kMaxOrderQty` in `order_entry_screen.dart` or beside
+the row widget, and use it at all four sites. Then pick one of two:
+
+- **Give the wheel a fourth digit.** Keeps 9999 reachable. Slightly more thumb
+  travel on a sheet already tuned for it — check the row height maths at
+  `product_qty_row.dart:230+` before committing.
+- **Clamp everything to 999.** Simpler, and honest about what the wheel can
+  represent. Ask the owner whether a single shop ever orders 1000+ of one item
+  in a day. If the answer is no, this is the right choice.
+
+**Ask before choosing.** This is a product question, not a code one.
+
+`product_qty_row_test.dart` gets the round-trip case: set 1500, reopen, confirm,
+expect 1500.
+
+### B10 · Order entry reads `todayProvider` · *finding 20*
+
+`order_entry_screen.dart:89` computes its own today with `DateTime.now()` when
+no `?date=` parameter is given:
+
+```dart
+final now = DateTime.now();
+_date = DateTime(now.year, now.month, now.day);
+```
+
+Everything else in the app rolls over at midnight — `TodayNotifier` has a timer,
+`AppLifecycleScope` has a resume hook, and both exist for exactly this. Order
+entry opted out. Open the app before midnight, open a shop after it, and the
+order is written against yesterday while the app's own header shows today.
+
+Read `ref.read(todayProvider)` instead. One line, and it also makes the screen
+testable by advancing a clock, per `AGENTS.md` rule 14.
+
+The wider `DateTime.now()` sweep is block G. This one site is here because it is
+a live correctness defect rather than tidying.
 
 ### Done when
 
@@ -256,6 +339,9 @@ somewhere unexpected on a flow whose next step is installing an APK.
 - A test navigates to `/shops/abc/ledger` and lands somewhere real.
 - Picking a product photo, clearing the app's cache, and reopening the product
   list still shows the photo.
+- A quantity of 1500 survives the sheet being reopened and confirmed.
+- A test that advances the clock past midnight sees order entry default to the
+  new day.
 
 ---
 
@@ -308,7 +394,7 @@ fails if it ever returns something again.
 
 ## D · `AsyncValue` discipline
 
-**~1 day · fixes findings 8, 16**
+**~1 day · fixes findings 8, 16, 27**
 
 19 `maybeWhen(orElse:)` sites collapse loading *and* error into a benign empty
 value, up from 12 at the last audit. The sharpest is
@@ -345,7 +431,7 @@ nowhere else.
 
 5. **Finish the Riverpod modernisation while here.**
    `dashboardSettingsProvider` becomes an `AsyncNotifier`, which removes both
-   halves of finding 21 — the default-state flash and the silently dropped
+   halves of finding 27 — the default-state flash and the silently dropped
    write — by making them unrepresentable. `dashboardRangeProvider` and
    `selectedDateProvider` become `Notifier`s, matching `TodayNotifier` beside
    them.
@@ -407,7 +493,7 @@ database JSON plus the image files beside it. That changes the backup format, so
 it needs a version bump and a reader for the old format. Budget it separately if
 the owner's photo set is large; batch the restore either way.
 
-### E4 · Cheaper outstanding · *finding 22*
+### E4 · Cheaper outstanding · *finding 28*
 
 `ledger_dao.dart:267-304` runs correlated subqueries per shop and watches five
 tables, so it re-runs on every order-line write — including every 500 ms
@@ -486,7 +572,150 @@ half-settled bill migrates to v7 and still reads `Partial`.
 
 ---
 
-## G · Housekeeping, no block of its own
+## G · One rule, one home
+
+**~1 day · fixes findings 19, 21, 22, 23, 30, 31, 32, 33 · no behaviour change**
+
+Review §7 is a dedicated pass on code standards, reuse and hardcoded values.
+Almost everything it found is the same shape: a rule that already has a proper
+home in `lib/utils/` or `lib/widgets/ui/`, and a hand-written copy somewhere else
+that predates it and was never hunted down.
+
+The two live defects in §7 — the quantity truncation and order entry's private
+"today" — are in **block B** above as B9 and B10, because they are defects rather
+than tidying. This block is everything else.
+
+It is genuinely optional in the sense that nothing here is broken today. It is
+worth a day because every item is a future defect with a known mechanism, and
+because the codebase's own conventions are currently being undermined by copies
+of the things those conventions replaced.
+
+### G1 · Delete the second "relative day" · *finding 21*
+
+`settings_screen.dart:442-452` is a private fourth copy of
+`lib/utils/relative_day.dart`, with different capitalisation, different
+vocabulary, no tests, and the exact local-midnight `inDays` construction that the
+shared utility's comment explains it avoids.
+
+Delete `_relativeDay`. Call `relativeDayLabel`. It needs a lowercase form for the
+"Last exported today" sentence at `:323` — add a `lowercase: true` flag or a
+small `.toLowerCase()` at the call site, whichever reads better.
+
+`relative_day_test.dart` already exists and gains the settings case for free.
+
+### G2 · One `startOfDay`, one set of date formats · *findings 22, 23*
+
+Create `lib/utils/dates.dart`, alongside `money.dart` and in the same spirit —
+one rule, one home, with a header saying what it replaced.
+
+**`startOfDay(DateTime)`.** Replaces 31 hand-written
+`DateTime(x.year, x.month, x.day)` expressions across 11 files. Make
+`date_provider.dart`'s private `_startOfDay` the public one and delete the
+duplicates. Port `relative_day.dart`'s comment about UTC day numbers, because it
+is the reason anyone should care.
+
+**Named date formats.** Replaces 22 inline `DateFormat` literals across 10
+patterns, two pairs of which disagree about the leading zero — so the same date
+currently renders as `05 Sep 2026` on one screen and `5 Sep 2026` on another.
+Name them for what they are: `dayMonthYear`, `dayMonthShort`,
+`dayWithWeekday`, `monthYear`. Pick one of each disagreeing pair; `dd` is the
+majority and the one the ledger uses, so use `dd`.
+
+`DateFormat` construction is not free, so hold them as top-level finals the way
+`ledger_statement_service.dart:11-12` already does.
+
+Sweep the call sites file by file. This is the largest item in the block and it
+is entirely mechanical.
+
+### G3 · Retire the twelve `Text('Error: $e')` sites · *finding 19*
+
+Twelve remain, listed in review §7.6. Each shows the user a raw exception with no
+retry, and discards the stack trace through `(e, _)` so the `ProviderObserver`
+seam has nothing to log.
+
+This overlaps block D, which is deleting the `orElse` sites in the same files —
+do them in the same pass, file by file, rather than twice. `AppErrorView` is the
+replacement and is already adopted on seven other screens, so this is
+consistency work, not design work.
+
+**Fix `app_error_view.dart:8` while you are there.** Its docstring says it
+*"replaces the sixteen `Text('Error: $e')` sites"*. It replaced four. A docstring
+that reports a migration as finished is worse than none, because it stops the
+next reader from checking. Make it say what is actually true, and delete the
+sentence once the count reaches zero.
+
+### G4 · Adopt the kit where it is being bypassed · *findings 30, 31*
+
+Two hand-rolled `_EmptyState` classes (`kitchen_screen.dart:240`,
+`home_shops_screen.dart:145`) reproduce the exact grey-icon-and-one-line pattern
+that `app-audit.md` §3.3 named as a defect and that `EmptyState` was built to
+replace. `home_shops_screen`'s says "No shops yet" and offers nothing — it is the
+literal example in `EmptyState`'s own docstring. Same for
+`shop_ledger_screen.dart:888` (`_StatusBadge`) and `:695` (`_StatTile`).
+
+Replacing them also removes four token-ratchet violations, so
+`check_tokens.sh`'s number moves.
+
+Then decide on `MiniTable`, `NoteBanner` and `DeltaPill`: three kit widgets that
+are built, documented, tested, and called from nowhere. Either doc 10c adopts
+them — `DeltaPill` has an obvious home on the dashboard, which still draws its
+own deltas — or they are deleted. A tested widget with no callers is maintained
+code that protects nothing.
+
+**This item belongs to doc 10c, not here**, if 10c is still live. Fold it in
+rather than doing it twice.
+
+### G5 · Delete `upsertOrderWithLines` · *finding 32*
+
+`order_dao.dart:54-67` has no production caller — the app writes through
+`replaceOrderLines`. But it holds the four dedicated tests that pin the
+zero-quantity rule, while `replaceOrderLines`, which runs on every keystroke of
+every order, has two.
+
+Delete the method, repoint its tests at `replaceOrderLines`. The coverage moves
+from the method nobody calls to the one everybody does, and nothing is lost.
+
+Add a one-line comment to `ledgerDao.getBillStatus` and `priceDao.getPrice`
+saying they are the single-row reads that make the batch queries testable, so the
+next person doing this sweep does not delete them too.
+
+### G6 · Name the calendar boundaries · *finding 33*
+
+`DateTime(2020)` is the app's earliest selectable date, written at six sites,
+with no comment anywhere saying why 2020. One `kEarliestDate` in
+`lib/utils/dates.dart`, with a sentence on the reason.
+
+While there: `ledger_period.dart:29` uses `DateTime(1970)` for "beginning of
+time" and `ledger_dao.dart:393` uses `DateTime.fromMillisecondsSinceEpoch(0)`.
+They agree, but a reader has to prove that. Use one, and keep
+`ledger_period.dart`'s good comment on it.
+
+### G7 · The small ones
+
+- **`// ponytail:`** at `backup_service.dart:141` is an editing artifact. The
+  comment beneath it is a real and useful note. Delete the word or make it
+  `Note:`.
+- **The stale `TODO`** at `android/app/build.gradle.kts:29` tells you to set a
+  unique application ID. It is set. Delete it.
+- **Decide on import style.** All 281 imports in `lib/` are relative, 57 of them
+  three levels deep. `package:milano_orders/` is the Dart convention for `lib/`
+  and survives file moves. Either is defensible; pick one, write it in
+  `AGENTS.md`, and let the analyzer enforce it (`always_use_package_imports` or
+  `prefer_relative_imports`). Do not half-migrate.
+- **Update the stale counts in comments.** `app.dart:35` says the deprecated
+  colour aliases are imported by "60+ files"; it is 49 references across 26.
+  `AGENTS.md` rule 2 says 24 violations across 12 files; it is 30 across 14.
+  Rule 18 requires both to be updated.
+
+### Done when
+
+`grep -rn 'DateTime([a-z]*\.year' lib/` returns nothing outside
+`lib/utils/dates.dart`; no `DateFormat('` literal appears in `lib/screens` or
+`lib/widgets`; and `Text('Error: $e')` appears nowhere at all.
+
+---
+
+## H · Housekeeping, no block of its own
 
 Small items worth doing whenever the relevant file is open.
 
@@ -497,12 +726,12 @@ Small items worth doing whenever the relevant file is open.
   screen where the owner reads a shop's balance before taking cash. Add a
   `currencySymbol` accessor to the `MoneyFormat` extension so the two
   `prefixText` sites have something correct to use.
-- **`didUpdateWidget`** *(finding 19)*. Three widgets seed `State` from
+- **`didUpdateWidget`** *(finding 25)*. Three widgets seed `State` from
   `widget.*` in `initState` and none override it. All correct today; all latent.
   The app now uses `StatefulShellRoute.indexedStack`, which retains branch
   state, so the ground has already moved. Add the overrides, or lift the state
   into providers — prefer the latter where the state outlives the widget.
-- **Save guard in order entry** *(finding 20)*. `if (_saving) return;` plus a
+- **Save guard in order entry** *(finding 26)*. `if (_saving) return;` plus a
   re-run flag removes the concurrent-`replaceOrderLines` question. Benign today
   because both writers write the same map. Fold into block C.
 - **`shop_ledger_screen.dart` is 909 lines** and `order_entry_screen.dart` is
@@ -524,23 +753,24 @@ Small items worth doing whenever the relevant file is open.
 
 ---
 
-## H · Sequencing, and what to do if there is less time
+## I · Sequencing, and what to do if there is less time
 
 ```
-Week 1   A ░░ + B ████████        Everything that loses data or lies to the user
-Week 2   C ████████████████       The seam
-Week 3   D ████████  E ████████   Discipline and speed
-Later    F ████████████████████   Money type, before doc 14
+Week 1   A ░░ + B ████████████     Everything that loses data or lies to the user
+Week 2   C ████████████████        The seam
+Week 3   D + G ████████████  E ██  Discipline, consistency, speed
+Later    F ████████████████████    Money type, before doc 14
 ```
 
 **Half a day available:** block A. The suite exists; make it count.
 
-**Two days:** A and B. Every data-loss and user-facing-lie finding is closed.
+**Two days:** A and B. Every data-loss and user-facing-lie finding is closed,
+including the quantity truncation and order entry's private "today".
 
 **A week:** A, B, C. The layering rule stops losing, and doc 14 gets cheap.
 
-**Two weeks:** add D and E. Every finding in the review except the money type is
-closed.
+**Two weeks:** add D, G and E. Every finding in the review except the money type
+is closed.
 
 Block F is a separate conversation with the owner, because it is three days that
 produce nothing they can see. The case for it is in §F. The honest summary is
