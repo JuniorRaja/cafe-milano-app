@@ -1,4 +1,8 @@
 import 'package:milano_orders/database/app_database.dart';
+import 'package:milano_orders/theme/app_theme.dart';
+import 'package:milano_orders/widgets/ui/ui.dart';
+import 'package:milano_orders/theme/brand_config.dart';
+import 'package:milano_orders/providers/category_provider.dart';
 import 'package:milano_orders/providers/order_provider.dart';
 import 'package:milano_orders/providers/product_provider.dart';
 import 'package:milano_orders/providers/shop_provider.dart';
@@ -45,10 +49,9 @@ void main() {
         ),
       ],
       child: MaterialApp.router(
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFF57C00)),
-        ),
+        // The real theme, so these smoke tests fail if a token or a TextTheme
+        // slot is wrong. If they pass unchanged, the theme was wired correctly.
+        theme: buildAppTheme(BrandConfig.milano),
         routerConfig: GoRouter(
           initialLocation: '/',
           routes: [
@@ -85,7 +88,9 @@ void main() {
       ]));
       await tester.pumpAndSettle();
 
-      expect(find.text('Shops · 2 shops'), findsOneWidget);
+      // The header is two Texts, not one: a 'Shops' title and a count.
+      expect(find.text('Shops'), findsOneWidget);
+      expect(find.text('2 shops'), findsOneWidget);
     });
 
     testWidgets('active shops appear as cards with area subtitle', (tester) async {
@@ -110,7 +115,7 @@ void main() {
       expect(find.text('Tap to add order'), findsOneWidget);
     });
 
-    testWidgets('pending chip shown for unconfirmed order', (tester) async {
+    testWidgets('pending mark shown for unconfirmed order', (tester) async {
       final o = makeOrder(1, 1);
       await tester.pumpWidget(buildApp(
         shops: [makeShop(1, 'Hotel Raj')],
@@ -118,11 +123,11 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('Pending'), findsOneWidget);
+      expect(find.byIcon(Icons.warning_rounded), findsOneWidget);
       expect(find.text('Tap to add order'), findsNothing);
     });
 
-    testWidgets('confirmed chip shown for confirmed order', (tester) async {
+    testWidgets('confirmed mark shown for confirmed order', (tester) async {
       final o = makeOrder(1, 1, confirmed: true);
       await tester.pumpWidget(buildApp(
         shops: [makeShop(1, 'Hotel Raj')],
@@ -130,11 +135,34 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('Confirmed'), findsOneWidget);
-      expect(find.text('Pending'), findsNothing);
+      expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.warning_rounded), findsNothing);
     });
 
-    testWidgets('item count and rupee total displayed on card', (tester) async {
+    // The marks replaced the words on the device pass, so the words are gone
+    // from the screen. They are not gone from the app: a bare tick means
+    // nothing to a screen reader, so `StatusBadge.mark` keeps the label as its
+    // semantic label. This is the test that stops that being dropped as dead
+    // code later.
+    testWidgets('the marks still say what they mean, to a screen reader',
+        (tester) async {
+      final handle = tester.ensureSemantics();
+      final confirmed = makeOrder(1, 1, confirmed: true);
+      final pending = makeOrder(2, 2);
+      await tester.pumpWidget(buildApp(
+        shops: [makeShop(1, 'Hotel Raj'), makeShop(2, 'Star Bakery')],
+        summariesByDate: {
+          today: [makeSummary(confirmed, 3, 360.0), makeSummary(pending, 2, 90.0)],
+        },
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.bySemanticsLabel('Confirmed'), findsOneWidget);
+      expect(find.bySemanticsLabel('Pending'), findsOneWidget);
+      handle.dispose();
+    });
+
+    testWidgets('item count and rupee total displayed on the row', (tester) async {
       final o = makeOrder(1, 1);
       // 2 items, ₹90 total
       await tester.pumpWidget(buildApp(
@@ -162,8 +190,11 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('Confirmed'), findsOneWidget);
-      expect(find.text('Pending'), findsOneWidget);
+      expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+      // Two: the unconfirmed order, and the shop with no order at all — the row
+      // marks both as pending, because both still need one. 'Tap to add order'
+      // on the second line is what distinguishes them.
+      expect(find.byIcon(Icons.warning_rounded), findsNWidgets(2));
       expect(find.text('Tap to add order'), findsOneWidget);
     });
 
@@ -171,7 +202,8 @@ void main() {
       await tester.pumpWidget(buildApp());
       await tester.pumpAndSettle();
 
-      expect(find.text('Shops · 0 shops'), findsOneWidget);
+      expect(find.text('Shops'), findsOneWidget);
+      expect(find.text('0 shops'), findsOneWidget);
     });
 
     testWidgets('< button navigates to previous day', (tester) async {
@@ -200,7 +232,7 @@ void main() {
       );
     });
 
-    testWidgets('changing date refreshes order cards reactively', (tester) async {
+    testWidgets('changing date refreshes order rows reactively', (tester) async {
       final o = makeOrder(1, 1);
       await tester.pumpWidget(buildApp(
         shops: [makeShop(1, 'Hotel Raj')],
@@ -211,18 +243,17 @@ void main() {
 
       // Today — no order
       expect(find.text('Tap to add order'), findsOneWidget);
-      expect(find.text('Pending'), findsNothing);
 
       // Tap < to go to yesterday
       await tester.tap(find.byIcon(Icons.chevron_left));
       await tester.pumpAndSettle();
 
-      // Yesterday — pending chip visible, hint gone
-      expect(find.text('Pending'), findsOneWidget);
+      // Yesterday — the order exists, so the hint is gone
+      expect(find.byIcon(Icons.warning_rounded), findsOneWidget);
       expect(find.text('Tap to add order'), findsNothing);
     });
 
-    testWidgets('tapping a shop card navigates to order entry', (tester) async {
+    testWidgets('tapping a shop row navigates to order entry', (tester) async {
       await tester.pumpWidget(buildApp(shops: [makeShop(1, 'Hotel Raj')]));
       await tester.pumpAndSettle();
 
@@ -241,13 +272,24 @@ void main() {
     KitchenRawLine makeLine(int shopId, int productId, int qty) =>
         KitchenRawLine(shopId: shopId, productId: productId, qty: qty);
 
-    Product makeProduct(int id, String name, {String? unit}) =>
-        Product(id: id, name: name, unit: unit, photoPath: null, isActive: true);
+    Product makeProduct(int id, String name, {String? unit, int? categoryId}) =>
+        Product(
+          id: id,
+          name: name,
+          unit: unit,
+          photoPath: null,
+          isActive: true,
+          categoryId: categoryId,
+        );
+
+    Category makeCategory(int id, String name, int sortOrder) =>
+        Category(id: id, name: name, sortOrder: sortOrder, isActive: true);
 
     Widget buildKitchen({
       List<KitchenRawLine> lines = const [],
       List<Shop> shops = const [],
       List<Product> products = const [],
+      List<Category> categories = const [],
     }) {
       return ProviderScope(
         overrides: [
@@ -256,8 +298,12 @@ void main() {
           ),
           allShopsProvider.overrideWith((ref) => Stream.value(shops)),
           allProductsProvider.overrideWith((ref) => Stream.value(products)),
+          allCategoriesProvider.overrideWith((ref) => Stream.value(categories)),
         ],
-        child: const MaterialApp(home: KitchenScreen()),
+        child: MaterialApp(
+          theme: buildAppTheme(BrandConfig.milano),
+          home: const KitchenScreen(),
+        ),
       );
     }
 
@@ -269,6 +315,18 @@ void main() {
       expect(find.text(label), findsOneWidget);
     });
 
+    testWidgets('wears the same header as every other shell screen',
+        (tester) async {
+      // It had a hand-rolled one, which is why its menu button sat on a
+      // different left edge from the other four.
+      await tester.pumpWidget(buildKitchen());
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AppScaffold), findsOneWidget);
+      expect(find.text('KITCHEN'), findsOneWidget);
+      expect(find.text('Production'), findsOneWidget);
+    });
+
     testWidgets('empty state shown when no orders for date', (tester) async {
       await tester.pumpWidget(buildKitchen());
       await tester.pumpAndSettle();
@@ -276,14 +334,20 @@ void main() {
       expect(find.text('No orders for this date'), findsOneWidget);
     });
 
-    testWidgets('share FAB hidden when no orders exist', (tester) async {
+    testWidgets('share button disabled when no orders exist', (tester) async {
       await tester.pumpWidget(buildKitchen());
       await tester.pumpAndSettle();
 
-      expect(find.byTooltip('Share kitchen list'), findsNothing);
+      // The share control is a header IconButton, always present and disabled
+      // when there is nothing to share. `ios_share_rounded` is the one share
+      // glyph in the app — Kitchen used to have two of its own.
+      final button = tester.widget<IconButton>(
+        find.widgetWithIcon(IconButton, Icons.ios_share_rounded),
+      );
+      expect(button.onPressed, isNull);
     });
 
-    testWidgets('share FAB visible when orders exist', (tester) async {
+    testWidgets('share button enabled when orders exist', (tester) async {
       await tester.pumpWidget(buildKitchen(
         lines: [makeLine(1, 1, 30)],
         shops: [makeShop(1, 'Hotel Raj')],
@@ -291,7 +355,10 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.byTooltip('Share kitchen list'), findsOneWidget);
+      final button = tester.widget<IconButton>(
+        find.widgetWithIcon(IconButton, Icons.ios_share_rounded),
+      );
+      expect(button.onPressed, isNotNull);
     });
 
     testWidgets('By Item tab: products and quantities are displayed', (tester) async {
@@ -320,6 +387,55 @@ void main() {
       // Only one Bun row should exist with combined total
       expect(find.text('Bun'), findsOneWidget);
       expect(find.text('50'), findsOneWidget);
+    });
+
+    testWidgets('By Item tab: groups under a category header with its total',
+        (tester) async {
+      await tester.pumpWidget(buildKitchen(
+        lines: [makeLine(1, 1, 30), makeLine(1, 2, 12)],
+        shops: [makeShop(1, 'Hotel Raj')],
+        products: [
+          makeProduct(1, 'Bun', categoryId: 1),
+          makeProduct(2, 'Cream Cake', categoryId: 2),
+        ],
+        categories: [makeCategory(1, 'Bread', 0), makeCategory(2, 'Cakes', 1)],
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('\u{1F956} Bread'), findsOneWidget);
+      expect(find.text('\u{1F370} Cakes'), findsOneWidget);
+      // The header carries the group's total; the row carries the item's.
+      expect(find.text('30 pcs'), findsOneWidget);
+      expect(find.text('30'), findsOneWidget);
+    });
+
+    testWidgets('By Item tab: a product with no category lands in Others',
+        (tester) async {
+      await tester.pumpWidget(buildKitchen(
+        lines: [makeLine(1, 1, 8)],
+        shops: [makeShop(1, 'Hotel Raj')],
+        products: [makeProduct(1, 'Loose Item')],
+        categories: [makeCategory(1, 'Bread', 0)],
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('\u{1F37D}\u{FE0F} Others'), findsOneWidget);
+      expect(find.text('Loose Item'), findsOneWidget);
+    });
+
+    testWidgets('By Item tab: no unit line under the product name',
+        (tester) async {
+      // "per pc" under every row, on the screen that exists to be read across
+      // a kitchen. See docs/features/10b-device-pass.md, F1.
+      await tester.pumpWidget(buildKitchen(
+        lines: [makeLine(1, 1, 30)],
+        shops: [makeShop(1, 'Hotel Raj')],
+        products: [makeProduct(1, 'Bun', unit: 'pc')],
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bun'), findsOneWidget);
+      expect(find.text('per pc'), findsNothing);
     });
 
     testWidgets('By Shop tab: shop name header is shown', (tester) async {
@@ -361,6 +477,23 @@ void main() {
 
       final label = DateFormat('dd MMM yyyy, EEE').format(yesterday);
       expect(find.text(label), findsOneWidget);
+    });
+
+    testWidgets('the date carries a relative word under it', (tester) async {
+      // The date stays the headline; the word is the small line beneath.
+      // See docs/features/10b-device-pass.md, J2.
+      await tester.pumpWidget(buildKitchen());
+      await tester.pumpAndSettle();
+      expect(find.text('Today'), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.chevron_left));
+      await tester.pumpAndSettle();
+      expect(find.text('Yesterday'), findsOneWidget);
+      // The full date is still there to read out.
+      expect(
+        find.text(DateFormat('dd MMM yyyy, EEE').format(yesterday)),
+        findsOneWidget,
+      );
     });
 
     testWidgets('> button increments date by one day', (tester) async {

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Target version** | `2.1.0+21` |
+| **Target version** | `2.1.0+20` |
 | **Type** | Feature |
 | **Schema** | No change |
 | **Requires** | [14 — Supabase, auth & roles](14-supabase-auth.md) |

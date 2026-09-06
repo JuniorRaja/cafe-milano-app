@@ -3,6 +3,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:milano_orders/database/app_database.dart';
 import 'package:milano_orders/services/ledger_statement_service.dart';
+import 'package:milano_orders/theme/brand_config.dart';
 
 /// The statement's layout only fails at render time — an over-wide table or a
 /// row that cannot be laid out throws when the document is built, not when it
@@ -51,6 +52,7 @@ void main() {
     expect(data.rows.length, greaterThan(60));
 
     final bytes = await buildStatementPdf(
+      brand: BrandConfig.milano,
       shop: shop!,
       business: BusinessInfoData(
         id: 1,

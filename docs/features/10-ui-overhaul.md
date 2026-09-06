@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Target versions** | `1.7.1+10` → `1.8.1+12`, three releases |
+| **Target versions** | `1.10.0+14` → `1.12.0+16`, three releases |
 | **Type** | Foundation |
 | **Schema** | No change, in any part |
-| **Status** | Block index — build [10a](10a-design-system.md), then [10b](10b-navigation.md), then [10c](10c-screen-restyle.md) |
+| **Status** | Block index — [10a](10a-design-system.md) built and awaiting commit; then [18](18-foundation-guardrails.md), [10b](10b-navigation.md), [10c](10c-screen-restyle.md) |
 
 ## Why this is a block, not a doc
 
@@ -35,14 +35,21 @@ its own numbered sequence rather than attempting it as one."
 
 | Doc | Ships | What it does | Movable? |
 |---|---|---|---|
-| [10a — Design system & UI foundation](10a-design-system.md) | `1.7.1+10` | Tokens, `BrandConfig`, component kit, the four performance fixes | **No** — 10b and 10c are written against it |
-| [10b — Navigation & settings restructure](10b-navigation.md) | `1.8.0+11` | Drawer, 5-slot bottom bar, quick-action FAB, `/profile/*` → `/settings/*`, Outstanding as a destination | **No** — depends on 10a's kit |
-| [10c — Screen restyle](10c-screen-restyle.md) | `1.8.1+12` | All 20 remaining screens rebuilt on the kit; the token ratchet closed | **Yes** — nothing depends on it |
+| [10a — Design system & UI foundation](10a-design-system.md) | `1.10.0+14` | Tokens, `BrandConfig`, component kit, the four performance fixes | **No** — 10b and 10c are written against it |
+| [10b — Navigation & settings restructure](10b-navigation.md) | `1.11.0+15` | Drawer, 5-slot bottom bar, quick-action FAB, `/profile/*` → `/settings/*`, Outstanding as a destination | **No** — depends on 10a's kit |
+| [10c — Screen restyle](10c-screen-restyle.md) | `1.12.0+16` | All 20 remaining screens rebuilt on the kit; the token ratchet closed | **No longer** — see below |
 
-**10a and 10b are the foundation and ship first, in that order.** 10c is the only part
-with no downstream dependency; if feature work is more urgent, it can slide behind
-[06](06-ledger-manual-allocation.md) and [07](07-ledger-statements.md) without blocking
-anything. The plan was for it not to slide behind [08](08-order-entry-swipe.md) — that
+**[18 — Guardrails](18-foundation-guardrails.md) ships inside 10a's release.** It is not
+part of this block, but it goes out in the same version: it finishes measuring 10a's
+performance work, lands the lint ratchet before twenty screens get rewritten, fixes the
+red migration test, and writes the three agent docs.
+
+**10c stopped being movable on 2026-08-28.** The scope revision put the UI revamp ahead of
+all remaining feature work, so [12](12-dashboard-tabs.md) onward build on migrated
+screens by definition, and 10c is what migrates them. It also absorbs Phases 2, 3 and the
+remainder of 6 from the lifecycle audit. The original note said it could slide behind
+[06](06-ledger-manual-allocation.md) and [07](07-ledger-statements.md) — 06 is deferred,
+07 has shipped, and the question no longer arises. The plan was for it not to slide behind [08](08-order-entry-swipe.md) — that
 doc adds a repeating long-press to order entry, and 10c fixes the per-tap full-list
 rebuild on the same screen — but 08 already shipped (2026-08-27), ahead of this whole
 block. See [roadmap.md](../roadmap.md) for the reordering; 10c is now a retrofit for a

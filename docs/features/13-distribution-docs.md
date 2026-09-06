@@ -1,8 +1,8 @@
-# 13 — Download page, agent docs & test harness
+# 13 — Download page & test harness
 
 | | |
 |---|---|
-| **Target version** | `1.15.0+19` |
+| **Target version** | `1.13.1+18` — **ships with [14a](14a-repository-seam.md)** |
 | **Type** | Feature |
 | **Schema** | No change |
 | **Requires** | [01](01-in-app-update.md) — shares its release-lookup logic |
@@ -10,10 +10,13 @@
 
 ## Why
 
-Three loose ends, grouped because none justifies its own release and all three are
-about the project rather than the product. The natural place for them is immediately
-before the Supabase migration, which is the point at which the codebase most needs to
-be legible to someone (or something) that did not write it.
+Two loose ends, grouped because neither justifies its own release and both are about the
+project rather than the product.
+
+This doc used to carry a third. **The agent docs moved to
+[18](18-foundation-guardrails.md)** and ship early, on the reasoning that an architecture
+map written *after* twenty screens are rebuilt documents a codebase nobody had while
+rebuilding it.
 
 ## Outline of work
 
@@ -27,34 +30,24 @@ be legible to someone (or something) that did not write it.
 - This is the link to send a **new** user. Existing users get updates in-app from
   doc 01; this covers first install and re-install.
 
-### Agent docs
-
-- `AGENTS.md` — architecture map, data model, module boundaries, local setup, build and
-  release procedure, and the conventions that must not be broken.
-- `claude.md` keeps the working rules (ask don't assume; simplest thing first; don't
-  touch unrelated code; flag uncertainty) and links to `AGENTS.md` for the facts.
-- Worth writing only if kept current. A stale architecture doc is worse than none,
-  because it is believed. Decide who updates it and when — the honest answer is
-  probably "in the same PR as any schema change", alongside `backup_service.dart`.
-
 ### Test harness
 
 - `docs/testing-checklist.md` — a scripted device walkthrough per module: install APK →
-  order entry → kitchen → counter stock → billing → ledger → screenshot each.
+  order entry → kitchen → billing → ledger → screenshot each.
   Not a unit-test framework; a repeatable smoke pass before each release.
-- Extend `test/` for anything carrying money or counts still uncovered. By this point
-  docs 05, 06, 08 and 11 have each added their own tests; this is the sweep for what
-  fell between them.
-- Be honest about the boundary: the UI does not need unit tests. Money arithmetic,
-  quantity clamps and stock derivation do.
+- Extend `test/` for anything carrying money still uncovered. By this point docs 05, 08
+  and 18 have each added their own tests; this is the sweep for what fell between them.
+- Be honest about the boundary: the UI does not need unit tests. Money arithmetic and
+  quantity clamps do.
 
 ## Success criteria
 
 - [ ] The download page loads with no build step and links the current release APK.
 - [ ] The page works from a phone browser — that is where it will actually be opened.
-- [ ] `AGENTS.md` is accurate against the shipped schema and module layout on the day
-      it lands.
+- [ ] `AGENTS.md`, `docs/architecture.md` and `docs/development.md` still match the
+      shipped schema and module layout. All three landed in
+      [18](18-foundation-guardrails.md); this is the checkpoint that they have not rotted.
 - [ ] The testing checklist can be followed end to end by someone who has not used the
       app, and every step has an unambiguous pass/fail.
-- [ ] `flutter test` passes, and covers FIFO allocation, the quantity-wheel
-      composition, and stock derivation.
+- [ ] `flutter test` passes, and covers FIFO allocation and the quantity-wheel
+      composition.

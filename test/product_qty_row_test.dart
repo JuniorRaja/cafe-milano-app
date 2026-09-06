@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:milano_orders/database/app_database.dart';
 import 'package:milano_orders/widgets/product_qty_row.dart';
@@ -12,17 +13,21 @@ void main() {
     VoidCallback? onIncrementHold,
     VoidCallback? onDecrementHold,
   }) {
-    return MaterialApp(
-      home: Scaffold(
-        body: ProductQtyRow(
-          product: product,
-          qty: qty,
-          price: 10,
-          onIncrement: () {},
-          onDecrement: () {},
-          onIncrementHold: onIncrementHold,
-          onDecrementHold: onDecrementHold,
-          onQtySet: onQtySet,
+    // ProductQtyRow reads the currency symbol and digit grouping from
+    // brandProvider, so it needs a scope even though nothing here is stateful.
+    return ProviderScope(
+      child: MaterialApp(
+        home: Scaffold(
+          body: ProductQtyRow(
+            product: product,
+            qty: qty,
+            price: 10,
+            onIncrement: () {},
+            onDecrement: () {},
+            onIncrementHold: onIncrementHold,
+            onDecrementHold: onDecrementHold,
+            onQtySet: onQtySet,
+          ),
         ),
       ),
     );
@@ -107,6 +112,63 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(result, 999);
+    });
+
+    // The field used to be seeded with the literal string "0", so typing 5 on a
+    // row at zero gave 50 or 05 depending on where the caret sat. It is empty
+    // now, with 0 as a hint. docs/features/10b-device-pass.md, E6.
+    testWidgets('a zero quantity opens the input empty, with 0 as a ghost',
+        (tester) async {
+      int? result;
+      await tester.pumpWidget(buildRow(qty: 0, onQtySet: (v) => result = v));
+
+      await tester.tap(find.text('0'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Input'));
+      await tester.pumpAndSettle();
+
+      final field = tester.widget<TextField>(find.byType(TextField));
+      expect(field.controller!.text, isEmpty,
+          reason: 'a real 0 in the field is what made typing append to it');
+      expect(field.decoration!.hintText, '0');
+
+      // Typing one digit gives that digit, not 50 and not 05.
+      await tester.enterText(find.byType(TextField), '5');
+      await tester.tap(find.text('Confirm'));
+      await tester.pumpAndSettle();
+      expect(result, 5);
+    });
+
+    testWidgets('an empty field confirms as 0, not as "leave it alone"',
+        (tester) async {
+      int? result;
+      await tester.pumpWidget(buildRow(qty: 40, onQtySet: (v) => result = v));
+
+      await tester.tap(find.text('40'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Input'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), '');
+      await tester.tap(find.text('Confirm'));
+      await tester.pumpAndSettle();
+
+      expect(result, 0);
+    });
+
+    testWidgets('a non-zero quantity arrives selected, so typing replaces it',
+        (tester) async {
+      await tester.pumpWidget(buildRow(qty: 40, onQtySet: (_) {}));
+
+      await tester.tap(find.text('40'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Input'));
+      await tester.pumpAndSettle();
+
+      final field = tester.widget<TextField>(find.byType(TextField));
+      expect(field.controller!.text, '40');
+      expect(field.controller!.selection,
+          const TextSelection(baseOffset: 0, extentOffset: 2));
     });
   });
 

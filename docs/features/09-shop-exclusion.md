@@ -6,7 +6,7 @@
 | **Type** | Feature |
 | **Schema** | v6 → v7 |
 | **Requires** | Nothing (independent of the ledger) |
-| **Status** | Ready |
+| **Status** | Deferred completely - user does not want this feature. Decision on 27-08-2026 |
 
 ## Why
 

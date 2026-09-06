@@ -4,14 +4,14 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('v4 -> v5 upgrade cleans a real orphan and enables FK + indexes', () async {
+  test('v4 -> v6 upgrade cleans a real orphan, enables FK, adds ledger', () async {
     final dir = await Directory.systemTemp.createTemp('milano_migration_test');
     final file = File('${dir.path}/test.db');
 
-    // Build a v4-shaped database: same tables as v5 (the v4->v5 migration only
-    // adds indexes), but with FK enforcement off and a real orphan row —
-    // exactly what a pre-fix install looks like after a shop was deleted while
-    // it still had a shop_price.
+    // Build a v4-shaped database. `createAll` builds the *current* schema, so
+    // everything v5 and v6 added has to be stripped back off before the file is
+    // stamped as v4 — otherwise onUpgrade re-adds it and fails on a duplicate.
+    // Keep this teardown in step with the migration chain in app_database.dart.
     final setupDb = AppDatabase.forTesting(NativeDatabase(file));
     await setupDb.customStatement('PRAGMA foreign_keys = OFF');
     final shopId =
@@ -25,6 +25,13 @@ void main() {
     await setupDb.customStatement('DROP INDEX IF EXISTS idx_daily_orders_shop');
     await setupDb.customStatement('DROP INDEX IF EXISTS idx_order_lines_order');
     await setupDb.customStatement('DROP INDEX IF EXISTS idx_order_lines_product');
+
+    // Undo v6: the ledger tables and the two shops columns.
+    await setupDb.customStatement('DROP TABLE IF EXISTS payment_allocations');
+    await setupDb.customStatement('DROP TABLE IF EXISTS payments');
+    await setupDb.customStatement('ALTER TABLE shops DROP COLUMN opening_balance');
+    await setupDb.customStatement('ALTER TABLE shops DROP COLUMN opening_balance_at');
+
     await setupDb.customStatement('PRAGMA user_version = 4');
     await setupDb.close();
 
@@ -52,6 +59,17 @@ void main() {
         'idx_order_lines_product',
       ]),
     );
+
+    // v6 arrived: the ledger tables exist and shops carries its opening balance.
+    final tables = await upgraded
+        .customSelect("SELECT name FROM sqlite_master WHERE type = 'table'")
+        .get();
+    expect(tables.map((r) => r.data['name']),
+        containsAll(['payments', 'payment_allocations']));
+
+    final shopCols = await upgraded.customSelect('PRAGMA table_info(shops)').get();
+    expect(shopCols.map((r) => r.data['name']),
+        containsAll(['opening_balance', 'opening_balance_at']));
 
     await upgraded.close();
     await dir.delete(recursive: true);

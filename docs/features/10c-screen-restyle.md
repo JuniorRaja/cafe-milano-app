@@ -2,10 +2,11 @@
 
 | | |
 |---|---|
-| **Target version** | `1.8.1+12` |
-| **Type** | Foundation (patch — restyle, no new capability) |
+| **Target version** | `1.12.0+16` |
+| **Type** | Foundation (minor — every screen looks different afterwards) |
 | **Schema** | No change |
-| **Requires** | [10a — Design system](10a-design-system.md), [10b — Navigation](10b-navigation.md) |
+| **Requires** | [10a — Design system](10a-design-system.md) · [18 — Guardrails](18-foundation-guardrails.md) · [10b — Navigation](10b-navigation.md) |
+| **Absorbs** | Lifecycle audit **Phases 2, 3** and the remainder of **6** |
 | **Part of** | [10 — UI overhaul](10-ui-overhaul.md) |
 | **Status** | Ready |
 
@@ -49,6 +50,63 @@ reference screens:
    ledger.
 4. **Empty states with an action.** Six screens currently render a grey icon at size 64
    and one line of grey text. An empty shop list should offer "Add your first shop".
+5. **A real error state.** `AppErrorView` — message, cause, retry — from
+   [18](18-foundation-guardrails.md)'s kit addition. See below.
+
+## Absorbed lifecycle phases
+
+Three phases of [`docs/flutter-lifecycle-audit.md`](../flutter-lifecycle-audit.md) land
+here, because all three are edits to the same twenty screens this release is already
+rewriting. Doing them separately means opening every screen twice.
+
+### Phase 3 — `AsyncValue` discipline
+
+This is the one with a defect behind it. **A database failure on the Kitchen screen
+currently renders as "No orders for this date."** The operator is told there is nothing to
+bake.
+
+- [ ] **Delete every error-swallowing `maybeWhen(orElse:)`.** Twelve sites. Where a screen
+      needs several providers, compose them into one derived provider returning a record,
+      and let the screen `.when` on a single `AsyncValue` — one loading state, one error
+      state, one data state, instead of four independent `maybeWhen`s in a build method.
+- [ ] **Replace all sixteen `error: (e, _) => Text('Error: $e')` sites** with
+      `AppErrorView`. Raw `toString()` on screen with no retry is not an error state.
+- [ ] **Log before rendering.** Every error branch reports to
+      [10b](10b-navigation.md)'s `ProviderObserver`. Stack traces stop being discarded
+      via `(e, _)`.
+- [ ] `attention_flags.dart` renders a failed state instead of vanishing.
+- [ ] **"Empty" and "failed" must be visually distinct on every screen.** That is the
+      actual fix; the widgets are just how it gets there.
+
+### Phase 2 — the remaining defects
+
+[18](18-foundation-guardrails.md) already shipped the three-line debounce flush as an
+emergency stop. This is the correct version, plus the rest of the phase.
+
+- [ ] **`OrderDraftController`** — a `Notifier` owning the debounce timer and exposing
+      `flush()`, called from `dispose`, from the `AppLifecycleListener`'s `paused`, and
+      from confirm. 18's test carries over unchanged and must still pass.
+- [ ] **Get DB writes out of `setState`.** The `setConfirmed` calls at
+      `order_entry_screen.dart:110` and `:228` move into the controller, awaited, with the
+      local flag updated *after* the write succeeds and an error surfaced if it does not.
+      18's `discarded_futures` lint will not let this regress.
+- [ ] **Give `_init` a failure path** — or better, replace `_init` plus six `State` fields
+      with one `AsyncNotifier` whose `AsyncError` the screen renders.
+- [ ] **Apply the existing correct pattern to `record_payment_sheet._save`.** `try`/`catch`
+      into a SnackBar, `finally` clear `_saving` behind a `mounted` guard. Copy
+      `shop_ledger_screen.dart:126-153` verbatim; it is already right.
+- [ ] Sweep the remaining ~19 unguarded UI-initiated DB calls with the same shape.
+
+### Phase 6 — what 10a left
+
+- [ ] **Migrate the 96 global colour reads** to theme reads, file by file. The 32
+      `import '../../app.dart'` lines disappear with them. **These reads _are_ the
+      `@Deprecated` alias warnings** — driving the analyzer count from 84 to zero and
+      finishing this item are the same task.
+- [ ] **`_router` becomes `routerProvider`.** `widget_test.dart` and `navigation_test.dart`
+      each hand-maintain a parallel route table today; they override the real one instead.
+      That also means `navigation_test.dart`'s duplicate-page-key rule is finally tested
+      against the actual router.
 
 ## Action items
 
