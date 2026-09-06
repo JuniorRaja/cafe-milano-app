@@ -113,6 +113,10 @@ class DashboardScreen extends ConsumerWidget {
           AppShell.bottomInset(context),
         ),
         child: Column(
+          // The cards used to force their own `width: double.infinity`
+          // because a Column centres its children. Stretching here is the
+          // same result, said once.
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Section 1 — The Pulse, on the daily view only. It answers
             // "how is today going" — against a quarter it is not a pulse, it

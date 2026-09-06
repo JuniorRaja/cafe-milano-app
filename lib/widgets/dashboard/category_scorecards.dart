@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../ui/ui.dart';
 import '../../theme/tokens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/dashboard_models.dart';
@@ -65,15 +66,7 @@ class CategoryScorecardsWidget extends ConsumerWidget {
   }
 
   Widget _emptyState() {
-    return Container(
-      width: double.infinity,
-      height: 120,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: AppRadius.rM,
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Center(
+    return AppCard(border: Border.all(color: AppColors.border), child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -89,20 +82,11 @@ class CategoryScorecardsWidget extends ConsumerWidget {
             ),
           ],
         ),
-      ),
-    );
+      ));
   }
 
   static Widget _loadingCard() {
-    return Container(
-      width: 160,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: AppRadius.rM,
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
+    return AppCard(padding: const EdgeInsets.all(14), border: Border.all(color: AppColors.border), child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
@@ -123,8 +107,7 @@ class CategoryScorecardsWidget extends ConsumerWidget {
             ),
           ),
         ],
-      ),
-    );
+      ));
   }
 }
 
@@ -135,15 +118,7 @@ class _ScorecardCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final brand = ref.watch(brandProvider);
-    return Container(
-      width: 160,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: AppRadius.rM,
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
+    return AppCard(padding: const EdgeInsets.all(14), border: Border.all(color: AppColors.border), child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Emoji + Name
@@ -192,7 +167,7 @@ class _ScorecardCard extends ConsumerWidget {
                 Icon(
                   Icons.star_rounded,
                   size: 12,
-                  color: Colors.amber.shade600,
+                  color: AppColors.warning,
                 ),
                 const SizedBox(width: 3),
                 Expanded(
@@ -211,8 +186,7 @@ class _ScorecardCard extends ConsumerWidget {
               style: AppType.caption.copyWith(color: AppColors.textTertiary),
             ),
         ],
-      ),
-    );
+      ));
   }
 
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../ui/ui.dart';
 import '../../theme/tokens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/dashboard_models.dart';
@@ -14,15 +15,7 @@ class ProductLeaderboardCard extends ConsumerWidget {
     final leaderAsync = ref.watch(productLeaderboardProvider);
 
     return RepaintBoundary(
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: AppRadius.rM,
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Column(
+      child: AppCard(padding: const EdgeInsets.all(20), border: Border.all(color: AppColors.border), child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -58,8 +51,7 @@ class ProductLeaderboardCard extends ConsumerWidget {
               error: (_, _) => _emptyState(),
             ),
           ],
-        ),
-      ),
+        )),
     );
   }
 

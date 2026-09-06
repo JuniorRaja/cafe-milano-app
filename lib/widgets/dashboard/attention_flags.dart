@@ -37,15 +37,7 @@ class _AttentionFlagsWidgetState extends ConsumerState<AttentionFlagsWidget> {
           final displayFlags = _expanded ? visible : visible.take(3).toList();
           final hasMore = !_expanded && visible.length > 3;
 
-          return Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: AppRadius.rM,
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Column(
+          return AppCard(padding: const EdgeInsets.all(16), border: Border.all(color: AppColors.border), child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
@@ -79,8 +71,7 @@ class _AttentionFlagsWidgetState extends ConsumerState<AttentionFlagsWidget> {
                     ),
                   ),
               ],
-            ),
-          );
+            ));
         },
         loading: () => const SizedBox.shrink(),
         // Not `SizedBox.shrink()`. This card is the app's "something needs
@@ -129,15 +120,15 @@ class _FlagCard extends StatelessWidget {
   Color get _bgColor {
     switch (flag.type) {
       case AttentionFlagType.decliningCategory:
-        return Colors.red.shade50;
+        return AppColors.negativeSoft;
       case AttentionFlagType.inactiveShop:
-        return Colors.orange.shade50;
+        return AppColors.warningSoft;
       case AttentionFlagType.newHigh:
-        return Colors.green.shade50;
+        return AppColors.positiveSoft;
       case AttentionFlagType.concentrationRisk:
-        return Colors.amber.shade50;
+        return AppColors.warningSoft;
       case AttentionFlagType.zeroDay:
-        return Colors.red.shade50;
+        return AppColors.negativeSoft;
     }
   }
 

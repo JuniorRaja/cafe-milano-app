@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../ui/ui.dart';
 import '../../theme/tokens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/dashboard_models.dart';
@@ -14,15 +15,7 @@ class ShopConcentrationCard extends ConsumerWidget {
     final concAsync = ref.watch(shopConcentrationProvider);
 
     return RepaintBoundary(
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: AppRadius.rM,
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Column(
+      child: AppCard(padding: const EdgeInsets.all(20), border: Border.all(color: AppColors.border), child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -58,8 +51,7 @@ class ShopConcentrationCard extends ConsumerWidget {
               error: (_, _) => _emptyState(),
             ),
           ],
-        ),
-      ),
+        )),
     );
   }
 
@@ -170,13 +162,13 @@ class _ShopRow extends ConsumerWidget {
                       child: Icon(
                         Icons.warning_amber_rounded,
                         size: 10,
-                        color: Colors.orange.shade700,
+                        color: AppColors.warning,
                       ),
                     ),
                   Text(
                     '${row.sharePercent.toStringAsFixed(0)}%',
                     style: AppType.caption.copyWith(fontWeight: FontWeight.w500, color: isHighConcentration
-                          ? Colors.orange.shade700
+                          ? AppColors.warning
                           : AppColors.textSecondary),
                   ),
                 ],

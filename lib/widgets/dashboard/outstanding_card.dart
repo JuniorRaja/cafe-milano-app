@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../ui/ui.dart';
 import '../../theme/tokens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -23,15 +24,7 @@ class OutstandingCard extends ConsumerWidget {
       child: InkWell(
         borderRadius: AppRadius.rM,
         onTap: () => context.push(AppRoutes.outstanding),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: AppRadius.rM,
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Column(
+        child: AppCard(padding: const EdgeInsets.all(20), border: Border.all(color: AppColors.border), child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
@@ -59,7 +52,7 @@ class OutstandingCard extends ConsumerWidget {
                         Icon(
                           Icons.check_circle_outline,
                           size: 20,
-                          color: Colors.green.shade400,
+                          color: AppColors.positive,
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -74,7 +67,7 @@ class OutstandingCard extends ConsumerWidget {
                     children: [
                       Text(
                         ref.watch(brandProvider).money(total),
-                        style: AppType.displayL.copyWith(fontWeight: FontWeight.w800, color: Colors.red.shade700),
+                        style: AppType.displayL.copyWith(fontWeight: FontWeight.w800, color: AppColors.negative),
                       ),
                       const SizedBox(height: 2),
                       Text(
@@ -99,8 +92,7 @@ class OutstandingCard extends ConsumerWidget {
                 ),
               ),
             ],
-          ),
-        ),
+          )),
       ),
     );
   }
