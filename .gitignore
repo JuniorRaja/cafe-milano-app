@@ -57,3 +57,9 @@ lib/database/app_database.g.dart
 # Local dev seed data (export your own backup, see README)
 /dev/
 docs/*backup*.json
+
+# graphify knowledge graph — local build artifacts (rebuild with: /graphify .)
+# Track only the human-readable report and the hand-curated community labels.
+/graphify-out/*
+!/graphify-out/GRAPH_REPORT.md
+!/graphify-out/.graphify_labels.json
