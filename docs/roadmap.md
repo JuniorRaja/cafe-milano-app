@@ -142,7 +142,7 @@ finished. Not shipped, and not to be treated as shipped.
 | — | Stop seeding default categories | `1.9.2+13` | fix | — | Done |
 | [10a](features/10a-design-system.md) + [18](features/18-foundation-guardrails.md) | New look, faster, quantities never lost | `1.10.0+14` | feature | — | Done |
 | [10b](features/10b-navigation.md) + [10b device pass](features/10b-device-pass.md) | Everything reachable in 2 taps, and the phone's list of what was wrong with it | `1.11.0+15` | feature | — | **Built, device pass planned** — on `release/1.11.0-navigation` |
-| [10c](features/10c-screen-restyle.md) | Every screen rebuilt, real error messages | `1.12.0+16` | feature | — | Ready — scope reduced, see *Standing risks* |
+| [10c](features/10c-screen-restyle.md) | Every screen rebuilt, real error messages | `1.12.0+16` | feature | — | **Shipped 2026-09-06** — token ratchet at 0 and blocking |
 | [12](features/12-dashboard-tabs.md) | Dashboard in tabs, updating live | `1.13.0+17` | feature | — | Outline |
 | [13](features/13-distribution-docs.md) + [14a](features/14a-repository-seam.md) | Download page, and the cleanup 2.0 needs | `1.13.1+18` | fix | — | 13 Outline, 14a Ready |
 | [14](features/14-supabase-auth.md) | Cloud data, login, second device | `2.0.0+19` | major | port v6 | Outline |

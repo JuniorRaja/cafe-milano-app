@@ -8,7 +8,7 @@
 | **Requires** | [10a — Design system](10a-design-system.md) · [18 — Guardrails](18-foundation-guardrails.md) · [10b — Navigation](10b-navigation.md) |
 | **Absorbs** | Lifecycle audit **Phases 2, 3** and the remainder of **6** |
 | **Part of** | [10 — UI overhaul](10-ui-overhaul.md) |
-| **Status** | Ready |
+| **Status** | **Shipped — `1.12.0+16`, 2026-09-06** |
 
 ## Why
 
@@ -30,6 +30,16 @@ no screen is built twice.
 
 **Explicitly out of scope:** any behaviour change, any new screen, any new query. If a
 number on screen changes, that is a bug — this is a restyle.
+
+> **Amended 2026-09-06, on the owner's device pass.** One figure changes on
+> purpose. An order entered against a future date — a shop ordering on Friday
+> for Sunday — counted as receivable immediately, so the ledger claimed money
+> for goods not yet delivered and put the shop in the at-risk list for an
+> order it had not received. Receivables now stop at today.
+>
+> That is a deliberate, requested departure from the rule above, and it means
+> the *"every figure matches `1.8.0`"* criterion below **cannot** hold for a
+> shop with a future-dated order. Everything else still must.
 
 ## What "restyled" means
 
@@ -229,15 +239,17 @@ current-generation screen rather than restyling one.
 - [ ] Order entry holds 60 fps while a quantity is held down.
 - [ ] Price matrix opens in under 400 ms with all 18 shops and 28 products loaded.
 - [ ] All six empty states offer an action.
-- [ ] **Every figure on every screen matches `1.8.0` on the same dataset.** This is a
-      restyle; any changed number is a bug.
+- [x] **Every figure on every screen matches `1.8.0` on the same dataset** —
+      *except* receivables for a shop with a future-dated order, which changed
+      on purpose. See the amendment at the top.
 - [ ] Every ledger decision from `762be58` and `dc8ce8d` survives — checked against
       those commits explicitly.
 
 ## Progress
 
 Branch `release/1.12.0-screen-restyle`, cut from `1.11.0+15`.
-**Code complete 2026-09-06. Device pass outstanding — see below.**
+**Shipped 2026-09-06.** Built, then walked on the phone by the owner, whose
+findings are the last two commits.
 
 Much of the action list above was overtaken by
 [10b's device pass](10b-device-pass.md), which rebuilt eight screens from the
@@ -273,16 +285,24 @@ The five `@Deprecated` aliases are deleted from `lib/app.dart`.
 
 `flutter test`: **338 passing**, from 336.
 
-### Gates that still need the phone
+### The device pass
 
-Nothing here can be closed from a terminal. These are the owner's to walk:
+Walked by the owner on 2026-09-06. Seven findings, all fixed:
 
-- [ ] Order entry holds 60 fps while a quantity is held down.
-- [ ] The home list shows at least 8 shops in one viewport on the owner's device.
-- [ ] Price matrix opens in under 400 ms with 18 shops and 28 products.
-- [ ] A quantity tap rebuilds **one** row, on the DevTools rebuild counter.
-- [ ] **Every figure on every screen matches `1.8.0` on the same dataset.**
-- [ ] Every ledger decision from `762be58` and `dc8ce8d` survives.
+| Finding | Fix |
+|---|---|
+| Category scorecards drew as empty space | `7334cef` — the AppCard conversion stripped `width: 160` from cards that scroll *horizontally*, so they collapsed |
+| Revenue mix overflowed on the right | `7334cef` — `DeltaPill` does not fit a 44px column; reverted to the arrow |
+| The Pulse card's new design | `7334cef` — reverted to its 2×2 grid |
+| The `confirmed · pending · today` band on Orders | `7334cef` — removed; the chips below already carry the counts |
+| Attention-flags card inset from its neighbours | `6c1aa54` — it paid the page gutter twice |
+| Scorecard charts blank when the period changed | `e38aca6` — the sparkline was hardwired to the last 7 days while the numbers followed the period |
+| Future-dated orders counted as receivable | `e38aca6` — receivables now stop at today |
+
+The owner confirmed the build reads correctly after these. The performance
+numbers (60 fps on a held stepper, 8 shops per viewport, price matrix under
+400 ms) were judged by eye rather than instrumented; if any of them is ever in
+doubt, the DevTools rebuild counter is the tool the original criteria named.
 
 ### Deliberately not done
 
