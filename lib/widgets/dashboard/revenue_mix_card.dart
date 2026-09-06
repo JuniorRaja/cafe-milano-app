@@ -218,10 +218,33 @@ class _MixRow extends ConsumerWidget {
         textAlign: TextAlign.right,
       );
     }
-    return DeltaPill(
-      value: trend,
-      label: '${trend.abs().toStringAsFixed(0)}%',
-      dense: true,
+    // Not a `DeltaPill`. The pill carries its own padding and pill fill, and
+    // this column is 44px wide — it overflowed the card on the right. An
+    // arrow and a percentage, in the same semantic colours the pill would
+    // have used.
+    final isUp = trend >= 0;
+    final tone = isUp ? AppColors.positive : AppColors.negative;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        Icon(
+          isUp ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+          size: 12,
+          color: tone,
+        ),
+        Flexible(
+          child: Text(
+            '${trend.abs().toStringAsFixed(0)}%',
+            style: AppType.caption.copyWith(
+              fontWeight: FontWeight.w600,
+              color: tone,
+            ),
+            overflow: TextOverflow.clip,
+            softWrap: false,
+          ),
+        ),
+      ],
     );
   }
 }

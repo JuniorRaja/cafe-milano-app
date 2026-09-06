@@ -81,10 +81,12 @@ void main() {
       );
     });
 
-    // 10c replaced the 'Shops · N shops' section header with a StatBand and a
-    // FilterChipRow. The screen's job is answering "which shops still need an
-    // order today", and a bare total never did.
-    testWidgets('stat band splits the day into confirmed and pending',
+    // 10c replaced the 'Shops · N shops' section header with a FilterChipRow.
+    // The screen's job is answering "which shops still need an order today",
+    // and a bare total never did. A StatBand went in alongside and came back
+    // out on the owner's device pass: the chips already carry both counts,
+    // and the band spent a whole band of screen repeating them.
+    testWidgets('filter chips split the day into confirmed and pending',
         (tester) async {
       await tester.pumpWidget(buildApp(shops: [
         makeShop(1, 'Hotel Raj', area: 'Anna Nagar'),
@@ -92,11 +94,9 @@ void main() {
       ]));
       await tester.pumpAndSettle();
 
-      expect(find.text('confirmed'), findsOneWidget);
-      expect(find.text('pending'), findsOneWidget);
-      // Neither shop has an order, so both are pending.
-      expect(find.text('2'), findsWidgets);
       expect(find.text('All'), findsOneWidget);
+      expect(find.text('Confirmed'), findsOneWidget);
+      expect(find.text('Pending'), findsOneWidget);
     });
 
     testWidgets('active shops appear as cards with area subtitle', (tester) async {

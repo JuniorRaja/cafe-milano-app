@@ -1,21 +1,10 @@
 import 'package:flutter/material.dart';
+import '../../theme/tokens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../../providers/dashboard_provider.dart';
-import '../../theme/brand_config.dart';
 import '../../utils/money.dart';
-import '../ui/ui.dart';
+import '../../theme/brand_config.dart';
 
-/// Today, as one figure.
-///
-/// This was a 2×2 grid of four equally-weighted tiles, which meant the day's
-/// revenue — the number the card exists to show — had exactly the same visual
-/// weight as the count of pending confirmations. Doc 10c: the Pulse becomes a
-/// [HeroStatCard], so there is one `displayL` on the screen and everything
-/// else supports it.
-///
-/// Revenue is the value, last week's comparison is the trailing [DeltaPill],
-/// and the two secondary counts move into the footer.
 class PulseCard extends ConsumerWidget {
   const PulseCard({super.key});
 
@@ -27,88 +16,169 @@ class PulseCard extends ConsumerWidget {
     final shopsAsync = ref.watch(shopsServedTodayProvider);
     final pendingAsync = ref.watch(pendingConfirmationsProvider);
 
-    final pending = pendingAsync.valueOrNull;
-
     return RepaintBoundary(
-      child: HeroStatCard(
-        caption: "Today's revenue",
-        value: revenueAsync.when(
-          data: brand.moneyLakh,
-          loading: () => '—',
-          // Distinct from a real zero: a failed query must never render as
-          // a revenue figure. See 10c Phase 3.
-          error: (_, _) => 'Unavailable',
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: AppRadius.rM,
+          border: Border.all(color: AppColors.border),
         ),
-        subtitle: 'vs the same day last week',
-        trailing: deltaAsync.when(
-          data: (delta) => delta == null
-              ? const SizedBox.shrink()
-              : DeltaPill(
-                  value: delta,
-                  label: '${delta.abs().toStringAsFixed(0)}%',
-                ),
-          loading: () => const SizedBox.shrink(),
-          error: (_, _) => const SizedBox.shrink(),
-        ),
-        // The margin is zero because the dashboard's own Column already pays
-        // the page gutter; the card's default would pay it twice.
-        margin: EdgeInsets.zero,
-        footer: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: _Footnote(
-                label: 'Shops served',
-                value: shopsAsync.when(
-                  data: (data) => '${data.$1} / ${data.$2}',
-                  loading: () => '—',
-                  error: (_, _) => '—',
+            Row(
+              children: [
+                const Text('❤️', style: AppType.titleM),
+                const SizedBox(width: 8),
+                Text(
+                  'The Pulse',
+                  style: AppType.titleM.copyWith(fontWeight: FontWeight.w700, color: AppColors.brandDeep),
                 ),
-              ),
+                const Spacer(),
+                Text(
+                  'Today',
+                  style: AppType.caption.copyWith(fontWeight: FontWeight.w500, color: AppColors.textSecondary),
+                ),
+              ],
             ),
-            Expanded(
-              child: _Footnote(
-                label: 'Pending confirmations',
-                value: pending == null ? '—' : '$pending',
-                // Semantic, not decorative: amber only when something is
-                // actually waiting on the owner.
-                tone: (pending ?? 0) > 0 ? AppTone.warning : null,
-              ),
+            const SizedBox(height: 16),
+            // 2×2 metric grid
+            Row(
+              children: [
+                // Revenue
+                Expanded(
+                  child: _MetricTile(
+                    label: "Today's Revenue",
+                    child: revenueAsync.when(
+                      data: (rev) => Text(
+                        brand.moneyLakh(rev),
+                        style: AppType.titleL.copyWith(fontWeight: FontWeight.w800, color: AppColors.brandDeep),
+                      ),
+                      loading: () => _shimmer(),
+                      error: (_, _) => const Text('—'),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Delta
+                Expanded(
+                  child: _MetricTile(
+                    label: 'vs Same Day Last Week',
+                    child: deltaAsync.when(
+                      data: (delta) => _buildDelta(delta),
+                      loading: () => _shimmer(),
+                      error: (_, _) => const Text('—'),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                // Shops served
+                Expanded(
+                  child: _MetricTile(
+                    label: 'Shops Served',
+                    child: shopsAsync.when(
+                      data: (data) => Text(
+                        '${data.$1} / ${data.$2} shops',
+                        style: AppType.titleM.copyWith(fontWeight: FontWeight.w700, color: AppColors.brandDeep),
+                      ),
+                      loading: () => _shimmer(),
+                      error: (_, _) => const Text('—'),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Pending
+                Expanded(
+                  child: _MetricTile(
+                    label: 'Pending Confirmations',
+                    child: pendingAsync.when(
+                      data: (count) => Text(
+                        '$count pending',
+                        style: AppType.titleM.copyWith(fontWeight: FontWeight.w700, color: count > 0
+                              ? AppColors.warning
+                              : AppColors.brandDeep),
+                      ),
+                      loading: () => _shimmer(),
+                      error: (_, _) => const Text('—'),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
   }
+
+  Widget _buildDelta(double? delta) {
+    if (delta == null) {
+      return Text(
+        '→ 0%',
+        style: AppType.titleM.copyWith(fontWeight: FontWeight.w700, color: AppColors.textSecondary),
+      );
+    }
+    final isUp = delta >= 0;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          isUp ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+          size: 18,
+          color: isUp ? AppColors.positive : AppColors.negative,
+        ),
+        const SizedBox(width: 2),
+        Text(
+          '${delta.abs().toStringAsFixed(0)}%',
+          style: AppType.titleM.copyWith(fontWeight: FontWeight.w700, color: isUp ? AppColors.positive : AppColors.negative),
+        ),
+      ],
+    );
+  }
+
+  static Widget _shimmer() {
+    return Container(
+      height: 20,
+      width: 60,
+      decoration: BoxDecoration(
+        color: AppColors.border,
+        borderRadius: AppRadius.rS,
+      ),
+    );
+  }
+
 }
 
-/// One supporting count under the hero figure, on the dark ground.
-class _Footnote extends StatelessWidget {
-  const _Footnote({required this.label, required this.value, this.tone});
-
+class _MetricTile extends StatelessWidget {
+  const _MetricTile({required this.label, required this.child});
   final String label;
-  final String value;
-  final AppTone? tone;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          label.toUpperCase(),
-          style: AppType.caption.copyWith(
-            color: AppColors.textOnDark.withValues(alpha: 0.65),
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.bg,
+        borderRadius: AppRadius.rS,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: AppType.caption.copyWith(fontWeight: FontWeight.w500, color: AppColors.textSecondary),
           ),
-        ),
-        const SizedBox(height: AppSpace.s1),
-        Text(
-          value,
-          style: AppType.titleM.copyWith(
-            color: tone == null ? AppColors.textOnDark : tone!.fg,
-          ),
-        ),
-      ],
+          const SizedBox(height: 6),
+          child,
+        ],
+      ),
     );
   }
 }

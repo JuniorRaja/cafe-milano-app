@@ -56,11 +56,6 @@ class _HomeShopsScreenState extends ConsumerState<HomeShopsScreen> {
               .where((s) => summaryMap[s.id]?.order.isConfirmed ?? false)
               .length;
           final pending = shops.length - confirmed;
-          final dayTotal = shops.fold<double>(
-            0,
-            (sum, s) => sum + (summaryMap[s.id]?.total ?? 0),
-          );
-
           final visible = switch (_filter) {
             1 => shops
                 .where((s) => summaryMap[s.id]?.order.isConfirmed ?? false)
@@ -74,25 +69,10 @@ class _HomeShopsScreenState extends ConsumerState<HomeShopsScreen> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (shops.isNotEmpty) ...[
-                StatBand(
-                  items: [
-                    StatBandItem(
-                      '$confirmed',
-                      label: 'confirmed',
-                      tone: AppTone.positive,
-                    ),
-                    StatBandItem(
-                      '$pending',
-                      label: 'pending',
-                      tone: pending == 0 ? AppTone.neutral : AppTone.warning,
-                    ),
-                    StatBandItem(
-                      ref.watch(brandProvider).moneyTrim(dayTotal),
-                      label: 'today',
-                    ),
-                  ],
-                ),
+              // No StatBand here. The chips below already carry both counts,
+              // and a band repeating them cost a whole band of screen on a
+              // list whose job is to be long — the owner asked for it back.
+              if (shops.isNotEmpty)
                 FilterChipRow(
                   chips: [
                     FilterChipData('All', count: shops.length),
@@ -110,7 +90,6 @@ class _HomeShopsScreenState extends ConsumerState<HomeShopsScreen> {
                   selectedIndex: _filter,
                   onSelected: (i) => setState(() => _filter = i),
                 ),
-              ],
               Expanded(
                 child: shops.isEmpty
                     ? _EmptyState(
