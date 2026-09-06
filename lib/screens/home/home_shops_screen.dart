@@ -15,11 +15,21 @@ import '../../widgets/staggered_fade_in.dart';
 import '../../widgets/shell/app_shell.dart';
 import '../../widgets/ui/ui.dart';
 
-class HomeShopsScreen extends ConsumerWidget {
+class HomeShopsScreen extends ConsumerStatefulWidget {
   const HomeShopsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeShopsScreen> createState() => _HomeShopsScreenState();
+}
+
+class _HomeShopsScreenState extends ConsumerState<HomeShopsScreen> {
+  /// 0 All, 1 Confirmed, 2 Pending. Index rather than an enum because
+  /// `FilterChipRow` is index-driven and a two-value enum here would exist
+  /// only to be converted back.
+  int _filter = 0;
+
+  @override
+  Widget build(BuildContext context) {
     final selectedDate = ref.watch(selectedDateProvider);
     // One provider, one `.when`. The summaries used to arrive through
     // `maybeWhen(orElse: () => {})`, so a failed query drew every shop as
@@ -36,20 +46,85 @@ class HomeShopsScreen extends ConsumerWidget {
         data: (view) {
           final shops = view.shops;
           final summaryMap = view.summaryMap;
+
+          // The question this screen exists to answer is "which shops still
+          // need an order today", and until now you answered it by scrolling.
+          // `Confirmed` and `Pending`, not the doc's `Ordered`, because that
+          // is the word `_ShopRow`'s badge already uses — one state should not
+          // have two names on the same screen.
+          final confirmed = shops
+              .where((s) => summaryMap[s.id]?.order.isConfirmed ?? false)
+              .length;
+          final pending = shops.length - confirmed;
+          final dayTotal = shops.fold<double>(
+            0,
+            (sum, s) => sum + (summaryMap[s.id]?.total ?? 0),
+          );
+
+          final visible = switch (_filter) {
+            1 => shops
+                .where((s) => summaryMap[s.id]?.order.isConfirmed ?? false)
+                .toList(),
+            2 => shops
+                .where((s) => !(summaryMap[s.id]?.order.isConfirmed ?? false))
+                .toList(),
+            _ => shops,
+          };
+
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SectionHeader(
-                title: 'Shops',
-                trailing: Text(
-                  '${shops.length} shops',
-                  style: AppType.label.copyWith(color: AppColors.brandDeep),
+              if (shops.isNotEmpty) ...[
+                StatBand(
+                  items: [
+                    StatBandItem(
+                      '$confirmed',
+                      label: 'confirmed',
+                      tone: AppTone.positive,
+                    ),
+                    StatBandItem(
+                      '$pending',
+                      label: 'pending',
+                      tone: pending == 0 ? AppTone.neutral : AppTone.warning,
+                    ),
+                    StatBandItem(
+                      ref.watch(brandProvider).moneyTrim(dayTotal),
+                      label: 'today',
+                    ),
+                  ],
                 ),
-              ),
+                FilterChipRow(
+                  chips: [
+                    FilterChipData('All', count: shops.length),
+                    FilterChipData(
+                      'Confirmed',
+                      count: confirmed,
+                      tone: AppTone.positive,
+                    ),
+                    FilterChipData(
+                      'Pending',
+                      count: pending,
+                      tone: AppTone.warning,
+                    ),
+                  ],
+                  selectedIndex: _filter,
+                  onSelected: (i) => setState(() => _filter = i),
+                ),
+              ],
               Expanded(
                 child: shops.isEmpty
                     ? _EmptyState(
                         onAddShop: () => context.push(AppRoutes.shopNew),
+                      )
+                    : visible.isEmpty
+                    ? EmptyState.inert(
+                        icon: Icons.filter_alt_off_outlined,
+                        title: _filter == 1
+                            ? 'Nothing confirmed yet'
+                            : 'Every shop is done',
+                        message: _filter == 1
+                            ? 'No shop has a confirmed order for this date.'
+                            : 'Every shop has a confirmed order for this date.',
                       )
                     : ListFadeIn(
                         child: ListView.builder(
@@ -58,9 +133,9 @@ class HomeShopsScreen extends ConsumerWidget {
                           padding: EdgeInsets.only(
                             bottom: AppShell.bottomInset(context),
                           ),
-                          itemCount: shops.length,
+                          itemCount: visible.length,
                           itemBuilder: (context, index) {
-                            final shop = shops[index];
+                            final shop = visible[index];
                             return _ShopRow(
                               shop: shop,
                               summary: summaryMap[shop.id],

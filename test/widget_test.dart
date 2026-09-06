@@ -81,16 +81,22 @@ void main() {
       );
     });
 
-    testWidgets('section header shows active shop count', (tester) async {
+    // 10c replaced the 'Shops · N shops' section header with a StatBand and a
+    // FilterChipRow. The screen's job is answering "which shops still need an
+    // order today", and a bare total never did.
+    testWidgets('stat band splits the day into confirmed and pending',
+        (tester) async {
       await tester.pumpWidget(buildApp(shops: [
         makeShop(1, 'Hotel Raj', area: 'Anna Nagar'),
         makeShop(2, 'Star Bakery', area: 'T Nagar'),
       ]));
       await tester.pumpAndSettle();
 
-      // The header is two Texts, not one: a 'Shops' title and a count.
-      expect(find.text('Shops'), findsOneWidget);
-      expect(find.text('2 shops'), findsOneWidget);
+      expect(find.text('confirmed'), findsOneWidget);
+      expect(find.text('pending'), findsOneWidget);
+      // Neither shop has an order, so both are pending.
+      expect(find.text('2'), findsWidgets);
+      expect(find.text('All'), findsOneWidget);
     });
 
     testWidgets('active shops appear as cards with area subtitle', (tester) async {
@@ -172,7 +178,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.textContaining('2 items'), findsOneWidget);
-      expect(find.textContaining('₹90'), findsOneWidget);
+      // Twice now: once on the row, once in the day's total in the StatBand.
+      expect(find.textContaining('₹90'), findsWidgets);
     });
 
     testWidgets('confirmed, pending, and no-order states coexist', (tester) async {
@@ -198,12 +205,15 @@ void main() {
       expect(find.text('Tap to add order'), findsOneWidget);
     });
 
-    testWidgets('empty shop list shows 0 count', (tester) async {
+    testWidgets('an empty shop list offers a way to fix it', (tester) async {
       await tester.pumpWidget(buildApp());
       await tester.pumpAndSettle();
 
-      expect(find.text('Shops'), findsOneWidget);
-      expect(find.text('0 shops'), findsOneWidget);
+      // No band and no chips when there is nothing to count — just the
+      // action. 10c: every empty state offers one.
+      expect(find.text('No shops yet'), findsOneWidget);
+      expect(find.text('Add your first shop'), findsOneWidget);
+      expect(find.text('All'), findsNothing);
     });
 
     testWidgets('< button navigates to previous day', (tester) async {
