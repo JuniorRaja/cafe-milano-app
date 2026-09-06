@@ -81,7 +81,6 @@ class _AttentionFlagsWidgetState extends ConsumerState<AttentionFlagsWidget> {
         error: (e, st) {
           reportError(e, st, context: 'attention flags');
           return AppCard(
-            margin: const EdgeInsets.symmetric(horizontal: AppSpace.s4),
             border: Border.all(color: AppColors.negative),
             child: Row(
               children: [
