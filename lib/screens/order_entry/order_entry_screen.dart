@@ -9,6 +9,7 @@ import '../../database/app_database.dart';
 import '../../providers/category_provider.dart';
 import '../../providers/database_provider.dart';
 import '../../providers/pending_writes.dart';
+import '../../services/error_reporting.dart';
 import '../../utils/haptics.dart';
 import '../../services/category_emoji.dart';
 import '../../widgets/product_qty_row.dart';
@@ -34,8 +35,28 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
 
   List<Product> _products = [];
   Map<int, double> _priceMap = {};
-  Map<int, int> _qtys = {};
   Map<int, double> _snapshotPrices = {};
+
+  /// One quantity cell per product, each its own `ValueNotifier`.
+  ///
+  /// This used to be a plain `Map<int, int>` mutated inside `setState`, which
+  /// rebuilt **all 28 product rows to change one number**. Doc 08 then shipped
+  /// a long-press repeat that fires every 400 ms, so that full rebuild runs
+  /// about two and a half times a second while a stepper is held — on the
+  /// most-used screen in the app, at 5 a.m.
+  ///
+  /// A row listens to its own cell, so a tap rebuilds one row. `_totals` is
+  /// the only other thing that moves.
+  final Map<int, ValueNotifier<int>> _qtys = {};
+
+  /// The sticky bottom bar's figures, so a quantity tap repaints the bar
+  /// without rebuilding the list above it.
+  final ValueNotifier<({int items, double amount})> _totals =
+      ValueNotifier((items: 0, amount: 0));
+
+  /// Set when [_init] fails. The screen renders an error instead of spinning
+  /// forever, which is what it did before.
+  Object? _initError;
 
   Shop? _shop;
   bool _loading = true;
@@ -93,6 +114,24 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
   }
 
   Future<void> _init() async {
+    try {
+      await _load();
+    } catch (e, st) {
+      reportError(e, st, context: 'order entry init');
+      if (!mounted) return;
+      setState(() {
+        _initError = e;
+        _loading = false;
+      });
+    }
+  }
+
+  /// The load itself. Separated only so [_init] has one place to catch.
+  ///
+  /// Every one of these awaits could throw, and until this release none of
+  /// them had anywhere to land: the screen stayed on its spinner for good and
+  /// the exception went to the console nobody reads.
+  Future<void> _load() async {
     final db = ref.read(databaseProvider);
 
     final shop = await db.shopDao.getShop(widget.shopId);
@@ -138,11 +177,14 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
       _isConfirmed = order.isConfirmed;
       _products = prods;
       _priceMap = priceMap;
-      _qtys = qtys;
+      for (final entry in qtys.entries) {
+        _qtys[entry.key] = ValueNotifier(entry.value);
+      }
       _snapshotPrices = snapshotPrices;
       _standingTotal = soMap.values.fold(0, (a, b) => a + b);
       _loading = false;
     });
+    _recomputeTotals();
   }
 
   /// Writes a debounced save immediately, if one is pending. Safe to call when
@@ -160,6 +202,10 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
   @override
   void dispose() {
     _searchCtrl.dispose();
+    for (final cell in _qtys.values) {
+      cell.dispose();
+    }
+    _totals.dispose();
     _unregisterFlush?.call();
     // Flush, do not discard. Anything typed in the last 500 ms is otherwise
     // lost on the way out of this screen.
@@ -169,20 +215,67 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
     super.dispose();
   }
 
+  int _qtyOf(int productId) => _qtys[productId]?.value ?? 0;
+
+  /// The current quantity of every product, for the writers.
+  ///
+  /// `_save` and `_confirmOrder` walk `_products`, never the visible list, so
+  /// a row hidden by a filter keeps its value and still gets written.
+  Map<int, int> get _qtySnapshot => {
+    for (final entry in _qtys.entries) entry.key: entry.value.value,
+  };
+
   void _setQty(int productId, int qty) {
-    setState(() {
-      _qtys[productId] = qty;
-      if (_isConfirmed) {
-        _isConfirmed = false;
-        // A DB write inside setState. The OrderDraftController refactor
-        // in doc 10c owns this; wrapping it in unawaited() here would
-        // hide the defect rather than mark it.
-        // ignore: discarded_futures
-        ref.read(databaseProvider).orderDao.setConfirmed(_orderId!, false);
-      }
-    });
+    final cell = _qtys[productId];
+    if (cell == null) return;
+
+    // No `setState`. This rebuilds the one row listening to this cell, and
+    // the totals bar — not the other 27 rows.
+    cell.value = qty;
+    _recomputeTotals();
+
+    // Editing a confirmed order un-confirms it. Fire-and-forget is safe here
+    // *because* `_unconfirm` awaits its own write and surfaces its own
+    // failure; the old code discarded a future that did neither.
+    if (_isConfirmed) unawaited(_unconfirm());
+
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), _save);
+  }
+
+  void _recomputeTotals() {
+    var items = 0;
+    var amount = 0.0;
+    for (final product in _products) {
+      final qty = _qtyOf(product.id);
+      final price = _priceMap[product.id] ?? product.price;
+      if (qty > 0 && price != null) {
+        items += qty;
+        amount += qty * price;
+      }
+    }
+    _totals.value = (items: items, amount: amount);
+  }
+
+  /// Marks an edited order no longer confirmed.
+  ///
+  /// The write is **awaited** and the local flag moves only after it lands.
+  /// This ran inside `setState` as a discarded future at three call sites: the
+  /// button said "not confirmed" whether or not the database agreed, and a
+  /// failed write was invisible.
+  Future<void> _unconfirm() async {
+    if (!_isConfirmed || _orderId == null) return;
+    try {
+      await _db.orderDao.setConfirmed(_orderId!, false);
+      if (!mounted) return;
+      setState(() => _isConfirmed = false);
+    } catch (e, st) {
+      reportError(e, st, context: 'order entry unconfirm');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not update this order: $e')),
+      );
+    }
   }
 
   Future<void> _save() async {
@@ -190,7 +283,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
     final lines = _products
         .map((p) => OrderLinesCompanion(
               productId: Value(p.id),
-              qty: Value(_qtys[p.id] ?? 0),
+              qty: Value(_qtyOf(p.id)),
               unitPrice: Value(_priceMap[p.id] ??
                   p.price ??
                   _snapshotPrices[p.id] ??
@@ -202,7 +295,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
 
   Future<void> _confirmOrder() async {
     _debounce?.cancel();
-    final totalQty = _qtys.values.fold(0, (a, b) => a + b);
+    final totalQty = _qtySnapshot.values.fold(0, (a, b) => a + b);
     if (totalQty == 0) {
       final ok = await confirmDestructive(
         context,
@@ -250,7 +343,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
   }
 
   Future<void> _loadStandingOrder() async {
-    final hasEntries = _qtys.values.any((q) => q > 0);
+    final hasEntries = _qtys.values.any((cell) => cell.value > 0);
     if (hasEntries) {
       final ok = await confirmDestructive(
         context,
@@ -266,17 +359,11 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
         await db.priceDao.watchStandingOrdersForShop(widget.shopId).first;
     if (!mounted) return;
     final soMap = {for (final s in sos) s.productId: s.defaultQty};
-    setState(() {
-      for (final p in _products) {
-        _qtys[p.id] = soMap[p.id] ?? 0;
-      }
-      if (_isConfirmed) {
-        _isConfirmed = false;
-        // Same defect as in _setQty. Doc 10c.
-        // ignore: discarded_futures
-        db.orderDao.setConfirmed(_orderId!, false);
-      }
-    });
+    for (final p in _products) {
+      _qtys[p.id]?.value = soMap[p.id] ?? 0;
+    }
+    _recomputeTotals();
+    if (_isConfirmed) await _unconfirm();
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), _save);
   }
@@ -287,7 +374,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
   /// save path as a tap on a stepper — clearing is an edit, not a special case
   /// — and it un-confirms the order for the same reason editing does.
   Future<void> _clearQuantities() async {
-    if (!_qtys.values.any((q) => q > 0)) return;
+    if (!_qtys.values.any((cell) => cell.value > 0)) return;
     final ok = await confirmDestructive(
       context,
       title: 'Clear all quantities',
@@ -296,18 +383,11 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
       confirmLabel: 'Clear',
     );
     if (!ok || !mounted) return;
-    final db = ref.read(databaseProvider);
-    setState(() {
-      for (final p in _products) {
-        _qtys[p.id] = 0;
-      }
-      if (_isConfirmed) {
-        _isConfirmed = false;
-        // Same defect as in _setQty. Doc 10c.
-        // ignore: discarded_futures
-        db.orderDao.setConfirmed(_orderId!, false);
-      }
-    });
+    for (final p in _products) {
+      _qtys[p.id]?.value = 0;
+    }
+    _recomputeTotals();
+    if (_isConfirmed) await _unconfirm();
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), _save);
   }
@@ -387,16 +467,28 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: _back,
-          ),
-          title: const Text('Order Entry'),
-        ),
-        body: const Center(child: CircularProgressIndicator()),
+    if (_loading || _initError != null) {
+      return AppScaffold(
+        title: 'Order Entry',
+        background: AppColors.bg,
+        onBack: _back,
+        showBack: true,
+        body: _initError == null
+            ? const Center(child: CircularProgressIndicator())
+            // Before this the screen sat on its spinner for good when the
+            // load threw, which on the order screen means the order cannot
+            // be entered and nothing says why.
+            : AppErrorView(
+                message: 'Could not open this order.',
+                cause: '$_initError',
+                onRetry: () {
+                  setState(() {
+                    _initError = null;
+                    _loading = true;
+                  });
+                  unawaited(_init());
+                },
+              ),
       );
     }
 
@@ -424,56 +516,16 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
         _products.where((p) => (_priceMap[p.id] ?? p.price) == null).length;
     final pricedCount = _products.length - unpricedCount;
 
-    int totalItems = 0;
-    double totalAmount = 0;
-    for (final p in _products) {
-      final qty = _qtys[p.id] ?? 0;
-      final price = _priceMap[p.id] ?? p.price;
-      if (qty > 0 && price != null) {
-        totalItems += qty;
-        totalAmount += qty * price;
-      }
-    }
-
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: _back,
-        ),
-        titleSpacing: 0,
-        title: Row(
-          children: [
-            const CircleAvatar(
-              radius: 18,
-              backgroundColor: kBrandBrown,
-              child: Icon(Icons.storefront, color: Colors.white, size: 18),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    _shop?.name ?? 'Shop',
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.bold),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (_shop?.area != null)
-                    Text(
-                      _shop!.area!,
-                      style: const TextStyle(
-                          fontSize: 12, fontWeight: FontWeight.normal),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
+    // The shop this order is for, over the date it is for. Doc 10c's action
+    // item for this screen: the two things you must be sure of before typing
+    // quantities at 5 a.m.
+    return AppScaffold(
+      title: _shop?.name ?? 'Shop',
+      caption: dateLabel,
+      background: AppColors.bg,
+      onBack: _back,
+      showBack: true,
+      actions: [
           // One menu, not a text button competing with the shop name for
           // width. The standing-order item names its own size, so the menu
           // answers "will this do anything" before it is tapped.
@@ -500,8 +552,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
               ),
             ],
           ),
-        ],
-      ),
+      ],
       body: Column(
         children: [
           // Two-column info card — icon on left spanning both rows
@@ -683,29 +734,38 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
                     itemBuilder: (context, i) {
                       final product = visible[i];
                       final price = _priceMap[product.id] ?? product.price;
-                      final qty = _qtys[product.id] ?? 0;
-                      return ProductQtyRow(
-                        product: product,
-                        price: price,
-                        qty: qty,
-                        onDecrement: price != null
-                            ? () => _setQty(
-                                product.id, (qty - 1).clamp(0, 9999))
-                            : null,
-                        onIncrement: price != null
-                            ? () => _setQty(product.id, qty + 1)
-                            : null,
-                        onDecrementHold: price != null
-                            ? () => _setQty(
-                                product.id, (qty - 5).clamp(0, 9999))
-                            : null,
-                        onIncrementHold: price != null
-                            ? () => _setQty(
-                                product.id, (qty + 5).clamp(0, 9999))
-                            : null,
-                        onQtySet: price != null
-                            ? (v) => _setQty(product.id, v.clamp(0, 9999))
-                            : null,
+                      final cell = _qtys[product.id];
+                      if (cell == null) return const SizedBox.shrink();
+
+                      // The whole point of the rebuild fix: this builder is
+                      // the only thing that runs when its own quantity
+                      // changes. The step callbacks are built *inside* it so
+                      // they close over the current value, not a stale one.
+                      return ValueListenableBuilder<int>(
+                        valueListenable: cell,
+                        builder: (context, qty, _) => ProductQtyRow(
+                          product: product,
+                          price: price,
+                          qty: qty,
+                          onDecrement: price != null
+                              ? () => _setQty(
+                                  product.id, (qty - 1).clamp(0, 9999))
+                              : null,
+                          onIncrement: price != null
+                              ? () => _setQty(product.id, qty + 1)
+                              : null,
+                          onDecrementHold: price != null
+                              ? () => _setQty(
+                                  product.id, (qty - 5).clamp(0, 9999))
+                              : null,
+                          onIncrementHold: price != null
+                              ? () => _setQty(
+                                  product.id, (qty + 5).clamp(0, 9999))
+                              : null,
+                          onQtySet: price != null
+                              ? (v) => _setQty(product.id, v.clamp(0, 9999))
+                              : null,
+                        ),
                       );
                     },
                   ),
@@ -728,21 +788,24 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
               child: Row(
                 children: [
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          ref.watch(brandProvider).moneyTrim(totalAmount),
-                          style: const TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          'Order Total · $totalItems items',
-                          style: TextStyle(
-                              fontSize: 12, color: Colors.grey[600]),
-                        ),
-                      ],
+                    child: ValueListenableBuilder<({int items, double amount})>(
+                      valueListenable: _totals,
+                      builder: (context, totals, _) => Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            ref.watch(brandProvider).moneyTrim(totals.amount),
+                            style: const TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            'Order Total · ${totals.items} items',
+                            style: TextStyle(
+                                fontSize: 12, color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   ElevatedButton(

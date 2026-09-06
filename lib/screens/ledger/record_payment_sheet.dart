@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../services/error_reporting.dart';
 import 'package:intl/intl.dart';
 import '../../database/app_database.dart';
 import '../../providers/database_provider.dart';
@@ -58,20 +59,42 @@ class _RecordPaymentSheetState extends ConsumerState<RecordPaymentSheet> {
     }
   }
 
+  /// Records the payment.
+  ///
+  /// The shape is `shop_ledger_screen._exportStatement`'s, which was already
+  /// right: `try`/`catch` into a SnackBar, `finally` clearing the flag behind
+  /// a `mounted` guard.
+  ///
+  /// Unguarded, a failed `recordPayment` left `_saving` true for good — the
+  /// sheet stayed open with a dead spinner where its Save button had been,
+  /// and the operator had no way to tell whether the money had been recorded.
+  /// On a payment that is the worst possible ambiguity.
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
     final amount = double.parse(_amountCtrl.text.trim());
     final note = _noteCtrl.text.trim();
-    await ref.read(databaseProvider).ledgerDao.recordPayment(
-          shopId: widget.shopId,
-          amount: amount,
-          paidAt: _paidAt,
-          mode: _mode,
-          note: note.isEmpty ? null : note,
-          priorityOrderId: widget.pinned?.orderId,
+    try {
+      await ref.read(databaseProvider).ledgerDao.recordPayment(
+        shopId: widget.shopId,
+        amount: amount,
+        paidAt: _paidAt,
+        mode: _mode,
+        note: note.isEmpty ? null : note,
+        priorityOrderId: widget.pinned?.orderId,
+      );
+      // Only on success. A failed write must not look like a saved payment.
+      if (mounted) Navigator.pop(context);
+    } catch (e, st) {
+      reportError(e, st, context: 'record payment');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not record this payment: $e')),
         );
-    if (mounted) Navigator.pop(context);
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
