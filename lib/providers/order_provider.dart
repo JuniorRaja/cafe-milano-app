@@ -3,21 +3,21 @@ import '../database/app_database.dart';
 import 'database_provider.dart';
 
 final ordersForDateProvider =
-    StreamProvider.family<List<DailyOrder>, DateTime>((ref, date) {
+    StreamProvider.autoDispose.family<List<DailyOrder>, DateTime>((ref, date) {
   return ref.watch(databaseProvider).orderDao.watchShopOrdersForDate(date);
 });
 
 final orderWithLinesProvider =
-    StreamProvider.family<OrderWithLines?, int>((ref, orderId) {
+    StreamProvider.autoDispose.family<OrderWithLines?, int>((ref, orderId) {
   return ref.watch(databaseProvider).orderDao.watchOrderWithLines(orderId);
 });
 
 final orderSummariesForDateProvider =
-    StreamProvider.family<List<OrderDaySummary>, DateTime>((ref, date) {
+    StreamProvider.autoDispose.family<List<OrderDaySummary>, DateTime>((ref, date) {
   return ref.watch(databaseProvider).orderDao.watchOrderSummariesForDate(date);
 });
 
 final kitchenLinesForDateProvider =
-    StreamProvider.family<List<KitchenRawLine>, DateTime>((ref, date) {
+    StreamProvider.autoDispose.family<List<KitchenRawLine>, DateTime>((ref, date) {
   return ref.watch(databaseProvider).orderDao.watchKitchenLinesForDate(date);
 });

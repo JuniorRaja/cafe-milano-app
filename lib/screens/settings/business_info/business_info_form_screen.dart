@@ -1,10 +1,11 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../../app.dart';
+import '../../../theme/brand_config.dart';
 import '../../../database/app_database.dart';
 import '../../../providers/business_info_provider.dart';
 import '../../../providers/database_provider.dart';
@@ -20,7 +21,8 @@ class BusinessInfoFormScreen extends ConsumerStatefulWidget {
 class _BusinessInfoFormScreenState
     extends ConsumerState<BusinessInfoFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameCtrl = TextEditingController(text: 'Cafe Milano');
+  final _nameCtrl =
+      TextEditingController(text: BrandConfig.milano.appName);
   final _phoneCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
   String? _logoPath;
@@ -30,7 +32,7 @@ class _BusinessInfoFormScreenState
   @override
   void initState() {
     super.initState();
-    _load();
+    unawaited(_load());
   }
 
   Future<void> _load() async {
@@ -118,9 +120,11 @@ class _BusinessInfoFormScreenState
                                       File(_logoPath!),
                                       fit: BoxFit.cover,
                                       errorBuilder: (_, _, _) =>
-                                          Image.asset(kDefaultLogoAsset, fit: BoxFit.cover),
+                                          Image.asset(BrandConfig.milano.logoAsset,
+                                              fit: BoxFit.cover),
                                     )
-                                  : Image.asset(kDefaultLogoAsset, fit: BoxFit.cover),
+                                  : Image.asset(BrandConfig.milano.logoAsset,
+                                              fit: BoxFit.cover),
                             ),
                           ),
                         ),

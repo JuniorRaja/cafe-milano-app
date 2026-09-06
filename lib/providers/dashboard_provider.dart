@@ -4,6 +4,7 @@ import '../models/dashboard_models.dart';
 import '../services/category_emoji.dart';
 import 'category_provider.dart';
 import 'database_provider.dart';
+import 'date_provider.dart';
 
 // ─── Range State ────────────────────────────────────────────────────────────
 
@@ -28,27 +29,18 @@ class DashboardRangeNotifier extends StateNotifier<DashboardRange> {
   }
 }
 
-/// Midnight-normalised "today" — the single, explicit, invalidatable source
-/// for every provider that means "today" rather than the selected range.
-/// Refreshing the dashboard re-derives it, so a session left open across
-/// midnight catches up instead of quietly reporting yesterday forever.
-final todayProvider = Provider<DateTime>((ref) {
-  final now = DateTime.now();
-  return DateTime(now.year, now.month, now.day);
-});
-
 // ─── Shared aggregates ──────────────────────────────────────────────────────
 // getShopConcentration and getCategoryScores each feed two cards; keyed on
 // range so both consumers share one execution instead of running it twice.
 
-final shopConcentrationDataProvider =
-    FutureProvider.family<List<Map<String, dynamic>>, DateTimeRange>((ref, range) {
+final shopConcentrationDataProvider = FutureProvider.autoDispose
+    .family<List<Map<String, dynamic>>, DateTimeRange>((ref, range) {
   final db = ref.watch(databaseProvider);
   return db.dashboardDao.getShopConcentration(range.start, range.end);
 });
 
-final categoryScoresDataProvider =
-    FutureProvider.family<List<Map<String, dynamic>>, DateTimeRange>((ref, range) {
+final categoryScoresDataProvider = FutureProvider.autoDispose
+    .family<List<Map<String, dynamic>>, DateTimeRange>((ref, range) {
   final db = ref.watch(databaseProvider);
   return db.dashboardDao.getCategoryScores(range.start, range.end);
 });
@@ -288,7 +280,15 @@ final productLeaderboardProvider =
 
 // ─── Operational Patterns ────────────────────────────────────────────────────
 
-/// `Map<categoryId, Map<weekday (0=Sun..6=Sat → remapped to 0=Mon..6=Sun), avgPieces>>`
+/// `Map<categoryId, Map<weekday, avgPieces>>`, weekday 0 = Monday .. 6 = Sunday
+/// to match the widget's day labels.
+///
+/// The DAO returns one row per (category, day) with that day's total. The
+/// weekday and the average are derived here, in Dart, because
+/// `DateTime.weekday` reads the date the app's own converter wrote — SQLite's
+/// `strftime` reads epoch seconds as UTC and gets the day wrong east of
+/// Greenwich. See `DashboardDao.getWeekdayHeatmap`; that is also where the bug
+/// that made this card render empty for its whole life is written up.
 final weekdayHeatmapProvider =
     FutureProvider<Map<int?, Map<int, double>>>((ref) async {
   final db = ref.watch(databaseProvider);
@@ -297,22 +297,25 @@ final weekdayHeatmapProvider =
 
   final rows = await db.dashboardDao.getWeekdayHeatmap(fourWeeksAgo);
 
-  // SQLite strftime('%w') → 0=Sunday..6=Saturday
-  // We want 0=Monday..6=Sunday
-  int remapWeekday(int sqliteWeekday) {
-    // 0(Sun)→6, 1(Mon)→0, 2(Tue)→1, ... 6(Sat)→5
-    return (sqliteWeekday + 6) % 7;
-  }
-
-  final Map<int?, Map<int, double>> result = {};
+  // Every day's total, bucketed by category and weekday, before averaging.
+  // A Monday with no orders contributes nothing rather than a zero: the card
+  // says "how much on a normal Monday", not "how much per calendar Monday".
+  final totals = <int?, Map<int, List<int>>>{};
   for (final row in rows) {
     final catId = row['categoryId'] as int?;
-    final weekday = remapWeekday(row['weekday'] as int);
-    final avg = row['avg_pieces'] as double;
-    result.putIfAbsent(catId, () => {});
-    result[catId]![weekday] = avg;
+    // DateTime.weekday is 1 = Monday .. 7 = Sunday.
+    final weekday = (row['orderDate'] as DateTime).weekday - 1;
+    final total = row['daily_total'] as int;
+    totals.putIfAbsent(catId, () => {}).putIfAbsent(weekday, () => []).add(total);
   }
-  return result;
+
+  return {
+    for (final category in totals.entries)
+      category.key: {
+        for (final day in category.value.entries)
+          day.key: day.value.reduce((a, b) => a + b) / day.value.length,
+      },
+  };
 });
 
 // ─── Attention Flags ────────────────────────────────────────────────────────

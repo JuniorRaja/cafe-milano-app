@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../app.dart';
 
@@ -160,11 +161,11 @@ class _KpiHelpScreenState extends State<KpiHelpScreen> {
   void _scrollToKey() {
     final key = _sectionKeys[widget.scrollToSection];
     if (key?.currentContext != null) {
-      Scrollable.ensureVisible(
+      unawaited(Scrollable.ensureVisible(
         key!.currentContext!,
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeOut,
-      );
+      ));
     }
   }
 

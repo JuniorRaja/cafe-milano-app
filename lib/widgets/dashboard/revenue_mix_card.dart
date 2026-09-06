@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:intl/intl.dart';
 import '../../app.dart';
 import '../../models/dashboard_models.dart';
 import '../../providers/dashboard_provider.dart';
+import '../../utils/money.dart';
+import '../../theme/brand_config.dart';
 
 // Consistent colour palette for category slices
 const _kSliceColors = [
@@ -25,61 +26,66 @@ class RevenueMixCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final brand = ref.watch(brandProvider);
     final mixAsync = ref.watch(categoryMixProvider);
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Text('🍩', style: TextStyle(fontSize: 16)),
-              SizedBox(width: 6),
-              Text(
-                'Category Revenue Mix',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: kBrandBrown,
+    return RepaintBoundary(
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Text('🍩', style: TextStyle(fontSize: 16)),
+                SizedBox(width: 6),
+                Text(
+                  'Category Revenue Mix',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: kBrandBrown,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          mixAsync.when(
-            data: (rows) {
-              if (rows.isEmpty) return _emptyState();
-              return _buildContent(rows);
-            },
-            loading: () => const SizedBox(
-              height: 200,
-              child: Center(
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: kBrandBrown,
-                ),
-              ),
+              ],
             ),
-            error: (_, _) => _emptyState(),
-          ),
-        ],
+            const SizedBox(height: 16),
+            mixAsync.when(
+              data: (rows) {
+                if (rows.isEmpty) return _emptyState();
+                return _buildContent(brand, rows);
+              },
+              loading: () => const SizedBox(
+                height: 200,
+                child: Center(
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: kBrandBrown,
+                  ),
+                ),
+              ),
+              error: (_, _) => _emptyState(),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildContent(List<CategoryMixRow> rows) {
+  Widget _buildContent(BrandConfig brand, List<CategoryMixRow> rows) {
     final totalRevenue = rows.fold<double>(0, (sum, r) => sum + r.revenue);
 
     return Column(
       children: [
-        // Donut Chart
+        // Donut chart. The slices reach a radius of 80, so 180 is the drawing
+        // plus a margin; the figure in the middle is measured against the same
+        // box and must not be able to push past it.
         SizedBox(
           height: 180,
           child: Stack(
@@ -106,19 +112,18 @@ class RevenueMixCard extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '₹${_formatCurrency(totalRevenue)}',
+                    brand.moneyLakh(totalRevenue),
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
                       color: kBrandBrown,
                     ),
+                    maxLines: 1,
                   ),
                   Text(
                     'Total',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.grey.shade500,
-                    ),
+                    style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                    maxLines: 1,
                   ),
                 ],
               ),
@@ -140,14 +145,21 @@ class RevenueMixCard extends ConsumerWidget {
     );
   }
 
+  // Padding, not a fixed height. An icon over a line of text inside a pinned
+  // box overflows the moment the phone's font scale goes up a notch, which is
+  // exactly the warning this was producing.
   Widget _emptyState() {
-    return SizedBox(
-      height: 120,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 32),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.pie_chart_outline, size: 32, color: Colors.grey.shade300),
+            Icon(
+              Icons.pie_chart_outline,
+              size: 32,
+              color: Colors.grey.shade300,
+            ),
             const SizedBox(height: 8),
             Text(
               'No revenue data for this period',
@@ -159,29 +171,17 @@ class RevenueMixCard extends ConsumerWidget {
     );
   }
 
-  static String _formatCurrency(double amount) {
-    if (amount >= 100000) {
-      return '${(amount / 100000).toStringAsFixed(1)}L';
-    } else if (amount >= 1000) {
-      return NumberFormat('#,##,###').format(amount.round());
-    }
-    return amount.toStringAsFixed(0);
-  }
 }
 
-class _MixRow extends StatelessWidget {
-  const _MixRow({
-    required this.rank,
-    required this.color,
-    required this.row,
-  });
+class _MixRow extends ConsumerWidget {
+  const _MixRow({required this.rank, required this.color, required this.row});
 
   final int rank;
   final Color color;
   final CategoryMixRow row;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -190,10 +190,7 @@ class _MixRow extends StatelessWidget {
           Container(
             width: 10,
             height: 10,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 8),
           // Emoji + Name
@@ -202,21 +199,15 @@ class _MixRow extends StatelessWidget {
           Expanded(
             child: Text(
               row.categoryName,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ),
           // Revenue
           Text(
-            '₹${NumberFormat('#,##,###').format(row.revenue.round())}',
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
+            ref.watch(brandProvider).money(row.revenue.round()),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
           ),
           const SizedBox(width: 8),
           // Share %
@@ -224,19 +215,13 @@ class _MixRow extends StatelessWidget {
             width: 40,
             child: Text(
               '${row.sharePercent.toStringAsFixed(0)}%',
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey.shade600,
-              ),
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
               textAlign: TextAlign.right,
             ),
           ),
           const SizedBox(width: 8),
           // Trend arrow
-          SizedBox(
-            width: 44,
-            child: _buildTrend(row.trendPercent),
-          ),
+          SizedBox(width: 44, child: _buildTrend(row.trendPercent)),
         ],
       ),
     );

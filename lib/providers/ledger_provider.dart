@@ -13,7 +13,7 @@ typedef ShopLedgerQuery = ({
 });
 
 final shopLedgerProvider =
-    StreamProvider.family<List<LedgerEntry>, ShopLedgerQuery>((ref, query) {
+    StreamProvider.autoDispose.family<List<LedgerEntry>, ShopLedgerQuery>((ref, query) {
   final db = ref.watch(databaseProvider);
   return db.ledgerDao.watchShopLedger(
     query.shopId,
@@ -24,7 +24,8 @@ final shopLedgerProvider =
   );
 });
 
-final shopStatsProvider = StreamProvider.family<ShopLedgerStats, int>((ref, shopId) {
+final shopStatsProvider =
+    StreamProvider.autoDispose.family<ShopLedgerStats, int>((ref, shopId) {
   final db = ref.watch(databaseProvider);
   return db.ledgerDao.watchShopStats(shopId);
 });
@@ -33,7 +34,7 @@ final shopStatsProvider = StreamProvider.family<ShopLedgerStats, int>((ref, shop
 /// for the whole billing list rather than one per row, and a stream so the
 /// chips repaint when a payment is recorded from anywhere else in the app.
 final billDuesForDateProvider =
-    StreamProvider.family<Map<int, BillDue>, DateTime>((ref, date) {
+    StreamProvider.autoDispose.family<Map<int, BillDue>, DateTime>((ref, date) {
   final db = ref.watch(databaseProvider);
   return db.ledgerDao.watchBillDuesForDate(date);
 });
@@ -43,4 +44,20 @@ final billDuesForDateProvider =
 final outstandingByShopProvider = StreamProvider<List<ShopOutstanding>>((ref) {
   final db = ref.watch(databaseProvider);
   return db.ledgerDao.watchOutstandingByShop();
+});
+
+/// The all-shops receivables figure the drawer card shows. Folded from the
+/// same rows [outstandingByShopProvider] serves, so the card and the list it
+/// opens are one number.
+final outstandingSummaryProvider = StreamProvider<OutstandingSummary>((ref) {
+  final db = ref.watch(databaseProvider);
+  return db.ledgerDao.watchOutstandingSummary();
+});
+
+/// Billed and collected over a window, for the Finances quick stats.
+/// `autoDispose` because it is parameterised — 10a's rule.
+final periodMoneyProvider = StreamProvider.autoDispose
+    .family<PeriodMoney, ({DateTime from, DateTime to})>((ref, range) {
+  final db = ref.watch(databaseProvider);
+  return db.ledgerDao.watchPeriodMoney(range.from, range.to);
 });

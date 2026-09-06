@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -9,9 +10,10 @@ import '../../providers/date_provider.dart';
 import '../../providers/order_provider.dart';
 import '../../providers/shop_provider.dart';
 import '../../providers/product_provider.dart';
-import '../../services/category_emoji.dart';
+import '../../services/kitchen_list.dart';
 import '../../widgets/date_selector.dart';
-import '../../widgets/staggered_fade_in.dart';
+import '../../widgets/shell/app_shell.dart';
+import '../../widgets/ui/ui.dart';
 
 class KitchenScreen extends ConsumerStatefulWidget {
   const KitchenScreen({super.key});
@@ -57,177 +59,85 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
       orElse: () => <KitchenRawLine>[],
     );
     final hasLines = lines.isNotEmpty;
+    // One grouping, drawn by the By Item tab and written by the share
+    // sheet. See lib/services/kitchen_list.dart.
+    final itemGroups = groupKitchenLines(
+      lines: lines,
+      productMap: productMap,
+      categories: categories,
+    );
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: SafeArea(
-        top: true,
-        bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Row(
-                children: [
-                  const Icon(Icons.restaurant_rounded,
-                      color: kBrandGold, size: 28),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'KITCHEN',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey.shade500,
-                            letterSpacing: 1.1,
-                          ),
-                        ),
-                        const Text(
-                          'Production',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            color: kBrandBrown,
-                            height: 1.15,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Share button
-                  IconButton(
-                    icon: const Icon(Icons.share_rounded),
-                    color: kBrandBrown,
-                    tooltip: 'Share kitchen list',
-                    onPressed: hasLines
-                        ? () => _tabController.index == 0
-                            ? _shareItems(lines, productMap, categories, date)
-                            : _shareAllShops(lines, shopMap, productMap, date)
-                        : null,
-                  ),
-                ],
-              ),
-            ),
-            // Date selector
-            const DateSelector(),
-            // Tab bar
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                tabs: const [
-                  Tab(text: 'By Item'),
-                  Tab(text: 'By Shop'),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            // Content
-            Expanded(
-              child: linesAsync.when(
-                data: (lines) {
-                  if (lines.isEmpty) {
-                    return const _EmptyState();
-                  }
-                  return TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _ByItemView(lines: lines, productMap: productMap),
-                      _ByShopView(
-                        lines: lines,
-                        shopMap: shopMap,
-                        productMap: productMap,
-                        onShareShop: (shopId) =>
-                            _shareShop(shopId, lines, shopMap, productMap, date),
-                      ),
-                    ],
-                  );
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('Error: $e')),
-              ),
-            ),
-          ],
+    // On `AppScaffold`, like every other shell screen. It had a hand-rolled
+    // header, which is why its menu button sat on a different left edge from
+    // the other four.
+    return AppScaffold(
+      caption: 'Kitchen',
+      title: 'Production',
+      leading: const ShellDrawerButton(),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.ios_share_rounded),
+          color: AppColors.textPrimary,
+          tooltip: 'Share kitchen list',
+          onPressed: hasLines
+              ? () => _tabController.index == 0
+                  ? _shareItems(itemGroups, date)
+                  : _shareAllShops(lines, shopMap, productMap, date)
+              : null,
         ),
+      ],
+      bottom: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const DateSelector(),
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: AppSpace.s4),
+            decoration: const BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: AppRadius.rS,
+            ),
+            child: TabBar(
+              controller: _tabController,
+              tabs: const [
+                Tab(text: 'By Item'),
+                Tab(text: 'By Shop'),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpace.s2),
+        ],
+      ),
+      body: linesAsync.when(
+        data: (lines) {
+          if (lines.isEmpty) {
+            return const _EmptyState();
+          }
+          return TabBarView(
+            controller: _tabController,
+            children: [
+              _ByItemView(groups: itemGroups),
+              _ByShopView(
+                lines: lines,
+                shopMap: shopMap,
+                productMap: productMap,
+                onShareShop: (shopId) =>
+                    _shareShop(shopId, lines, shopMap, productMap, date),
+              ),
+            ],
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text('Error: $e')),
       ),
     );
   }
 
-  void _shareItems(
-    List<KitchenRawLine> lines,
-    Map<int, Product> productMap,
-    List<Category> categories,
-    DateTime date,
-  ) {
-    final dateLabel = DateFormat('dd MMM yyyy').format(date);
-
-    final Map<int, int> itemTotals = {};
-    for (final l in lines) {
-      itemTotals[l.productId] = (itemTotals[l.productId] ?? 0) + l.qty;
-    }
-
-    // Group by categoryId (null = uncategorised)
-    final Map<int?, List<MapEntry<int, int>>> byCat = {};
-    for (final entry in itemTotals.entries.where((e) => e.value > 0)) {
-      final catId = productMap[entry.key]?.categoryId;
-      byCat.putIfAbsent(catId, () => []).add(entry);
-    }
-
-    // Sort each group alphabetically by product name
-    int cmpByName(MapEntry<int, int> a, MapEntry<int, int> b) =>
-        (productMap[a.key]?.name.toLowerCase() ?? '')
-            .compareTo(productMap[b.key]?.name.toLowerCase() ?? '');
-    for (final list in byCat.values) {
-      list.sort(cmpByName);
-    }
-
-    final knownCatIds = categories.map((c) => c.id).toSet();
-
-    final buf = StringBuffer();
-    buf.writeln('🍞 Kitchen List — $dateLabel');
-    buf.writeln();
-
-    // Emit categories in sort order
-    for (final cat in categories) {
-      final items = byCat[cat.id];
-      if (items == null || items.isEmpty) continue;
-      final total = items.fold<int>(0, (s, e) => s + e.value);
-      buf.writeln('${emojiFor(cat.name)} ${cat.name} (total: $total pcs)');
-      for (final e in items) {
-        buf.writeln('· ${productMap[e.key]?.name ?? '#${e.key}'} × ${e.value}');
-      }
-      buf.writeln();
-    }
-
-    // Others: null categoryId or orphaned categoryId not in known list
-    final others = <MapEntry<int, int>>[];
-    for (final entry in byCat.entries) {
-      if (entry.key == null || !knownCatIds.contains(entry.key)) {
-        others.addAll(entry.value);
-      }
-    }
-    others.sort(cmpByName);
-
-    if (others.isNotEmpty) {
-      final total = others.fold<int>(0, (s, e) => s + e.value);
-      buf.writeln('🍽️ Others (total: $total pcs)');
-      for (final e in others) {
-        buf.writeln('· ${productMap[e.key]?.name ?? '#${e.key}'} × ${e.value}');
-      }
-      buf.writeln();
-    }
-
-    Share.share(buf.toString().trim());
+  void _shareItems(List<KitchenGroup> groups, DateTime date) {
+    unawaited(
+      Share.share(
+        kitchenListText(groups, DateFormat('dd MMM yyyy').format(date)),
+      ),
+    );
   }
 
   void _shareShop(
@@ -263,7 +173,7 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
       buf.writeln(
           '· ${productMap[entry.key]?.name ?? '#${entry.key}'} × ${entry.value}');
     }
-    Share.share(buf.toString().trim());
+    unawaited(Share.share(buf.toString().trim()));
   }
 
   void _shareAllShops(
@@ -314,7 +224,7 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
     buf.writeln(
       'Total: ${shopOrder.length} shop${shopOrder.length != 1 ? 's' : ''} · $totalPieces pieces',
     );
-    Share.share(buf.toString().trim());
+    unawaited(Share.share(buf.toString().trim()));
   }
 
   void _sortShops(List<int> shopOrder, Map<int, Shop> shopMap) {
@@ -351,97 +261,75 @@ class _EmptyState extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _ByItemView extends StatelessWidget {
-  const _ByItemView({required this.lines, required this.productMap});
+  const _ByItemView({required this.groups});
 
-  final List<KitchenRawLine> lines;
-  final Map<int, Product> productMap;
+  final List<KitchenGroup> groups;
 
   @override
   Widget build(BuildContext context) {
-    final Map<int, int> totals = {};
-    for (final l in lines) {
-      totals[l.productId] = (totals[l.productId] ?? 0) + l.qty;
-    }
-    final sorted = totals.entries
-        .where((e) => e.value > 0)
-        .toList()
-      ..sort((a, b) {
-          final na = productMap[a.key]?.name.toLowerCase() ?? '';
-          final nb = productMap[b.key]?.name.toLowerCase() ?? '';
-          return na.compareTo(nb);
-        });
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      child: Card(
-        color: Colors.white,
-        clipBehavior: Clip.antiAlias,
-        margin: EdgeInsets.zero,
-        child: Column(
-          children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 12, 16, 6),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Item',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    'Quantity',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            Expanded(
-              child: ListView.separated(
-                itemCount: sorted.length,
-                separatorBuilder: (_, _) =>
-                    const Divider(height: 1, indent: 72),
-                itemBuilder: (context, i) {
-                  final entry = sorted[i];
-                  final product = productMap[entry.key];
-                  final unit = product?.unit;
-                  return StaggeredFadeIn(
-                    index: i,
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: kBrandBrown.withAlpha(30),
-                        child: const Icon(
-                          Icons.bakery_dining,
-                          color: kBrandBrown,
-                          size: 20,
-                        ),
-                      ),
-                      title: Text(product?.name ?? 'Product #${entry.key}'),
-                      subtitle: unit != null ? Text('per $unit') : null,
-                      trailing: Text(
-                        entry.value.toString(),
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
+    return ListView.builder(
+      // The nav bar floats over the body now. See `AppShell.bottomInset`.
+      padding: EdgeInsets.fromLTRB(
+        AppSpace.s4,
+        AppSpace.s2,
+        AppSpace.s4,
+        AppShell.bottomInset(context),
       ),
+      itemCount: groups.length,
+      itemBuilder: (context, i) {
+        final group = groups[i];
+        return RepaintBoundary(
+          child: AppCard(
+            margin: const EdgeInsets.only(bottom: AppSpace.s2),
+            padding: EdgeInsets.zero,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(AppSpace.s3),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${group.emoji} ${group.name}',
+                          style: AppType.titleS,
+                        ),
+                      ),
+                      Text(
+                        '${group.total} pcs',
+                        style: AppType.label
+                            .copyWith(color: AppColors.brandDeep),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(
+                  height: 1,
+                  indent: AppSpace.s3,
+                  endIndent: AppSpace.s3,
+                ),
+                ...group.items.map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpace.s3,
+                      vertical: AppSpace.s2,
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(item.name, style: AppType.body),
+                        ),
+                        Text('${item.qty}', style: AppType.titleL),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpace.s2),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -476,7 +364,8 @@ class _ByShopView extends StatelessWidget {
     shopOrder.sort((a, b) => _KitchenScreenState._cmpShops(shopMap[a], shopMap[b]));
 
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+      // The nav bar floats over the body now. See `AppShell.bottomInset`.
+      padding: EdgeInsets.fromLTRB(16, 8, 16, AppShell.bottomInset(context)),
       itemCount: shopOrder.length,
       itemBuilder: (context, i) {
         final shopId = shopOrder[i];
@@ -530,7 +419,7 @@ class _ByShopView extends StatelessWidget {
                           fontWeight: FontWeight.w600, color: kBrandBrown),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.share, size: 18),
+                      icon: const Icon(Icons.ios_share_rounded, size: 18),
                       onPressed: () => onShareShop(shopId),
                       visualDensity: VisualDensity.compact,
                       tooltip: 'Share ${shop?.name ?? 'shop'}',

@@ -10,6 +10,6 @@ final allShopsProvider = StreamProvider<List<Shop>>((ref) {
   return ref.watch(databaseProvider).shopDao.watchAllShops();
 });
 
-final shopByIdProvider = FutureProvider.family<Shop?, int>((ref, id) {
+final shopByIdProvider = FutureProvider.autoDispose.family<Shop?, int>((ref, id) {
   return ref.watch(databaseProvider).shopDao.getShop(id);
 });

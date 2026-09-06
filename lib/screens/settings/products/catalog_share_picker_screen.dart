@@ -7,6 +7,7 @@ import '../../../providers/category_provider.dart';
 import '../../../providers/business_info_provider.dart';
 import '../../../services/catalog_share_service.dart';
 import '../../../widgets/letter_avatar.dart';
+import '../../../widgets/ui/ui.dart';
 
 class CatalogSharePickerScreen extends ConsumerStatefulWidget {
   const CatalogSharePickerScreen({super.key});
@@ -65,6 +66,35 @@ class _CatalogSharePickerScreenState
     }
   }
 
+  String? _priceLabel(Product product) {
+    if (product.price == null) {
+      return product.unit != null ? 'per ${product.unit}' : null;
+    }
+    final price = product.price!;
+    final text = price == price.roundToDouble()
+        ? price.toStringAsFixed(0)
+        : price.toStringAsFixed(2);
+    return '\u{20B9}$text${product.unit != null ? ' / ${product.unit}' : ''}';
+  }
+
+  Widget _thumb(Product product) {
+    final path = product.photoPath;
+    if (path == null) return LetterAvatar(name: product.name, radius: 20);
+    return ClipRRect(
+      borderRadius: AppRadius.rFull,
+      child: Image.file(
+        File(path),
+        width: 40,
+        height: 40,
+        fit: BoxFit.cover,
+        cacheWidth: 120,
+        cacheHeight: 120,
+        filterQuality: FilterQuality.low,
+        errorBuilder: (_, _, _) => LetterAvatar(name: product.name, radius: 20),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final productsAsync = ref.watch(activeProductsProvider);
@@ -87,21 +117,6 @@ class _CatalogSharePickerScreenState
             ),
           ],
         ),
-        actions: [
-          productsAsync.maybeWhen(
-            data: (products) => TextButton(
-              onPressed: () => setState(() {
-                _selectedIds = _selectedIds.length == products.length
-                    ? {}
-                    : products.map((p) => p.id).toSet();
-              }),
-              child: Text(_selectedIds.length == productsAsync.value?.length
-                  ? 'Deselect All'
-                  : 'Select All'),
-            ),
-            orElse: () => const SizedBox.shrink(),
-          ),
-        ],
       ),
       body: productsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -114,42 +129,19 @@ class _CatalogSharePickerScreenState
           if (products.isEmpty) {
             return const Center(child: Text('No active products to share.'));
           }
-          return ListView.separated(
-            itemCount: products.length,
-            separatorBuilder: (_, _) => const Divider(height: 1),
-            itemBuilder: (context, index) {
-              final product = products[index];
-              final selected = _selectedIds.contains(product.id);
-              final priceLabel = product.price != null
-                  ? '₹${product.price!.toStringAsFixed(product.price! == product.price!.roundToDouble() ? 0 : 2)}'
-                        '${product.unit != null ? ' / ${product.unit}' : ''}'
-                  : (product.unit != null ? 'per ${product.unit}' : null);
-              return CheckboxListTile(
-                value: selected,
-                onChanged: (v) => setState(() {
-                  if (v == true) {
-                    _selectedIds.add(product.id);
-                  } else {
-                    _selectedIds.remove(product.id);
-                  }
-                }),
-                secondary: product.photoPath != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: Image.file(
-                          File(product.photoPath!),
-                          width: 40,
-                          height: 40,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) =>
-                              LetterAvatar(name: product.name, radius: 20),
-                        ),
-                      )
-                    : LetterAvatar(name: product.name, radius: 20),
-                title: Text(product.name),
-                subtitle: priceLabel != null ? Text(priceLabel) : null,
-              );
-            },
+          return MultiSelectList(
+            noun: 'products',
+            options: [
+              for (final product in products)
+                SelectOption(
+                  id: product.id,
+                  title: product.name,
+                  subtitle: _priceLabel(product),
+                  leading: _thumb(product),
+                ),
+            ],
+            selected: _selectedIds,
+            onChanged: (next) => setState(() => _selectedIds = next),
           );
         },
       ),

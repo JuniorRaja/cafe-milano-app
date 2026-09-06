@@ -20,74 +20,78 @@ class _AttentionFlagsWidgetState extends ConsumerState<AttentionFlagsWidget> {
   Widget build(BuildContext context) {
     final flagsAsync = ref.watch(attentionFlagsProvider);
 
-    return flagsAsync.when(
-      data: (flags) {
-        if (flags.isEmpty) return const SizedBox.shrink();
+    return RepaintBoundary(
+      child: flagsAsync.when(
+        data: (flags) {
+          if (flags.isEmpty) return const SizedBox.shrink();
 
-        final visible = flags
-            .asMap()
-            .entries
-            .where((e) => !_dismissedIndices.contains(e.key))
-            .toList();
+          final visible = flags
+              .asMap()
+              .entries
+              .where((e) => !_dismissedIndices.contains(e.key))
+              .toList();
 
-        if (visible.isEmpty) return const SizedBox.shrink();
+          if (visible.isEmpty) return const SizedBox.shrink();
 
-        final displayFlags = _expanded ? visible : visible.take(3).toList();
-        final hasMore = !_expanded && visible.length > 3;
+          final displayFlags = _expanded ? visible : visible.take(3).toList();
+          final hasMore = !_expanded && visible.length > 3;
 
-        return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Row(
-                children: [
-                  Text('🚩', style: TextStyle(fontSize: 14)),
-                  SizedBox(width: 6),
-                  Text(
-                    'Attention Flags',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: kBrandBrown,
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Text('🚩', style: TextStyle(fontSize: 14)),
+                    SizedBox(width: 6),
+                    Text(
+                      'Attention Flags',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: kBrandBrown,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              ...displayFlags.map((entry) => _FlagCard(
+                  ],
+                ),
+                const SizedBox(height: 12),
+                ...displayFlags.map(
+                  (entry) => _FlagCard(
                     flag: entry.value,
                     onDismiss: () {
                       setState(() => _dismissedIndices.add(entry.key));
                     },
-                  )),
-              if (hasMore)
-                GestureDetector(
-                  onTap: () => setState(() => _expanded = true),
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(
-                      'See all (${visible.length})',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: kBrandBrown.withValues(alpha: 0.8),
+                  ),
+                ),
+                if (hasMore)
+                  GestureDetector(
+                    onTap: () => setState(() => _expanded = true),
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        'See all (${visible.length})',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: kBrandBrown.withValues(alpha: 0.8),
+                        ),
                       ),
                     ),
                   ),
-                ),
-            ],
-          ),
-        );
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
+              ],
+            ),
+          );
+        },
+        loading: () => const SizedBox.shrink(),
+        error: (_, _) => const SizedBox.shrink(),
+      ),
     );
   }
 }

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import '../../app.dart';
 import '../../models/dashboard_models.dart';
 import '../../providers/dashboard_provider.dart';
 import 'category_sparkline.dart';
+import '../../utils/money.dart';
+import '../../theme/brand_config.dart';
 
 class CategoryScorecardsWidget extends ConsumerWidget {
   const CategoryScorecardsWidget({super.key});
@@ -13,55 +14,57 @@ class CategoryScorecardsWidget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scorecardsAsync = ref.watch(categoryScorecardsProvider);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 10),
-          child: Row(
-            children: [
-              const Text('📊', style: TextStyle(fontSize: 16)),
-              const SizedBox(width: 6),
-              const Text(
-                'Category Scorecards',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: kBrandBrown,
+    return RepaintBoundary(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 10),
+            child: Row(
+              children: [
+                const Text('📊', style: TextStyle(fontSize: 16)),
+                const SizedBox(width: 6),
+                const Text(
+                  'Category Scorecards',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: kBrandBrown,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        scorecardsAsync.when(
-          data: (scorecards) {
-            if (scorecards.isEmpty) {
-              return _emptyState();
-            }
-            return SizedBox(
+          scorecardsAsync.when(
+            data: (scorecards) {
+              if (scorecards.isEmpty) {
+                return _emptyState();
+              }
+              return SizedBox(
+                height: 210,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  itemCount: scorecards.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 12),
+                  itemBuilder: (context, index) =>
+                      _ScorecardCard(scorecard: scorecards[index]),
+                ),
+              );
+            },
+            loading: () => SizedBox(
               height: 210,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                itemCount: scorecards.length,
+                itemCount: 3,
                 separatorBuilder: (_, _) => const SizedBox(width: 12),
-                itemBuilder: (context, index) =>
-                    _ScorecardCard(scorecard: scorecards[index]),
+                itemBuilder: (_, _) => _loadingCard(),
               ),
-            );
-          },
-          loading: () => SizedBox(
-            height: 210,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: 3,
-              separatorBuilder: (_, _) => const SizedBox(width: 12),
-              itemBuilder: (_, _) => _loadingCard(),
             ),
+            error: (_, _) => _emptyState(),
           ),
-          error: (_, _) => _emptyState(),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -78,14 +81,15 @@ class CategoryScorecardsWidget extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.category_outlined, size: 32, color: Colors.grey.shade300),
+            Icon(
+              Icons.category_outlined,
+              size: 32,
+              color: Colors.grey.shade300,
+            ),
             const SizedBox(height: 8),
             Text(
               'No category data yet',
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey.shade400,
-              ),
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
             ),
           ],
         ),
@@ -128,12 +132,13 @@ class CategoryScorecardsWidget extends ConsumerWidget {
   }
 }
 
-class _ScorecardCard extends StatelessWidget {
+class _ScorecardCard extends ConsumerWidget {
   const _ScorecardCard({required this.scorecard});
   final CategoryScorecard scorecard;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final brand = ref.watch(brandProvider);
     return Container(
       width: 160,
       padding: const EdgeInsets.all(14),
@@ -168,7 +173,7 @@ class _ScorecardCard extends StatelessWidget {
 
           // Revenue
           Text(
-            '₹${_formatRevenue(scorecard.revenue)}',
+            brand.moneyLakh(scorecard.revenue),
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w800,
@@ -179,7 +184,7 @@ class _ScorecardCard extends StatelessWidget {
 
           // Volume + Reach
           Text(
-            '${NumberFormat('#,###').format(scorecard.pieces)} pcs · ${scorecard.shopCount} shops',
+            '${brand.count(scorecard.pieces)} pcs · ${scorecard.shopCount} shops',
             style: TextStyle(
               fontSize: 10,
               color: Colors.grey.shade600,
@@ -200,16 +205,16 @@ class _ScorecardCard extends StatelessWidget {
           if (scorecard.starProductName != null)
             Row(
               children: [
-                Icon(Icons.star_rounded,
-                    size: 12, color: Colors.amber.shade600),
+                Icon(
+                  Icons.star_rounded,
+                  size: 12,
+                  color: Colors.amber.shade600,
+                ),
                 const SizedBox(width: 3),
                 Expanded(
                   child: Text(
                     '${scorecard.starProductName} (${scorecard.starProductSharePercent.toStringAsFixed(0)}%)',
-                    style: TextStyle(
-                      fontSize: 9,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 9, color: Colors.grey.shade600),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -226,12 +231,4 @@ class _ScorecardCard extends StatelessWidget {
     );
   }
 
-  String _formatRevenue(double amount) {
-    if (amount >= 100000) {
-      return '${(amount / 100000).toStringAsFixed(1)}L';
-    } else if (amount >= 1000) {
-      return NumberFormat('#,##,###').format(amount.round());
-    }
-    return amount.toStringAsFixed(0);
-  }
 }
