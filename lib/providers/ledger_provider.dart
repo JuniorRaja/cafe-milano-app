@@ -2,6 +2,7 @@ import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../database/app_database.dart';
 import 'database_provider.dart';
+import 'date_provider.dart';
 
 /// Family key for [shopLedgerProvider]. A record gets structural equality
 /// for free, so re-watching with the same filters doesn't resubscribe.
@@ -17,6 +18,7 @@ final shopLedgerProvider =
   final db = ref.watch(databaseProvider);
   return db.ledgerDao.watchShopLedger(
     query.shopId,
+    asOf: ref.watch(todayProvider),
     rangeStart: query.range?.start,
     rangeEnd: query.range?.end,
     status: query.status,
@@ -27,7 +29,9 @@ final shopLedgerProvider =
 final shopStatsProvider =
     StreamProvider.autoDispose.family<ShopLedgerStats, int>((ref, shopId) {
   final db = ref.watch(databaseProvider);
-  return db.ledgerDao.watchShopStats(shopId);
+  // `todayProvider`, so the figure re-reads when the day rolls over and a
+  // future-dated order becomes due.
+  return db.ledgerDao.watchShopStats(shopId, ref.watch(todayProvider));
 });
 
 /// Payment status for every bill on one date, keyed by order id. One query
@@ -43,7 +47,7 @@ final billDuesForDateProvider =
 /// same list, so the headline figure and the list behind it are one number.
 final outstandingByShopProvider = StreamProvider<List<ShopOutstanding>>((ref) {
   final db = ref.watch(databaseProvider);
-  return db.ledgerDao.watchOutstandingByShop();
+  return db.ledgerDao.watchOutstandingByShop(ref.watch(todayProvider));
 });
 
 /// The all-shops receivables figure the drawer card shows. Folded from the
@@ -51,7 +55,7 @@ final outstandingByShopProvider = StreamProvider<List<ShopOutstanding>>((ref) {
 /// opens are one number.
 final outstandingSummaryProvider = StreamProvider<OutstandingSummary>((ref) {
   final db = ref.watch(databaseProvider);
-  return db.ledgerDao.watchOutstandingSummary();
+  return db.ledgerDao.watchOutstandingSummary(ref.watch(todayProvider));
 });
 
 /// Billed and collected over a window, for the Finances quick stats.

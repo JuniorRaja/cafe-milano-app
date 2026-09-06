@@ -264,13 +264,24 @@ class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
   /// receivable, and subtracting it would understate what is collectable.
   /// Inactive shops stay in — money owed is owed whether or not the shop is
   /// still being delivered to.
-  Stream<List<ShopOutstanding>> watchOutstandingByShop() {
+  /// **Bills dated after [asOf] are not receivable yet.** A shop can place a
+  /// Sunday order on Friday and the owner enters it against Sunday; until
+  /// Sunday arrives nothing is owed for it, because nothing has been
+  /// delivered. Counting it early overstates what is collectable and puts a
+  /// shop in the at-risk list for an order it has not received.
+  ///
+  /// [asOf] is passed rather than read from the clock so the day rollover goes
+  /// through `todayProvider` like everything else, and so a test can pick a
+  /// day.
+  Stream<List<ShopOutstanding>> watchOutstandingByShop(DateTime asOf) {
+    final today = DateTime(asOf.year, asOf.month, asOf.day);
     final query = customSelect(
       'SELECT s.id AS shop_id, s.name AS name, s.area AS area, '
       'COALESCE(s.opening_balance, 0.0) '
       '+ (SELECT COALESCE(SUM(ol.qty * ol.unit_price), 0.0) '
       '   FROM order_lines ol INNER JOIN daily_orders o ON ol.order_id = o.id '
       '   WHERE o.shop_id = s.id '
+      '   AND o.order_date <= ? '
       '   AND (s.opening_balance_at IS NULL OR o.order_date >= s.opening_balance_at)) '
       '- (SELECT COALESCE(SUM(p.amount), 0.0) FROM payments p WHERE p.shop_id = s.id) '
       'AS outstanding, '
@@ -280,6 +291,7 @@ class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
       // ancient unpaid bill.
       '(SELECT MIN(o.order_date) FROM daily_orders o '
       '   WHERE o.shop_id = s.id '
+      '   AND o.order_date <= ? '
       '   AND (s.opening_balance_at IS NULL OR o.order_date >= s.opening_balance_at) '
       '   AND (SELECT COALESCE(SUM(ol.qty * ol.unit_price), 0.0) '
       '        FROM order_lines ol WHERE ol.order_id = o.id) '
@@ -287,7 +299,11 @@ class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
       '        FROM payment_allocations pa WHERE pa.order_id = o.id) > ?'
       ') AS oldest_unpaid '
       'FROM shops s ORDER BY outstanding DESC',
-      variables: [Variable.withReal(_moneyEpsilon)],
+      variables: [
+        Variable.withDateTime(today),
+        Variable.withDateTime(today),
+        Variable.withReal(_moneyEpsilon),
+      ],
       readsFrom: {shops, dailyOrders, orderLines, payments, paymentAllocations},
     );
 
@@ -310,8 +326,8 @@ class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
   /// Folded from [watchOutstandingByShop] rather than queried separately, so
   /// the headline is the sum of the list by construction. A shop in credit is
   /// already excluded there and so contributes nothing here either.
-  Stream<OutstandingSummary> watchOutstandingSummary() {
-    return watchOutstandingByShop().map((shops) {
+  Stream<OutstandingSummary> watchOutstandingSummary(DateTime asOf) {
+    return watchOutstandingByShop(asOf).map((shops) {
       if (shops.isEmpty) return OutstandingSummary.empty;
 
       DateTime? oldest;
@@ -379,13 +395,18 @@ class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
   /// not watched: per the data model, `openingBalance` is only editable on a
   /// new shop or while still null, so it cannot change again once a ledger
   /// screen is open on that shop.
+  /// [asOf] hides bills dated after it, so a Sunday order entered on Friday
+  /// does not appear in the running balance until Sunday. The owner asked for
+  /// this on the device pass: the figure must answer "what is owed to me now".
   Stream<List<LedgerEntry>> watchShopLedger(
     int shopId, {
+    required DateTime asOf,
     DateTime? rangeStart,
     DateTime? rangeEnd,
     BillStatus? status,
     LedgerType? type,
   }) async* {
+    final today = DateTime(asOf.year, asOf.month, asOf.day);
     final shop = await (select(shops)..where((s) => s.id.equals(shopId))).getSingle();
     final openingBalance = shop.openingBalance ?? 0.0;
     // Bills before the cutoff are pre-ledger history folded into
@@ -398,7 +419,7 @@ class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
       "(SELECT COALESCE(SUM(pa.amount), 0.0) FROM payment_allocations pa WHERE pa.order_id = o.id) AS allocated, "
       "NULL AS mode, NULL AS note "
       "FROM daily_orders o "
-      "WHERE o.shop_id = ? AND o.order_date >= ? "
+      "WHERE o.shop_id = ? AND o.order_date >= ? AND o.order_date <= ? "
       "UNION ALL "
       "SELECT 'payment' AS entry_type, p.id AS ref_id, p.paid_at AS entry_date, "
       "p.amount AS amount, NULL AS allocated, p.mode AS mode, p.note AS note "
@@ -407,6 +428,7 @@ class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
       variables: [
         Variable.withInt(shopId),
         Variable.withDateTime(cutoff),
+        Variable.withDateTime(today),
         Variable.withInt(shopId),
       ],
       readsFrom: {dailyOrders, orderLines, paymentAllocations, payments},
@@ -463,18 +485,23 @@ class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
   /// totalBilled / totalCollected / outstanding / lastPaymentAt for one shop,
   /// as a single reactive query so it recomputes whenever a payment, order,
   /// or order line for this shop changes.
-  Stream<ShopLedgerStats> watchShopStats(int shopId) {
+  /// Bills dated after [asOf] are excluded, for the reason
+  /// [watchOutstandingByShop] gives: an order entered against a future date is
+  /// not owed until that date.
+  Stream<ShopLedgerStats> watchShopStats(int shopId, DateTime asOf) {
+    final today = DateTime(asOf.year, asOf.month, asOf.day);
     final query = customSelect(
       'SELECT s.opening_balance AS opening_balance, '
       '(SELECT COALESCE(SUM(ol.qty * ol.unit_price), 0.0) '
       ' FROM order_lines ol INNER JOIN daily_orders o ON ol.order_id = o.id '
       ' WHERE o.shop_id = s.id '
+      ' AND o.order_date <= ? '
       ' AND (s.opening_balance_at IS NULL OR o.order_date >= s.opening_balance_at)'
       ') AS total_billed, '
       '(SELECT COALESCE(SUM(amount), 0.0) FROM payments WHERE shop_id = s.id) AS total_collected, '
       '(SELECT MAX(paid_at) FROM payments WHERE shop_id = s.id) AS last_payment_at '
       'FROM shops s WHERE s.id = ?',
-      variables: [Variable.withInt(shopId)],
+      variables: [Variable.withDateTime(today), Variable.withInt(shopId)],
       readsFrom: {shops, dailyOrders, orderLines, payments},
     );
     return query.watchSingle().map((row) {

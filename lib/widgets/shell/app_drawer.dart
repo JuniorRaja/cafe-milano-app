@@ -7,7 +7,6 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../app.dart';
 import '../../database/app_database.dart';
-import '../../providers/date_provider.dart';
 import '../../providers/ledger_provider.dart';
 import '../../theme/brand_config.dart';
 import '../../utils/money.dart';
@@ -223,7 +222,6 @@ class _OutstandingCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final brand = ref.watch(brandProvider);
     final summaryAsync = ref.watch(outstandingSummaryProvider);
-    final today = ref.watch(todayProvider);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -245,12 +243,12 @@ class _OutstandingCard extends ConsumerWidget {
           child: Padding(
             padding: const EdgeInsets.all(AppSpace.s4),
             child: summaryAsync.when(
-              loading: () => _body(brand, null, today),
+              loading: () => _body(brand, null),
               error: (e, _) => Text(
                 'Outstanding unavailable',
                 style: AppType.bodyS.copyWith(color: Colors.white54),
               ),
-              data: (summary) => _body(brand, summary, today),
+              data: (summary) => _body(brand, summary),
             ),
           ),
         ),
@@ -258,8 +256,7 @@ class _OutstandingCard extends ConsumerWidget {
     );
   }
 
-  Widget _body(BrandConfig brand, OutstandingSummary? summary, DateTime today) {
-    final age = summary?.ageInDays(today);
+  Widget _body(BrandConfig brand, OutstandingSummary? summary) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -284,17 +281,9 @@ class _OutstandingCard extends ConsumerWidget {
           summary == null ? '—' : brand.money(summary.total),
           style: AppType.displayL.copyWith(color: AppColors.textOnDark),
         ),
-        const SizedBox(height: 2),
-        Text(
-          switch (summary) {
-            null => 'Loading',
-            final s when s.shopCount == 0 => 'Everyone is settled up',
-            final s => 'Owed by ${s.shopCount} '
-                '${s.shopCount == 1 ? 'shop' : 'shops'}'
-                '${age == null ? '' : ' · oldest $age d'}',
-          },
-          style: AppType.bodyS.copyWith(color: Colors.white54),
-        ),
+        // No "Owed by N shops · oldest N d" line. The owner asked for it out
+        // on the device pass: the figure is the point, and the breakdown is
+        // one tap away on the Outstanding screen this card opens.
       ],
     );
   }

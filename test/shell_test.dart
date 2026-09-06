@@ -95,8 +95,10 @@ void main() {
       expect(find.text('CATALOGUE'), findsOneWidget);
     });
 
-    testWidgets('the outstanding card carries the figure and the shop count',
-        (tester) async {
+    // The card is the figure and nothing else. The "Owed by N shops · oldest
+    // N d" line came out on the owner's device pass — the breakdown is one tap
+    // away on the Outstanding screen this card opens.
+    testWidgets('the outstanding card carries the figure', (tester) async {
       await tester.pumpWidget(drawerHost(
         summary: OutstandingSummary(
           total: 116717,
@@ -108,16 +110,15 @@ void main() {
 
       // Indian grouping, through BrandConfig — 1,16,717 not 116,717.
       expect(find.text('₹1,16,717'), findsOneWidget);
-      expect(find.textContaining('Owed by 16 shops'), findsOneWidget);
+      expect(find.textContaining('Owed by'), findsNothing);
     });
 
-    testWidgets('nothing owed reads as settled, not as a blank card',
+    testWidgets('nothing owed reads as a zero, not as a blank card',
         (tester) async {
       await tester.pumpWidget(drawerHost());
       await openDrawer(tester);
 
       expect(find.text('₹0'), findsOneWidget);
-      expect(find.text('Everyone is settled up'), findsOneWidget);
     });
   });
 

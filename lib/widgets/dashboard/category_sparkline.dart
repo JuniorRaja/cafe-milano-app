@@ -35,7 +35,10 @@ class _SparklinePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (data.isEmpty || data.every((v) => v == 0)) {
+    // `data.length < 2` matters: the Today preset is a one-day range, and
+    // `size.width / (data.length - 1)` would divide by zero. A single day has
+    // no line to draw anyway.
+    if (data.length < 2 || data.every((v) => v == 0)) {
       // Draw a flat line in the middle
       final paint = Paint()
         ..color = AppColors.border

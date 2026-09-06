@@ -91,20 +91,30 @@ class DashboardDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// 7-day sparklines for all categories (daily piece totals).
+  /// Daily pieces per category between [start] and [end], inclusive.
+  ///
+  /// Takes both ends because the scorecard sparkline follows the dashboard's
+  /// selected period. It used to take a start only and was always called with
+  /// "seven days ago", so on any period that did not overlap the last week
+  /// every category came back empty and the chart painted its flat
+  /// no-data line while the numbers beside it updated correctly.
   Future<List<Map<String, dynamic>>> getCategorySparklines(
-      DateTime sevenDaysAgo) async {
-    final startDay =
-        DateTime(sevenDaysAgo.year, sevenDaysAgo.month, sevenDaysAgo.day);
+      DateTime start, DateTime end) async {
+    final startDay = DateTime(start.year, start.month, start.day);
+    final endDay = DateTime(end.year, end.month, end.day);
     final query = customSelect(
       'SELECT p.category_id AS categoryId, o.order_date AS orderDate, '
       'SUM(ol.qty) AS pieces '
       'FROM order_lines ol '
       'INNER JOIN daily_orders o ON ol.order_id = o.id '
       'INNER JOIN products p ON ol.product_id = p.id '
-      'WHERE o.order_date >= ? '
+      'WHERE o.order_date >= ? AND o.order_date <= ? '
       'GROUP BY p.category_id, o.order_date '
       'ORDER BY o.order_date',
-      variables: [Variable.withDateTime(startDay)],
+      variables: [
+        Variable.withDateTime(startDay),
+        Variable.withDateTime(endDay),
+      ],
       readsFrom: {orderLines, dailyOrders, products},
     );
     final rows = await query.get();

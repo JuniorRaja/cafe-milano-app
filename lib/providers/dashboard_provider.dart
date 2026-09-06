@@ -89,7 +89,10 @@ final categoryScorecardsProvider =
     FutureProvider<List<CategoryScorecard>>((ref) async {
   final db = ref.watch(databaseProvider);
   final range = ref.watch(dashboardRangeProvider);
-  final today = ref.watch(todayProvider);
+  // Watched, not read: this is what rebuilds the scorecards when the day
+  // rolls over. The value itself is no longer needed — the sparkline follows
+  // the selected period now, not a window measured back from today.
+  ref.watch(todayProvider);
 
   // Fetch active categories for name lookup
   final cats = await ref.watch(categoriesProvider.future);
@@ -98,18 +101,32 @@ final categoryScorecardsProvider =
   // Revenue, pieces, shops per category
   final scores = await ref.watch(categoryScoresDataProvider(range.range).future);
 
-  // 7-day sparklines
-  final sevenDaysAgo = today.subtract(const Duration(days: 6));
-  final sparkRaw = await db.dashboardDao.getCategorySparklines(sevenDaysAgo);
+  // The sparkline covers the selected period, not a fixed week. It was
+  // hardwired to the last seven days while every number beside it followed
+  // the period, so changing to a month or a quarter left the charts flat and
+  // empty next to figures that had updated.
+  final sparkFrom = DateTime(
+    range.range.start.year,
+    range.range.start.month,
+    range.range.start.day,
+  );
+  final sparkTo = DateTime(
+    range.range.end.year,
+    range.range.end.month,
+    range.range.end.day,
+  );
+  final sparkDays = sparkTo.difference(sparkFrom).inDays + 1;
+  final sparkRaw =
+      await db.dashboardDao.getCategorySparklines(sparkFrom, sparkTo);
 
-  // Build sparkline map: categoryId → [7 ints]
+  // categoryId → one piece-count per day of the period.
   final Map<int?, List<int>> sparkMap = {};
   for (final row in sparkRaw) {
     final catId = row['categoryId'] as int?;
-    sparkMap.putIfAbsent(catId, () => List.filled(7, 0));
+    sparkMap.putIfAbsent(catId, () => List.filled(sparkDays, 0));
     final date = row['orderDate'] as DateTime;
-    final dayIndex = date.difference(sevenDaysAgo).inDays;
-    if (dayIndex >= 0 && dayIndex < 7) {
+    final dayIndex = date.difference(sparkFrom).inDays;
+    if (dayIndex >= 0 && dayIndex < sparkDays) {
       sparkMap[catId]![dayIndex] = row['pieces'] as int;
     }
   }
@@ -146,7 +163,7 @@ final categoryScorecardsProvider =
       revenue: revenue,
       pieces: score['pieces'] as int,
       shopCount: score['shops'] as int,
-      sparklineData: sparkMap[catId] ?? List.filled(7, 0),
+      sparklineData: sparkMap[catId] ?? List.filled(sparkDays, 0),
       starProductName: star?.name,
       starProductSharePercent: starShare,
     ));
