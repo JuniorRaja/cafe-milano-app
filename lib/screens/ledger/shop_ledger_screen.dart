@@ -232,11 +232,7 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
             // up on the wrong one.
             Text(
               shop?.area == null ? 'Statement' : 'Statement · ${shop!.area}',
-              style: TextStyle(
-                fontSize: 12,
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.normal,
-              ),
+              style: AppType.label.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.normal),
             ),
           ],
         ),
@@ -331,7 +327,7 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
                         ? 'No bills yet for this shop.'
                         : 'All settled — nothing pending.',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppColors.textTertiary, fontSize: 15),
+                    style: AppType.titleS.copyWith(color: AppColors.textTertiary),
                   ),
                 ],
               ),
@@ -374,10 +370,7 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
                   if (daysOld > 0)
                     Text(
                       'oldest ${daysOld}d',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.red.shade400,
-                      ),
+                      style: AppType.caption.copyWith(color: Colors.red.shade400),
                     ),
                 ],
               ),
@@ -421,7 +414,7 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
                 icon: const Icon(Icons.tune, size: 16),
                 label: Text(
                   hasFilters ? 'Filters ($_activeFilterCount)' : 'Filters',
-                  style: const TextStyle(fontSize: 13),
+                  style: AppType.bodyS,
                 ),
                 style: OutlinedButton.styleFrom(
                   visualDensity: VisualDensity.compact,
@@ -438,13 +431,9 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
                 child: Text(
                   _filterSummary,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                    fontWeight: hasFilters
+                  style: AppType.label.copyWith(color: AppColors.textSecondary, fontWeight: hasFilters
                         ? FontWeight.w600
-                        : FontWeight.normal,
-                  ),
+                        : FontWeight.normal),
                 ),
               ),
               if (hasFilters)
@@ -556,18 +545,13 @@ class _LedgerFilterSheetState extends State<_LedgerFilterSheet> {
     padding: const EdgeInsets.only(bottom: 8),
     child: Text(
       text.toUpperCase(),
-      style: TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 0.8,
-        color: AppColors.textSecondary,
-      ),
+      style: AppType.caption.copyWith(fontWeight: FontWeight.w700, letterSpacing: 0.8, color: AppColors.textSecondary),
     ),
   );
 
   Widget _choice<T>(String label, T value, T selected, ValueChanged<T> onPick) {
     return ChoiceChip(
-      label: Text(label, style: const TextStyle(fontSize: 12)),
+      label: Text(label, style: AppType.label),
       selected: selected == value,
       onSelected: (_) => onPick(value),
       visualDensity: VisualDensity.compact,
@@ -589,9 +573,9 @@ class _LedgerFilterSheetState extends State<_LedgerFilterSheet> {
         children: [
           Row(
             children: [
-              const Text(
+              Text(
                 'Filters',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                style: AppType.titleM.copyWith(fontWeight: FontWeight.bold),
               ),
               const Spacer(),
               TextButton(
@@ -616,7 +600,7 @@ class _LedgerFilterSheetState extends State<_LedgerFilterSheet> {
                     _range == null
                         ? 'Any date'
                         : '${_dateFmt.format(_range!.start)} – ${_dateFmt.format(_range!.end)}',
-                    style: const TextStyle(fontSize: 13),
+                    style: AppType.bodyS,
                   ),
                 ),
               ),
@@ -785,20 +769,12 @@ class _StatTile extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontSize: 11,
-            color: AppColors.textSecondary,
-            fontWeight: FontWeight.w500,
-          ),
+          style: AppType.caption.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 4),
         Text(
           value,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            color: color ?? AppColors.brandDeep,
-          ),
+          style: AppType.titleM.copyWith(fontWeight: FontWeight.w800, color: color ?? AppColors.brandDeep),
         ),
       ],
     );
@@ -850,7 +826,7 @@ class _OpenBillRow extends ConsumerWidget {
                       'paid ${brand.moneyDecimal(entry.allocatedAmount)}',
                     if (daysOld > 0) '${daysOld}d ago',
                   ].join(' · '),
-                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  style: AppType.label.copyWith(color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -861,15 +837,11 @@ class _OpenBillRow extends ConsumerWidget {
             children: [
               Text(
                 'Due',
-                style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                style: AppType.caption.copyWith(color: AppColors.textSecondary),
               ),
               Text(
                 brand.moneyDecimal(entry.amountDue),
-                style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 16,
-                  color: Colors.red.shade700,
-                ),
+                style: AppType.titleM.copyWith(fontWeight: FontWeight.w800, color: Colors.red.shade700),
               ),
             ],
           ),
@@ -930,17 +902,13 @@ class _LedgerRow extends ConsumerWidget {
                   const SizedBox(height: 3),
                   Text(
                     subtitle,
-                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    style: AppType.label.copyWith(color: AppColors.textSecondary),
                   ),
                   if (!isBill && (note?.isNotEmpty ?? false)) ...[
                     const SizedBox(height: 2),
                     Text(
                       note!,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                        fontStyle: FontStyle.italic,
-                      ),
+                      style: AppType.label.copyWith(color: AppColors.textSecondary, fontStyle: FontStyle.italic),
                     ),
                   ],
                 ],
@@ -960,7 +928,7 @@ class _LedgerRow extends ConsumerWidget {
                 const SizedBox(height: 2),
                 Text(
                   'Bal ${brand.moneyDecimal(entry.runningBalance)}',
-                  style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                  style: AppType.caption.copyWith(color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -987,11 +955,7 @@ class _StatusBadge extends StatelessWidget {
       ),
       child: Text(
         _statusLabel(status),
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: color.shade700,
-        ),
+        style: AppType.caption.copyWith(fontWeight: FontWeight.w600, color: color.shade700),
       ),
     );
   }

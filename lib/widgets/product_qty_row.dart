@@ -71,17 +71,14 @@ class ProductQtyRow extends ConsumerWidget {
               children: [
                 Text(
                   product.name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                  ),
+                  style: AppType.titleS.copyWith(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   hasPrce
                       ? '$priceLabel  ·  ${brand.moneyTrim(lineTotal)}'
                       : 'Price not set',
-                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  style: AppType.label.copyWith(color: AppColors.textSecondary),
                 ),
               ],
             ),

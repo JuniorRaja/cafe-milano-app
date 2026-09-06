@@ -34,17 +34,13 @@ class OutstandingCard extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Text('💰', style: TextStyle(fontSize: 16)),
+                  Text('💰', style: AppType.titleM),
                   SizedBox(width: 6),
                   Text(
                     'Outstanding Receivables',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.brandDeep,
-                    ),
+                    style: AppType.titleS.copyWith(fontWeight: FontWeight.w700, color: AppColors.brandDeep),
                   ),
                   Spacer(),
                   Icon(Icons.chevron_right, size: 20, color: AppColors.textTertiary),
@@ -68,10 +64,7 @@ class OutstandingCard extends ConsumerWidget {
                         const SizedBox(width: 8),
                         Text(
                           'Every shop is settled up.',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: AppColors.textSecondary,
-                          ),
+                          style: AppType.bodyS.copyWith(color: AppColors.textSecondary),
                         ),
                       ],
                     );
@@ -81,19 +74,12 @@ class OutstandingCard extends ConsumerWidget {
                     children: [
                       Text(
                         ref.watch(brandProvider).money(total),
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.red.shade700,
-                        ),
+                        style: AppType.displayL.copyWith(fontWeight: FontWeight.w800, color: Colors.red.shade700),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         'owed by ${shops.length} ${shops.length == 1 ? 'shop' : 'shops'}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                        ),
+                        style: AppType.label.copyWith(color: AppColors.textSecondary),
                       ),
                     ],
                   );
@@ -109,7 +95,7 @@ class OutstandingCard extends ConsumerWidget {
                 ),
                 error: (e, _) => Text(
                   'Could not load receivables',
-                  style: TextStyle(fontSize: 12, color: AppColors.textTertiary),
+                  style: AppType.label.copyWith(color: AppColors.textTertiary),
                 ),
               ),
             ],

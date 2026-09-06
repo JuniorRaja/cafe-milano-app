@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../theme/tokens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/dashboard_models.dart';
 import '../../providers/dashboard_provider.dart';
@@ -49,17 +48,13 @@ class _AttentionFlagsWidgetState extends ConsumerState<AttentionFlagsWidget> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
-                    Text('🚩', style: TextStyle(fontSize: 14)),
+                    Text('🚩', style: AppType.body),
                     SizedBox(width: 6),
                     Text(
                       'Attention Flags',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.brandDeep,
-                      ),
+                      style: AppType.body.copyWith(fontWeight: FontWeight.w700, color: AppColors.brandDeep),
                     ),
                   ],
                 ),
@@ -79,11 +74,7 @@ class _AttentionFlagsWidgetState extends ConsumerState<AttentionFlagsWidget> {
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
                         'See all (${visible.length})',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.brandDeep.withValues(alpha: 0.8),
-                        ),
+                        style: AppType.label.copyWith(fontWeight: FontWeight.w600, color: AppColors.brandDeep.withValues(alpha: 0.8)),
                       ),
                     ),
                   ),
@@ -162,7 +153,7 @@ class _FlagCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Text(flag.icon, style: const TextStyle(fontSize: 16)),
+            Text(flag.icon, style: AppType.titleM),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -170,18 +161,12 @@ class _FlagCard extends StatelessWidget {
                 children: [
                   Text(
                     flag.message,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: AppType.label.copyWith(fontWeight: FontWeight.w600),
                   ),
                   if (flag.detail != null)
                     Text(
                       flag.detail!,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: AppColors.textSecondary,
-                      ),
+                      style: AppType.caption.copyWith(color: AppColors.textSecondary),
                     ),
                 ],
               ),

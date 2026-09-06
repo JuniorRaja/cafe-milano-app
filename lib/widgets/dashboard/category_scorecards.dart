@@ -22,15 +22,11 @@ class CategoryScorecardsWidget extends ConsumerWidget {
             padding: const EdgeInsets.only(left: 4, bottom: 10),
             child: Row(
               children: [
-                const Text('📊', style: TextStyle(fontSize: 16)),
+                const Text('📊', style: AppType.titleM),
                 const SizedBox(width: 6),
-                const Text(
+                Text(
                   'Category Scorecards',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.brandDeep,
-                  ),
+                  style: AppType.titleS.copyWith(fontWeight: FontWeight.w700, color: AppColors.brandDeep),
                 ),
               ],
             ),
@@ -89,7 +85,7 @@ class CategoryScorecardsWidget extends ConsumerWidget {
             const SizedBox(height: 8),
             Text(
               'No category data yet',
-              style: TextStyle(fontSize: 13, color: AppColors.textTertiary),
+              style: AppType.bodyS.copyWith(color: AppColors.textTertiary),
             ),
           ],
         ),
@@ -153,16 +149,12 @@ class _ScorecardCard extends ConsumerWidget {
           // Emoji + Name
           Row(
             children: [
-              Text(scorecard.emoji, style: const TextStyle(fontSize: 18)),
+              Text(scorecard.emoji, style: AppType.titleM),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   scorecard.categoryName,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.brandDeep,
-                  ),
+                  style: AppType.label.copyWith(fontWeight: FontWeight.w600, color: AppColors.brandDeep),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -174,22 +166,14 @@ class _ScorecardCard extends ConsumerWidget {
           // Revenue
           Text(
             brand.moneyLakh(scorecard.revenue),
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: AppColors.brandDeep,
-            ),
+            style: AppType.titleM.copyWith(fontWeight: FontWeight.w800, color: AppColors.brandDeep),
           ),
           const SizedBox(height: 4),
 
           // Volume + Reach
           Text(
             '${brand.count(scorecard.pieces)} pcs · ${scorecard.shopCount} shops',
-            style: TextStyle(
-              fontSize: 10,
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w500,
-            ),
+            style: AppType.caption.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500),
           ),
           const Spacer(),
 
@@ -214,7 +198,7 @@ class _ScorecardCard extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     '${scorecard.starProductName} (${scorecard.starProductSharePercent.toStringAsFixed(0)}%)',
-                    style: TextStyle(fontSize: 9, color: AppColors.textSecondary),
+                    style: AppType.caption.copyWith(color: AppColors.textSecondary),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -224,7 +208,7 @@ class _ScorecardCard extends ConsumerWidget {
           else
             Text(
               'No sales yet',
-              style: TextStyle(fontSize: 9, color: AppColors.textTertiary),
+              style: AppType.caption.copyWith(color: AppColors.textTertiary),
             ),
         ],
       ),

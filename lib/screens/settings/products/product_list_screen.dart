@@ -157,8 +157,9 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
 
   bool _matchesFilter(Product product, List<Category> activeCats) {
     if (_filterIndex == 0) return true;
-    if (_filterIndex == activeCats.length + 1)
+    if (_filterIndex == activeCats.length + 1) {
       return product.categoryId == null;
+    }
     return product.categoryId == activeCats[_filterIndex - 1].id;
   }
 

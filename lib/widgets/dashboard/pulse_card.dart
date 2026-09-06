@@ -30,24 +30,16 @@ class PulseCard extends ConsumerWidget {
           children: [
             Row(
               children: [
-                const Text('❤️', style: TextStyle(fontSize: 18)),
+                const Text('❤️', style: AppType.titleM),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   'The Pulse',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.brandDeep,
-                  ),
+                  style: AppType.titleM.copyWith(fontWeight: FontWeight.w700, color: AppColors.brandDeep),
                 ),
                 const Spacer(),
                 Text(
                   'Today',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textSecondary,
-                  ),
+                  style: AppType.caption.copyWith(fontWeight: FontWeight.w500, color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -62,11 +54,7 @@ class PulseCard extends ConsumerWidget {
                     child: revenueAsync.when(
                       data: (rev) => Text(
                         brand.moneyLakh(rev),
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.brandDeep,
-                        ),
+                        style: AppType.titleL.copyWith(fontWeight: FontWeight.w800, color: AppColors.brandDeep),
                       ),
                       loading: () => _shimmer(),
                       error: (_, _) => const Text('—'),
@@ -97,11 +85,7 @@ class PulseCard extends ConsumerWidget {
                     child: shopsAsync.when(
                       data: (data) => Text(
                         '${data.$1} / ${data.$2} shops',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.brandDeep,
-                        ),
+                        style: AppType.titleM.copyWith(fontWeight: FontWeight.w700, color: AppColors.brandDeep),
                       ),
                       loading: () => _shimmer(),
                       error: (_, _) => const Text('—'),
@@ -116,13 +100,9 @@ class PulseCard extends ConsumerWidget {
                     child: pendingAsync.when(
                       data: (count) => Text(
                         '$count pending',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: count > 0
+                        style: AppType.titleM.copyWith(fontWeight: FontWeight.w700, color: count > 0
                               ? Colors.amber.shade700
-                              : AppColors.brandDeep,
-                        ),
+                              : AppColors.brandDeep),
                       ),
                       loading: () => _shimmer(),
                       error: (_, _) => const Text('—'),
@@ -141,11 +121,7 @@ class PulseCard extends ConsumerWidget {
     if (delta == null) {
       return Text(
         '→ 0%',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w700,
-          color: AppColors.textSecondary,
-        ),
+        style: AppType.titleM.copyWith(fontWeight: FontWeight.w700, color: AppColors.textSecondary),
       );
     }
     final isUp = delta >= 0;
@@ -160,11 +136,7 @@ class PulseCard extends ConsumerWidget {
         const SizedBox(width: 2),
         Text(
           '${delta.abs().toStringAsFixed(0)}%',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: isUp ? Colors.green.shade600 : Colors.red.shade600,
-          ),
+          style: AppType.titleM.copyWith(fontWeight: FontWeight.w700, color: isUp ? Colors.green.shade600 : Colors.red.shade600),
         ),
       ],
     );
@@ -201,11 +173,7 @@ class _MetricTile extends StatelessWidget {
         children: [
           Text(
             label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textSecondary,
-            ),
+            style: AppType.caption.copyWith(fontWeight: FontWeight.w500, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 6),
           child,

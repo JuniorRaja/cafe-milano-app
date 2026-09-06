@@ -117,9 +117,9 @@ class _RecordPaymentSheetState extends ConsumerState<RecordPaymentSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Record Payment',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              style: AppType.titleM.copyWith(fontWeight: FontWeight.bold),
             ),
             if (pinned != null) ...[
               const SizedBox(height: 10),
@@ -134,11 +134,7 @@ class _RecordPaymentSheetState extends ConsumerState<RecordPaymentSheet> {
                 child: Text(
                   'Settling the ${DateFormat('dd MMM yyyy').format(pinned.date)} bill '
                   '· ₹${pinned.amountDue.toStringAsFixed(2)} due',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.green.shade800,
-                  ),
+                  style: AppType.label.copyWith(fontWeight: FontWeight.w600, color: Colors.green.shade800),
                 ),
               ),
             ],
@@ -148,11 +144,7 @@ class _RecordPaymentSheetState extends ConsumerState<RecordPaymentSheet> {
                 children: [
                   Text(
                     'Outstanding ₹${outstanding.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.red.shade700,
-                    ),
+                    style: AppType.bodyS.copyWith(fontWeight: FontWeight.w600, color: Colors.red.shade700),
                   ),
                   const Spacer(),
                   TextButton(
@@ -163,7 +155,7 @@ class _RecordPaymentSheetState extends ConsumerState<RecordPaymentSheet> {
                       visualDensity: VisualDensity.compact,
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                     ),
-                    child: const Text('Settle full', style: TextStyle(fontSize: 12)),
+                    child: const Text('Settle full', style: AppType.label),
                   ),
                 ],
               ),
@@ -186,7 +178,7 @@ class _RecordPaymentSheetState extends ConsumerState<RecordPaymentSheet> {
               },
             ),
             const SizedBox(height: 16),
-            Text('Mode', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+            Text('Mode', style: AppType.label.copyWith(color: AppColors.textSecondary)),
             const SizedBox(height: 8),
             SegmentedButton<PaymentMode>(
               segments: const [

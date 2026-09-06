@@ -41,17 +41,13 @@ class RevenueMixCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Text('🍩', style: TextStyle(fontSize: 16)),
+                Text('🍩', style: AppType.titleM),
                 SizedBox(width: 6),
                 Text(
                   'Category Revenue Mix',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.brandDeep,
-                  ),
+                  style: AppType.titleS.copyWith(fontWeight: FontWeight.w700, color: AppColors.brandDeep),
                 ),
               ],
             ),
@@ -113,16 +109,12 @@ class RevenueMixCard extends ConsumerWidget {
                 children: [
                   Text(
                     brand.moneyLakh(totalRevenue),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.brandDeep,
-                    ),
+                    style: AppType.titleM.copyWith(fontWeight: FontWeight.w800, color: AppColors.brandDeep),
                     maxLines: 1,
                   ),
                   Text(
                     'Total',
-                    style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                    style: AppType.caption.copyWith(color: AppColors.textSecondary),
                     maxLines: 1,
                   ),
                 ],
@@ -163,7 +155,7 @@ class RevenueMixCard extends ConsumerWidget {
             const SizedBox(height: 8),
             Text(
               'No revenue data for this period',
-              style: TextStyle(fontSize: 12, color: AppColors.textTertiary),
+              style: AppType.label.copyWith(color: AppColors.textTertiary),
             ),
           ],
         ),
@@ -194,12 +186,12 @@ class _MixRow extends ConsumerWidget {
           ),
           const SizedBox(width: 8),
           // Emoji + Name
-          Text(row.emoji, style: const TextStyle(fontSize: 14)),
+          Text(row.emoji, style: AppType.body),
           const SizedBox(width: 4),
           Expanded(
             child: Text(
               row.categoryName,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+              style: AppType.label.copyWith(fontWeight: FontWeight.w500),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -207,7 +199,7 @@ class _MixRow extends ConsumerWidget {
           // Revenue
           Text(
             ref.watch(brandProvider).money(row.revenue.round()),
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            style: AppType.label.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(width: 8),
           // Share %
@@ -215,7 +207,7 @@ class _MixRow extends ConsumerWidget {
             width: 40,
             child: Text(
               '${row.sharePercent.toStringAsFixed(0)}%',
-              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+              style: AppType.caption.copyWith(color: AppColors.textSecondary),
               textAlign: TextAlign.right,
             ),
           ),
@@ -231,7 +223,7 @@ class _MixRow extends ConsumerWidget {
     if (trend == null) {
       return Text(
         '—',
-        style: TextStyle(fontSize: 11, color: AppColors.textTertiary),
+        style: AppType.caption.copyWith(color: AppColors.textTertiary),
         textAlign: TextAlign.right,
       );
     }
@@ -247,11 +239,7 @@ class _MixRow extends ConsumerWidget {
         ),
         Text(
           '${trend.abs().toStringAsFixed(0)}%',
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-            color: isUp ? Colors.green.shade600 : Colors.red.shade600,
-          ),
+          style: AppType.caption.copyWith(fontWeight: FontWeight.w600, color: isUp ? Colors.green.shade600 : Colors.red.shade600),
         ),
       ],
     );

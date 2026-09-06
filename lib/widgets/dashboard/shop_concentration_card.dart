@@ -25,24 +25,20 @@ class ShopConcentrationCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Text('🏪', style: TextStyle(fontSize: 16)),
+                Text('🏪', style: AppType.titleM),
                 SizedBox(width: 6),
                 Text(
                   'Shop Concentration',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.brandDeep,
-                  ),
+                  style: AppType.titleS.copyWith(fontWeight: FontWeight.w700, color: AppColors.brandDeep),
                 ),
               ],
             ),
             const SizedBox(height: 4),
             Text(
               'Top 5 shops by revenue',
-              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+              style: AppType.caption.copyWith(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 14),
             concAsync.when(
@@ -88,7 +84,7 @@ class ShopConcentrationCard extends ConsumerWidget {
             const SizedBox(height: 6),
             Text(
               'No shop data for this period',
-              style: TextStyle(fontSize: 12, color: AppColors.textTertiary),
+              style: AppType.label.copyWith(color: AppColors.textTertiary),
             ),
           ],
         ),
@@ -123,11 +119,7 @@ class _ShopRow extends ConsumerWidget {
             child: Center(
               child: Text(
                 '$rank',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: rank <= 3 ? AppColors.brandDeep : AppColors.textSecondary,
-                ),
+                style: AppType.caption.copyWith(fontWeight: FontWeight.w700, color: rank <= 3 ? AppColors.brandDeep : AppColors.textSecondary),
               ),
             ),
           ),
@@ -139,17 +131,14 @@ class _ShopRow extends ConsumerWidget {
               children: [
                 Text(
                   row.shopName,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: AppType.bodyS.copyWith(fontWeight: FontWeight.w600),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 if (row.area != null)
                   Text(
                     row.area!,
-                    style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                    style: AppType.caption.copyWith(color: AppColors.textSecondary),
                   ),
               ],
             ),
@@ -159,7 +148,7 @@ class _ShopRow extends ConsumerWidget {
             width: 60,
             child: Text(
               row.categoryEmojis.take(4).join(''),
-              style: const TextStyle(fontSize: 12),
+              style: AppType.label,
               textAlign: TextAlign.center,
             ),
           ),
@@ -170,10 +159,7 @@ class _ShopRow extends ConsumerWidget {
             children: [
               Text(
                 ref.watch(brandProvider).money(row.revenue.round()),
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: AppType.label.copyWith(fontWeight: FontWeight.w700),
               ),
               Row(
                 mainAxisSize: MainAxisSize.min,
@@ -189,13 +175,9 @@ class _ShopRow extends ConsumerWidget {
                     ),
                   Text(
                     '${row.sharePercent.toStringAsFixed(0)}%',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                      color: isHighConcentration
+                    style: AppType.caption.copyWith(fontWeight: FontWeight.w500, color: isHighConcentration
                           ? Colors.orange.shade700
-                          : AppColors.textSecondary,
-                    ),
+                          : AppColors.textSecondary),
                   ),
                 ],
               ),

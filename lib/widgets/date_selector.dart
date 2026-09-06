@@ -41,14 +41,12 @@ class DateSelector extends ConsumerWidget {
                     children: [
                       Text(
                         label,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600, fontSize: 15),
+                        style: AppType.titleS.copyWith(fontWeight: FontWeight.w600),
                       ),
                       if (relative != null)
                         Text(
                           relative,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w500, fontSize: 11),
+                          style: AppType.caption.copyWith(fontWeight: FontWeight.w500),
                         ),
                     ],
                   ),

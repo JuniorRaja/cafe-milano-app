@@ -579,15 +579,11 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
                               children: [
                                 Text(
                                   'Order Date',
-                                  style: TextStyle(
-                                      fontSize: 11,
-                                      color: AppColors.textSecondary),
+                                  style: AppType.caption.copyWith(color: AppColors.textSecondary),
                                 ),
                                 Text(
                                   dateLabel,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13),
+                                  style: AppType.bodyS.copyWith(fontWeight: FontWeight.bold),
                                 ),
                               ],
                             ),
@@ -618,17 +614,13 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
                                 children: [
                                   Text(
                                     'Standing Order',
-                                    style: TextStyle(
-                                        fontSize: 11,
-                                        color: AppColors.textSecondary),
+                                    style: AppType.caption.copyWith(color: AppColors.textSecondary),
                                   ),
                                   Text(
                                     _standingTotal > 0
                                         ? '$_standingTotal items'
                                         : 'Not set',
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13),
+                                    style: AppType.bodyS.copyWith(fontWeight: FontWeight.bold),
                                   ),
                                 ],
                               ),
@@ -656,8 +648,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
                   Expanded(
                     child: Text(
                       'Prices not set for $unpricedCount product${unpricedCount > 1 ? 's' : ''} — billing will show ₹0',
-                      style: const TextStyle(
-                          fontSize: 12, color: Colors.deepOrange),
+                      style: AppType.label.copyWith(color: Colors.deepOrange),
                     ),
                   ),
                 ],
@@ -711,7 +702,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
                   filtering
                       ? '${visible.length} of ${_products.length}'
                       : '$pricedCount items',
-                  style: const TextStyle(color: AppColors.brandDeep, fontSize: 13),
+                  style: AppType.bodyS.copyWith(color: AppColors.brandDeep),
                 ),
               ],
             ),
@@ -796,13 +787,11 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
                         children: [
                           Text(
                             ref.watch(brandProvider).moneyTrim(totals.amount),
-                            style: const TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold),
+                            style: AppType.titleM.copyWith(fontWeight: FontWeight.bold),
                           ),
                           Text(
                             'Order Total · ${totals.items} items',
-                            style: TextStyle(
-                                fontSize: 12, color: AppColors.textSecondary),
+                            style: AppType.label.copyWith(color: AppColors.textSecondary),
                           ),
                         ],
                       ),

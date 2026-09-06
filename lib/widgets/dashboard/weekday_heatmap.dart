@@ -27,24 +27,20 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Text('📅', style: TextStyle(fontSize: 16)),
+                Text('📅', style: AppType.titleM),
                 SizedBox(width: 6),
                 Text(
                   'Day-of-Week Heatmap',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.brandDeep,
-                  ),
+                  style: AppType.titleS.copyWith(fontWeight: FontWeight.w700, color: AppColors.brandDeep),
                 ),
               ],
             ),
             const SizedBox(height: 4),
             Text(
               'Average demand per category per weekday (4 weeks)',
-              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+              style: AppType.caption.copyWith(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 16),
             heatmapAsync.when(
@@ -109,11 +105,7 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
                     child: Text(
                       d,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textSecondary,
-                      ),
+                      style: AppType.caption.copyWith(fontWeight: FontWeight.w600, color: AppColors.textSecondary),
                     ),
                   ),
                 )
@@ -136,15 +128,12 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
                   width: 70,
                   child: Row(
                     children: [
-                      Text(emoji, style: const TextStyle(fontSize: 12)),
+                      Text(emoji, style: AppType.label),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
                           catName,
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                          ),
+                          style: AppType.caption.copyWith(fontWeight: FontWeight.w500),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -172,13 +161,9 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
                           child: val > 0
                               ? Text(
                                   val.toStringAsFixed(0),
-                                  style: TextStyle(
-                                    fontSize: 8,
-                                    fontWeight: FontWeight.w600,
-                                    color: intensity > 0.5
+                                  style: AppType.caption.copyWith(fontWeight: FontWeight.w600, color: intensity > 0.5
                                         ? Colors.black87
-                                        : AppColors.textSecondary,
-                                  ),
+                                        : AppColors.textSecondary),
                                 )
                               : null,
                         ),
@@ -205,7 +190,7 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
             const SizedBox(height: 6),
             Text(
               'Not enough data for heatmap (needs 4 weeks)',
-              style: TextStyle(fontSize: 12, color: AppColors.textTertiary),
+              style: AppType.label.copyWith(color: AppColors.textTertiary),
             ),
           ],
         ),

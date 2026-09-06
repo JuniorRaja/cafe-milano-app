@@ -25,24 +25,20 @@ class ProductLeaderboardCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Text('🏆', style: TextStyle(fontSize: 16)),
+                Text('🏆', style: AppType.titleM),
                 SizedBox(width: 6),
                 Text(
                   'Product Leaderboard',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.brandDeep,
-                  ),
+                  style: AppType.titleS.copyWith(fontWeight: FontWeight.w700, color: AppColors.brandDeep),
                 ),
               ],
             ),
             const SizedBox(height: 4),
             Text(
               'Top 10 products by revenue',
-              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+              style: AppType.caption.copyWith(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 14),
             leaderAsync.when(
@@ -79,22 +75,14 @@ class ProductLeaderboardCard extends ConsumerWidget {
               Expanded(
                 child: Text(
                   'Product',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                  ),
+                  style: AppType.caption.copyWith(fontWeight: FontWeight.w600, color: AppColors.textSecondary),
                 ),
               ),
               SizedBox(
                 width: 60,
                 child: Text(
                   'Revenue',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                  ),
+                  style: AppType.caption.copyWith(fontWeight: FontWeight.w600, color: AppColors.textSecondary),
                   textAlign: TextAlign.right,
                 ),
               ),
@@ -102,11 +90,7 @@ class ProductLeaderboardCard extends ConsumerWidget {
                 width: 40,
                 child: Text(
                   'Qty',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                  ),
+                  style: AppType.caption.copyWith(fontWeight: FontWeight.w600, color: AppColors.textSecondary),
                   textAlign: TextAlign.right,
                 ),
               ),
@@ -114,11 +98,7 @@ class ProductLeaderboardCard extends ConsumerWidget {
                 width: 36,
                 child: Text(
                   'Shops',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                  ),
+                  style: AppType.caption.copyWith(fontWeight: FontWeight.w600, color: AppColors.textSecondary),
                   textAlign: TextAlign.right,
                 ),
               ),
@@ -153,7 +133,7 @@ class ProductLeaderboardCard extends ConsumerWidget {
             const SizedBox(height: 6),
             Text(
               'No product data for this period',
-              style: TextStyle(fontSize: 12, color: AppColors.textTertiary),
+              style: AppType.label.copyWith(color: AppColors.textTertiary),
             ),
           ],
         ),
@@ -183,18 +163,14 @@ class _ProductRow extends ConsumerWidget {
               children: [
                 Text(
                   '$rank',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: rank <= 3 ? AppColors.brandDeep : AppColors.textSecondary,
-                  ),
+                  style: AppType.caption.copyWith(fontWeight: FontWeight.w700, color: rank <= 3 ? AppColors.brandDeep : AppColors.textSecondary),
                   maxLines: 1,
                 ),
                 const SizedBox(width: 3),
                 Flexible(
                   child: Text(
                     row.categoryEmoji,
-                    style: const TextStyle(fontSize: 12),
+                    style: AppType.label,
                     maxLines: 1,
                   ),
                 ),
@@ -205,7 +181,7 @@ class _ProductRow extends ConsumerWidget {
           Expanded(
             child: Text(
               row.productName,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+              style: AppType.label.copyWith(fontWeight: FontWeight.w500),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -215,7 +191,7 @@ class _ProductRow extends ConsumerWidget {
             width: 60,
             child: Text(
               brand.moneyLakh(row.revenue),
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+              style: AppType.caption.copyWith(fontWeight: FontWeight.w600),
               textAlign: TextAlign.right,
             ),
           ),
@@ -224,7 +200,7 @@ class _ProductRow extends ConsumerWidget {
             width: 40,
             child: Text(
               brand.countLakh(row.qty),
-              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+              style: AppType.caption.copyWith(color: AppColors.textSecondary),
               textAlign: TextAlign.right,
             ),
           ),
@@ -233,7 +209,7 @@ class _ProductRow extends ConsumerWidget {
             width: 36,
             child: Text(
               '${row.shopCount}',
-              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+              style: AppType.caption.copyWith(color: AppColors.textSecondary),
               textAlign: TextAlign.right,
             ),
           ),

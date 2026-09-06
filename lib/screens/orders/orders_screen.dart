@@ -507,11 +507,11 @@ class _BillingDetail extends ConsumerWidget {
     return owlAsync.when(
       data: (data) {
         if (data == null || data.lines.isEmpty) {
-          return const Padding(
+          return Padding(
             padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: Text(
               'No items',
-              style: TextStyle(color: AppColors.textTertiary, fontSize: 13),
+              style: AppType.bodyS.copyWith(color: AppColors.textTertiary),
             ),
           );
         }
@@ -528,29 +528,21 @@ class _BillingDetail extends ConsumerWidget {
               const Divider(height: 1),
               Container(
                 color: const Color(0xFFFFF3E0),
-                child: const Padding(
+                child: Padding(
                   padding: EdgeInsets.fromLTRB(16, 10, 16, 8),
                   child: Row(
                     children: [
                       Expanded(
                         child: Text(
                           'Item',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textTertiary,
-                          ),
+                          style: AppType.caption.copyWith(fontWeight: FontWeight.w600, color: AppColors.textTertiary),
                         ),
                       ),
                       SizedBox(
                         width: 44,
                         child: Text(
                           'Qty',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textTertiary,
-                          ),
+                          style: AppType.caption.copyWith(fontWeight: FontWeight.w600, color: AppColors.textTertiary),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -558,11 +550,7 @@ class _BillingDetail extends ConsumerWidget {
                         width: 64,
                         child: Text(
                           'Price',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textTertiary,
-                          ),
+                          style: AppType.caption.copyWith(fontWeight: FontWeight.w600, color: AppColors.textTertiary),
                           textAlign: TextAlign.right,
                         ),
                       ),
@@ -570,11 +558,7 @@ class _BillingDetail extends ConsumerWidget {
                         width: 72,
                         child: Text(
                           'Total',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textTertiary,
-                          ),
+                          style: AppType.caption.copyWith(fontWeight: FontWeight.w600, color: AppColors.textTertiary),
                           textAlign: TextAlign.right,
                         ),
                       ),
@@ -596,7 +580,7 @@ class _BillingDetail extends ConsumerWidget {
                       Expanded(
                         child: Text(
                           product?.name ?? 'Product #${line.productId}',
-                          style: const TextStyle(fontSize: 14),
+                          style: AppType.body,
                         ),
                       ),
                       SizedBox(
@@ -604,7 +588,7 @@ class _BillingDetail extends ConsumerWidget {
                         child: Text(
                           line.qty.toString(),
                           textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 14),
+                          style: AppType.body,
                         ),
                       ),
                       SizedBox(
@@ -612,7 +596,7 @@ class _BillingDetail extends ConsumerWidget {
                         child: Text(
                           brand.moneyTrim(line.unitPrice),
                           textAlign: TextAlign.right,
-                          style: const TextStyle(fontSize: 14),
+                          style: AppType.body,
                         ),
                       ),
                       SizedBox(
@@ -623,7 +607,7 @@ class _BillingDetail extends ConsumerWidget {
                         child: Text(
                           brand.money(lineTotal),
                           textAlign: TextAlign.right,
-                          style: const TextStyle(fontSize: 14),
+                          style: AppType.body,
                         ),
                       ),
                     ],

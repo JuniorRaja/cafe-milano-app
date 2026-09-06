@@ -30,23 +30,6 @@ import 'screens/settings/dashboard_settings_screen.dart';
 import 'screens/dashboard/kpi_help_screen.dart';
 import 'screens/order_entry/order_entry_screen.dart';
 
-// Deprecated brand-colour aliases onto the design tokens.
-//
-// 60+ files import these. Removing them in this release would turn a
-// foundation change into a 60-file diff with no reviewable seam, so they stay
-// and the analyzer warning count is the progress bar: doc 10c drives it to
-// zero and then deletes them. Do not add new uses.
-@Deprecated('Use AppColors.brandPrimary, or brandProvider for the live value.')
-const kBrandGold = AppColors.brandPrimary;
-@Deprecated('Use AppColors.brandDeep, or brandProvider for the live value.')
-const kBrandBrown = AppColors.brandDeep;
-@Deprecated('Use AppColors.brandMark — logo mark only, never a UI colour.')
-const kBrandMaroon = AppColors.brandMark;
-@Deprecated('Use AppColors.bg.')
-const kSurface = AppColors.bg;
-@Deprecated('Use brandProvider.logoAsset.')
-const kDefaultLogoAsset = 'mobile-app-logo-trasnsp.png';
-
 /// Every route in the app. Nothing outside this class writes a route string —
 /// the parameterised ones have builders below for exactly that reason.
 ///

@@ -223,8 +223,9 @@ class DashboardScreen extends ConsumerWidget {
     final today = DateTime(now.year, now.month, now.day);
 
     if (start == end) {
-      if (start == today)
+      if (start == today) {
         return 'Today, ${DateFormat('d MMMM yyyy').format(start)}';
+      }
       return fmtYear.format(start);
     }
 
