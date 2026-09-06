@@ -886,10 +886,10 @@ action list as each lands, so it does not build them twice.
 - [ ] Share bills with three of eighteen shops selected produces a total of those three.
 - [ ] The Ledger period filter defaults to All time; the outstanding hero does not change
       when the period changes.
-- [ ] `flutter test` green, `flutter analyze` clean.
-- [ ] `./tool/check_tokens.sh` count is **not higher** than 354. It may rise from new
+- [x] `flutter test` green, `flutter analyze` clean.
+- [x] `./tool/check_tokens.sh` count is **not higher** than 354. It may rise from new
       code; it must not, so write new code on the kit.
-- [ ] `pubspec.yaml` bumped to `1.11.0+15` as the **last** commit on this branch.
+- [x] `pubspec.yaml` bumped to `1.11.0+15` as the **last** commit on this branch.
 - [ ] The five 10b criteria that still need the phone are walked and ticked in
       [10b](10b-navigation.md)'s *What still needs the phone* table.
 - [ ] A backup exported from `1.10.0+14` restores into this build. Readiness gate step 7,
@@ -916,6 +916,7 @@ action list as each lands, so it does not build them twice.
 | J2–J4 · Nav, minus the bar | `0b58194` | Relative dates, scroll reset, Catalogue back in Settings |
 | J1 · The hiding bar | `fee9802` | Out of the Scaffold slot, into an overlay. Alone, as planned |
 | K1–K7 · Second pass | see below | Twelve points from the second phone run |
+| Version bump | this commit | `1.11.0+15`, last on the branch, gates re-verified below |
 
 ### Verified — 2026-09-05, Flutter 3.44.2 / Dart 3.12.2
 
@@ -927,6 +928,9 @@ are the ones CI will see.
 | `flutter test` | **336 passing, 0 failing** — was 203 when 10b was built |
 | `flutter analyze` | **0 errors, 0 warnings.** 48 infos, all deprecation |
 | `tool/check_tokens.sh` | **289**, from 354. Kit clean |
+
+Re-verified unchanged at the version bump, 2026-09-06: 336 passing, 0 errors,
+0 warnings, 48 deprecation infos, `check_tokens.sh` 289.
 
 `flutter analyze` is **not** clean, and none of it is new:
 
