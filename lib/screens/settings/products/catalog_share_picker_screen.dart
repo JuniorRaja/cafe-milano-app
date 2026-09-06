@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../app.dart' show AppRoutes;
 import '../../../database/app_database.dart';
 import '../../../providers/product_provider.dart';
 import '../../../providers/category_provider.dart';
@@ -99,75 +101,74 @@ class _CatalogSharePickerScreenState
   Widget build(BuildContext context) {
     final productsAsync = ref.watch(activeProductsProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Share Catalog',
-              style: TextStyle(fontWeight: FontWeight.bold),
+    return AppScaffold(
+      title: 'Share Catalog',
+      caption: 'Select the products to include',
+      background: AppColors.bg,
+      body: Column(
+        children: [
+          Expanded(
+            child: productsAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, st) {
+                debugPrint('catalog share: products failed: $e\n$st');
+                return AppErrorView(
+                  message: 'Could not load your products.',
+                  cause: '$e',
+                  onRetry: () => ref.invalidate(activeProductsProvider),
+                );
+              },
+              data: (products) {
+                if (!_initialized) {
+                  _selectedIds = products.map((p) => p.id).toSet();
+                  _initialized = true;
+                }
+                if (products.isEmpty) {
+                  return EmptyState(
+                    icon: Icons.inventory_2_outlined,
+                    title: 'No products to share',
+                    message:
+                        'A catalogue needs at least one active product in it.',
+                    actionLabel: 'Add a product',
+                    onAction: () => context.push(AppRoutes.productNew),
+                  );
+                }
+                return MultiSelectList(
+                  noun: 'products',
+                  options: [
+                    for (final product in products)
+                      SelectOption(
+                        id: product.id,
+                        title: product.name,
+                        subtitle: _priceLabel(product),
+                        leading: _thumb(product),
+                      ),
+                  ],
+                  selected: _selectedIds,
+                  onChanged: (next) => setState(() => _selectedIds = next),
+                );
+              },
             ),
-            Text(
-              'Select the products to include',
-              style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade500,
-                  fontWeight: FontWeight.normal),
-            ),
-          ],
-        ),
-      ),
-      body: productsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
-        data: (products) {
-          if (!_initialized) {
-            _selectedIds = products.map((p) => p.id).toSet();
-            _initialized = true;
-          }
-          if (products.isEmpty) {
-            return const Center(child: Text('No active products to share.'));
-          }
-          return MultiSelectList(
-            noun: 'products',
-            options: [
-              for (final product in products)
-                SelectOption(
-                  id: product.id,
-                  title: product.name,
-                  subtitle: _priceLabel(product),
-                  leading: _thumb(product),
-                ),
-            ],
-            selected: _selectedIds,
-            onChanged: (next) => setState(() => _selectedIds = next),
-          );
-        },
-      ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: FilledButton(
-            onPressed: _selectedIds.isEmpty || _generating
-                ? null
-                : () => _chooseFormat(
-                      (productsAsync.value ?? [])
-                          .where((p) => _selectedIds.contains(p.id))
-                          .toList(),
-                    ),
-            child: _generating
-                ? const SizedBox(
-                    height: 18,
-                    width: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : Text('Share (${_selectedIds.length} selected)'),
           ),
-        ),
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpace.s4),
+              child: AppButton(
+                label: 'Share (${_selectedIds.length} selected)',
+                busy: _generating,
+                expand: true,
+                onPressed: _selectedIds.isEmpty
+                    ? null
+                    : () => _chooseFormat(
+                        (productsAsync.value ?? [])
+                            .where((p) => _selectedIds.contains(p.id))
+                            .toList(),
+                      ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

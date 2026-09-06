@@ -153,32 +153,18 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         ? null
         : allCats.where((c) => c.id == _selectedCategoryId).firstOrNull;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.productId == null ? 'New Product' : 'Edit Product',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              'Fill in the product details',
-              style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade500,
-                  fontWeight: FontWeight.normal),
-            ),
-          ],
-        ),
-        actions: [
-          if (widget.productId != null)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              onPressed: _saving ? null : _delete,
-            ),
-        ],
-      ),
+    return AppScaffold(
+      title: widget.productId == null ? 'New Product' : 'Edit Product',
+      caption: 'Fill in the product details',
+      background: AppColors.bg,
+      actions: [
+        if (widget.productId != null)
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            color: AppColors.negative,
+            onPressed: _saving ? null : _delete,
+          ),
+      ],
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : Form(
@@ -195,12 +181,12 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                             width: 100,
                             height: 100,
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade200,
-                              borderRadius: BorderRadius.circular(8),
+                              color: AppColors.surfaceMuted,
+                              borderRadius: AppRadius.rS,
                             ),
                             child: _photoPath != null
                                 ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: AppRadius.rS,
                                     child: Image.file(
                                       File(_photoPath!),
                                       fit: BoxFit.cover,

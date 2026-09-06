@@ -118,32 +118,18 @@ class _ShopFormScreenState extends ConsumerState<ShopFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.shopId == null ? 'New Shop' : 'Edit Shop',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              'Fill in the shop details',
-              style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade500,
-                  fontWeight: FontWeight.normal),
-            ),
-          ],
-        ),
-        actions: [
-          if (widget.shopId != null)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              onPressed: _saving ? null : _delete,
-            ),
-        ],
-      ),
+    return AppScaffold(
+      title: widget.shopId == null ? 'New Shop' : 'Edit Shop',
+      caption: 'Fill in the shop details',
+      background: AppColors.bg,
+      actions: [
+        if (widget.shopId != null)
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            color: AppColors.negative,
+            onPressed: _saving ? null : _delete,
+          ),
+      ],
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : Form(

@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../app.dart';
 import '../../../database/app_database.dart';
 import '../../../providers/shop_provider.dart';
 import '../../../providers/product_provider.dart';
@@ -126,33 +125,20 @@ class _PriceMatrixScreenState extends ConsumerState<PriceMatrixScreen> {
     final shopsAsync = ref.watch(activeShopsProvider);
     final productsAsync = ref.watch(activeProductsProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Price Matrix',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              'Manage product prices for each shop',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade500,
-                fontWeight: FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton.icon(
-            onPressed: () => _showAboutDialog(context),
-            icon: const Icon(Icons.info_outline, color: kBrandBrown),
-            label: const Text('About', style: TextStyle(color: kBrandBrown)),
+    return AppScaffold(
+      title: 'Price Matrix',
+      caption: 'Manage product prices for each shop',
+      background: AppColors.bg,
+      actions: [
+        TextButton.icon(
+          onPressed: () => _showAboutDialog(context),
+          icon: const Icon(Icons.info_outline, color: AppColors.brandDeep),
+          label: Text(
+            'About',
+            style: AppType.label.copyWith(color: AppColors.brandDeep),
           ),
-        ],
-      ),
+        ),
+      ],
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         behavior: HitTestBehavior.opaque,

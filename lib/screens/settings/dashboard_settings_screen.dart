@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../app.dart';
+import '../../app.dart' show AppRoutes;
 import '../../providers/dashboard_settings_provider.dart';
+import '../../widgets/ui/ui.dart';
 
 class DashboardSettingsScreen extends ConsumerWidget {
   const DashboardSettingsScreen({super.key});
@@ -12,31 +13,23 @@ class DashboardSettingsScreen extends ConsumerWidget {
     final settings = ref.watch(dashboardSettingsProvider);
     final notifier = ref.read(dashboardSettingsProvider.notifier);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard Settings',
-            style: TextStyle(fontWeight: FontWeight.bold)),
-      ),
+    return AppScaffold(
+      title: 'Dashboard Settings',
+      background: AppColors.bg,
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpace.s4,
+          0,
+          AppSpace.s4,
+          AppSpace.s6,
+        ),
         children: [
-          // Sections header
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 8),
-            child: Text(
-              'SECTIONS',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: Colors.grey.shade500,
-                letterSpacing: 1.2,
-              ),
-            ),
+          const SectionHeader(
+            title: 'Sections',
+            padding: EdgeInsets.only(bottom: AppSpace.s2),
           ),
-          Card(
-            color: Colors.white,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          AppCard(
+            padding: EdgeInsets.zero,
             child: Column(
               children: [
                 _ToggleTile(
@@ -44,77 +37,67 @@ class DashboardSettingsScreen extends ConsumerWidget {
                   subtitle: "Today's snapshot",
                   value: settings.showPulse,
                   onChanged: (v) => notifier.toggle(kDashPulse, v),
-                  onInfo: () => context.push(AppRoutes.kpiHelp,
-                      extra: 'today_revenue'),
+                  onInfo: () =>
+                      context.push(AppRoutes.kpiHelp, extra: 'today_revenue'),
                 ),
-                const Divider(height: 1, indent: 16),
+                const _TileDivider(),
                 _ToggleTile(
                   title: 'Outstanding Receivables',
                   subtitle: 'Total owed across all shops',
                   value: settings.showOutstanding,
                   onChanged: (v) => notifier.toggle(kDashOutstanding, v),
-                  onInfo: () => context.push(AppRoutes.kpiHelp,
-                      extra: 'today_revenue'),
+                  onInfo: () =>
+                      context.push(AppRoutes.kpiHelp, extra: 'today_revenue'),
                 ),
-                const Divider(height: 1, indent: 16),
+                const _TileDivider(),
                 _ToggleTile(
                   title: 'Category Scorecards',
                   subtitle: 'Per-category health cards',
                   value: settings.showCategoryCards,
                   onChanged: (v) => notifier.toggle(kDashCategoryCards, v),
-                  onInfo: () => context.push(AppRoutes.kpiHelp,
-                      extra: 'category_revenue'),
+                  onInfo: () => context.push(
+                    AppRoutes.kpiHelp,
+                    extra: 'category_revenue',
+                  ),
                 ),
-                const Divider(height: 1, indent: 16),
+                const _TileDivider(),
                 _ToggleTile(
                   title: 'Revenue Anatomy',
                   subtitle: 'Mix, concentration & leaderboard',
                   value: settings.showRevenueAnatomy,
                   onChanged: (v) => notifier.toggle(kDashRevenueAnatomy, v),
-                  onInfo: () => context.push(AppRoutes.kpiHelp,
-                      extra: 'category_mix'),
+                  onInfo: () =>
+                      context.push(AppRoutes.kpiHelp, extra: 'category_mix'),
                 ),
-                const Divider(height: 1, indent: 16),
+                const _TileDivider(),
                 _ToggleTile(
                   title: 'Operational Patterns',
                   subtitle: 'Day-of-week heatmap',
                   value: settings.showOperationalPatterns,
-                  onChanged: (v) =>
-                      notifier.toggle(kDashOperationalPatterns, v),
-                  onInfo: () => context.push(AppRoutes.kpiHelp,
-                      extra: 'heatmap'),
+                  onChanged: (v) => notifier.toggle(kDashOperationalPatterns, v),
+                  onInfo: () =>
+                      context.push(AppRoutes.kpiHelp, extra: 'heatmap'),
                 ),
-                const Divider(height: 1, indent: 16),
+                const _TileDivider(),
                 _ToggleTile(
                   title: 'Attention Flags',
                   subtitle: 'Smart alerts & anomalies',
                   value: settings.showAttentionFlags,
                   onChanged: (v) => notifier.toggle(kDashAttentionFlags, v),
-                  onInfo: () => context.push(AppRoutes.kpiHelp,
-                      extra: 'declining_flag'),
+                  onInfo: () =>
+                      context.push(AppRoutes.kpiHelp, extra: 'declining_flag'),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpace.s5),
 
-          // Sub-sections header
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 8),
-            child: Text(
-              'SUB-SECTIONS',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: Colors.grey.shade500,
-                letterSpacing: 1.2,
-              ),
-            ),
+          const SectionHeader(
+            title: 'Sub-sections',
+            padding: EdgeInsets.only(bottom: AppSpace.s2),
           ),
-          Card(
-            color: Colors.white,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          AppCard(
+            padding: EdgeInsets.zero,
             child: Column(
               children: [
                 _ToggleTile(
@@ -122,66 +105,75 @@ class DashboardSettingsScreen extends ConsumerWidget {
                   subtitle: 'Donut chart',
                   value: settings.showCategoryMix,
                   onChanged: (v) => notifier.toggle(kDashCategoryMix, v),
-                  onInfo: () => context.push(AppRoutes.kpiHelp,
-                      extra: 'category_mix'),
+                  onInfo: () =>
+                      context.push(AppRoutes.kpiHelp, extra: 'category_mix'),
                 ),
-                const Divider(height: 1, indent: 16),
+                const _TileDivider(),
                 _ToggleTile(
                   title: 'Shop Concentration',
                   subtitle: 'Top shops by revenue',
                   value: settings.showShopConcentration,
-                  onChanged: (v) =>
-                      notifier.toggle(kDashShopConcentration, v),
-                  onInfo: () => context.push(AppRoutes.kpiHelp,
-                      extra: 'shop_concentration'),
+                  onChanged: (v) => notifier.toggle(kDashShopConcentration, v),
+                  onInfo: () => context.push(
+                    AppRoutes.kpiHelp,
+                    extra: 'shop_concentration',
+                  ),
                 ),
-                const Divider(height: 1, indent: 16),
+                const _TileDivider(),
                 _ToggleTile(
                   title: 'Product Leaderboard',
                   subtitle: 'Top 10 products',
                   value: settings.showProductLeaderboard,
-                  onChanged: (v) =>
-                      notifier.toggle(kDashProductLeaderboard, v),
-                  onInfo: () => context.push(AppRoutes.kpiHelp,
-                      extra: 'product_leaderboard'),
+                  onChanged: (v) => notifier.toggle(kDashProductLeaderboard, v),
+                  onInfo: () => context.push(
+                    AppRoutes.kpiHelp,
+                    extra: 'product_leaderboard',
+                  ),
                 ),
-                const Divider(height: 1, indent: 16),
+                const _TileDivider(),
                 _ToggleTile(
                   title: 'Day-of-Week Heatmap',
                   subtitle: 'Demand by weekday',
                   value: settings.showHeatmap,
                   onChanged: (v) => notifier.toggle(kDashHeatmap, v),
-                  onInfo: () => context.push(AppRoutes.kpiHelp,
-                      extra: 'heatmap'),
+                  onInfo: () =>
+                      context.push(AppRoutes.kpiHelp, extra: 'heatmap'),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpace.s5),
 
-          // KPI Help Guide link
-          Card(
-            color: Colors.white,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          AppCard(
+            padding: EdgeInsets.zero,
+            onTap: () => context.push(AppRoutes.kpiHelp),
             child: ListTile(
-              leading: const Text('📖', style: TextStyle(fontSize: 22)),
-              title: const Text(
-                'KPI Help Guide',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
+              leading: const Text('📖', style: AppType.titleL),
+              title: Text('KPI Help Guide', style: AppType.titleS),
               subtitle: Text(
                 'Learn what each metric means',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                style: AppType.bodyS.copyWith(color: AppColors.textSecondary),
               ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push(AppRoutes.kpiHelp),
+              // No onTap here: the tap lives on the AppCard above so the ripple
+              // clips to rM. A ListTile with its own onTap would swallow it.
+              trailing: const Icon(
+                Icons.chevron_right,
+                color: AppColors.textTertiary,
+              ),
             ),
           ),
         ],
       ),
     );
   }
+}
+
+class _TileDivider extends StatelessWidget {
+  const _TileDivider();
+
+  @override
+  Widget build(BuildContext context) =>
+      const Divider(height: 1, indent: AppSpace.s4, color: AppColors.border);
 }
 
 class _ToggleTile extends StatelessWidget {
@@ -202,15 +194,20 @@ class _ToggleTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      title: Text(title,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-      subtitle: Text(subtitle,
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+      title: Text(title, style: AppType.body.copyWith(fontWeight: FontWeight.w600)),
+      subtitle: Text(
+        subtitle,
+        style: AppType.bodyS.copyWith(color: AppColors.textSecondary),
+      ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
-            icon: Icon(Icons.info_outline, size: 20, color: Colors.grey.shade400),
+            icon: const Icon(
+              Icons.info_outline,
+              size: 20,
+              color: AppColors.textTertiary,
+            ),
             onPressed: onInfo,
           ),
           // No colour override. switchTheme in app_theme.dart already gives

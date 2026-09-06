@@ -4,6 +4,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../widgets/ui/ui.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../theme/brand_config.dart';
 import '../../../database/app_database.dart';
@@ -75,25 +76,10 @@ class _BusinessInfoFormScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Business Info',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              'Used on shared product catalogs',
-              style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade500,
-                  fontWeight: FontWeight.normal),
-            ),
-          ],
-        ),
-      ),
+    return AppScaffold(
+      title: 'Business Info',
+      caption: 'Used on shared product catalogs',
+      background: AppColors.bg,
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : Form(
@@ -110,11 +96,11 @@ class _BusinessInfoFormScreenState
                             width: 100,
                             height: 100,
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade200,
-                              borderRadius: BorderRadius.circular(8),
+                              color: AppColors.surfaceMuted,
+                              borderRadius: AppRadius.rS,
                             ),
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: AppRadius.rS,
                               child: _logoPath != null
                                   ? Image.file(
                                       File(_logoPath!),
