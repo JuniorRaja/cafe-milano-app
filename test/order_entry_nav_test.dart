@@ -81,7 +81,7 @@ void main() {
   }
 
   Future<void> tapBack(WidgetTester tester) async {
-    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.tap(find.byIcon(Icons.arrow_back_rounded));
     await io(tester);
   }
 

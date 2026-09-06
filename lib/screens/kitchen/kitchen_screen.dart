@@ -3,13 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
-import '../../app.dart';
 import '../../database/app_database.dart';
-import '../../providers/category_provider.dart';
 import '../../providers/date_provider.dart';
 import '../../providers/order_provider.dart';
-import '../../providers/shop_provider.dart';
-import '../../providers/product_provider.dart';
+import '../../services/error_reporting.dart';
 import '../../services/kitchen_list.dart';
 import '../../widgets/date_selector.dart';
 import '../../widgets/shell/app_shell.dart';
@@ -41,31 +38,26 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
   @override
   Widget build(BuildContext context) {
     final date = ref.watch(selectedDateProvider);
-    final linesAsync = ref.watch(kitchenLinesForDateProvider(date));
-    final shopMap = ref.watch(allShopsProvider).maybeWhen(
-          data: (shops) => {for (final s in shops) s.id: s},
-          orElse: () => <int, Shop>{},
-        );
-    final productMap = ref.watch(allProductsProvider).maybeWhen(
-          data: (products) => {for (final p in products) p.id: p},
-          orElse: () => <int, Product>{},
-        );
-    final categories = ref.watch(allCategoriesProvider).maybeWhen(
-          data: (c) => c,
-          orElse: () => <Category>[],
-        );
-    final lines = linesAsync.maybeWhen(
-      data: (lines) => lines,
-      orElse: () => <KitchenRawLine>[],
-    );
-    final hasLines = lines.isNotEmpty;
-    // One grouping, drawn by the By Item tab and written by the share
-    // sheet. See lib/services/kitchen_list.dart.
-    final itemGroups = groupKitchenLines(
-      lines: lines,
-      productMap: productMap,
-      categories: categories,
-    );
+
+    // One provider, one `.when`. This screen used to read four with
+    // `maybeWhen(orElse: () => [])`, which is why a failed query drew as
+    // "No orders for this date" — the operator was told there was nothing to
+    // bake because the database had failed. See `kitchenViewProvider`.
+    final viewAsync = ref.watch(kitchenViewProvider(date));
+
+    // The share action needs real data, so it stays disabled in every other
+    // state. `valueOrNull` is null while loading *and* on failure.
+    final view = viewAsync.valueOrNull;
+    final itemGroups = view == null
+        ? const <KitchenGroup>[]
+        // One grouping, drawn by the By Item tab and written by the share
+        // sheet. See lib/services/kitchen_list.dart.
+        : groupKitchenLines(
+            lines: view.lines,
+            productMap: view.productMap,
+            categories: view.categories,
+          );
+    final hasLines = view != null && view.lines.isNotEmpty;
 
     // On `AppScaffold`, like every other shell screen. It had a hand-rolled
     // header, which is why its menu button sat on a different left edge from
@@ -81,8 +73,13 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
           tooltip: 'Share kitchen list',
           onPressed: hasLines
               ? () => _tabController.index == 0
-                  ? _shareItems(itemGroups, date)
-                  : _shareAllShops(lines, shopMap, productMap, date)
+                    ? _shareItems(itemGroups, date)
+                    : _shareAllShops(
+                        view.lines,
+                        view.shopMap,
+                        view.productMap,
+                        date,
+                      )
               : null,
         ),
       ],
@@ -107,9 +104,9 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
           const SizedBox(height: AppSpace.s2),
         ],
       ),
-      body: linesAsync.when(
-        data: (lines) {
-          if (lines.isEmpty) {
+      body: viewAsync.when(
+        data: (view) {
+          if (view.lines.isEmpty) {
             return const _EmptyState();
           }
           return TabBarView(
@@ -117,17 +114,29 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
             children: [
               _ByItemView(groups: itemGroups),
               _ByShopView(
-                lines: lines,
-                shopMap: shopMap,
-                productMap: productMap,
-                onShareShop: (shopId) =>
-                    _shareShop(shopId, lines, shopMap, productMap, date),
+                lines: view.lines,
+                shopMap: view.shopMap,
+                productMap: view.productMap,
+                onShareShop: (shopId) => _shareShop(
+                  shopId,
+                  view.lines,
+                  view.shopMap,
+                  view.productMap,
+                  date,
+                ),
               ),
             ],
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, st) {
+          reportError(e, st, context: 'kitchen');
+          return AppErrorView(
+            message: "Could not load today's kitchen list.",
+            cause: '$e',
+            onRetry: () => ref.invalidate(kitchenLinesForDateProvider(date)),
+          );
+        },
       ),
     );
   }
@@ -151,27 +160,28 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
     final shop = shopMap[shopId];
     final shopName = shop?.name ?? 'Shop #$shopId';
     final shopArea = shop?.area?.trim();
-    final areaLabel = (shopArea != null && shopArea.isNotEmpty) ? ' — $shopArea' : '';
+    final areaLabel = (shopArea != null && shopArea.isNotEmpty)
+        ? ' — $shopArea'
+        : '';
 
     final Map<int, int> totals = {};
     for (final l in lines.where((l) => l.shopId == shopId)) {
       totals[l.productId] = (totals[l.productId] ?? 0) + l.qty;
     }
-    final sorted = totals.entries
-        .where((e) => e.value > 0)
-        .toList()
+    final sorted = totals.entries.where((e) => e.value > 0).toList()
       ..sort((a, b) {
-          final na = productMap[a.key]?.name.toLowerCase() ?? '';
-          final nb = productMap[b.key]?.name.toLowerCase() ?? '';
-          return na.compareTo(nb);
-        });
+        final na = productMap[a.key]?.name.toLowerCase() ?? '';
+        final nb = productMap[b.key]?.name.toLowerCase() ?? '';
+        return na.compareTo(nb);
+      });
 
     final buf = StringBuffer();
     buf.writeln('🏪 $shopName$areaLabel — $dateLabel');
     buf.writeln();
     for (final entry in sorted) {
       buf.writeln(
-          '· ${productMap[entry.key]?.name ?? '#${entry.key}'} × ${entry.value}');
+        '· ${productMap[entry.key]?.name ?? '#${entry.key}'} × ${entry.value}',
+      );
     }
     unawaited(Share.share(buf.toString().trim()));
   }
@@ -203,20 +213,21 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
       final shop = shopMap[shopId];
       final shopName = shop?.name ?? 'Shop #$shopId';
       final shopArea = shop?.area?.trim();
-      final areaLabel = (shopArea != null && shopArea.isNotEmpty) ? ' — $shopArea' : '';
+      final areaLabel = (shopArea != null && shopArea.isNotEmpty)
+          ? ' — $shopArea'
+          : '';
       buf.writeln('🏪 $shopName$areaLabel');
-      final productEntries = shopProducts[shopId]!
-          .entries
-          .where((e) => e.value > 0)
-          .toList()
-        ..sort((a, b) {
-            final na = productMap[a.key]?.name.toLowerCase() ?? '';
-            final nb = productMap[b.key]?.name.toLowerCase() ?? '';
-            return na.compareTo(nb);
-          });
+      final productEntries =
+          shopProducts[shopId]!.entries.where((e) => e.value > 0).toList()
+            ..sort((a, b) {
+              final na = productMap[a.key]?.name.toLowerCase() ?? '';
+              final nb = productMap[b.key]?.name.toLowerCase() ?? '';
+              return na.compareTo(nb);
+            });
       for (final pe in productEntries) {
         buf.writeln(
-            '· ${productMap[pe.key]?.name ?? '#${pe.key}'} × ${pe.value}');
+          '· ${productMap[pe.key]?.name ?? '#${pe.key}'} × ${pe.value}',
+        );
       }
       totalPieces += productEntries.fold<int>(0, (s, e) => s + e.value);
       buf.writeln();
@@ -242,18 +253,13 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.restaurant_outlined, size: 64, color: Colors.grey),
-          SizedBox(height: 12),
-          Text(
-            'No orders for this date',
-            style: TextStyle(color: Colors.grey, fontSize: 15),
-          ),
-        ],
-      ),
+    // Deliberately `inert`: there is nothing to *do* about a day nobody
+    // ordered on. This is the state that must never be mistakable for a
+    // failure — the failure is an AppErrorView with a retry.
+    return const EmptyState.inert(
+      icon: Icons.restaurant_outlined,
+      title: 'Nothing to bake',
+      message: 'No shop has ordered for this date.',
     );
   }
 }
@@ -297,8 +303,9 @@ class _ByItemView extends StatelessWidget {
                       ),
                       Text(
                         '${group.total} pcs',
-                        style: AppType.label
-                            .copyWith(color: AppColors.brandDeep),
+                        style: AppType.label.copyWith(
+                          color: AppColors.brandDeep,
+                        ),
                       ),
                     ],
                   ),
@@ -316,9 +323,7 @@ class _ByItemView extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        Expanded(
-                          child: Text(item.name, style: AppType.body),
-                        ),
+                        Expanded(child: Text(item.name, style: AppType.body)),
                         Text('${item.qty}', style: AppType.titleL),
                       ],
                     ),
@@ -361,7 +366,9 @@ class _ByShopView extends StatelessWidget {
       shopProducts[l.shopId]![l.productId] =
           (shopProducts[l.shopId]![l.productId] ?? 0) + l.qty;
     }
-    shopOrder.sort((a, b) => _KitchenScreenState._cmpShops(shopMap[a], shopMap[b]));
+    shopOrder.sort(
+      (a, b) => _KitchenScreenState._cmpShops(shopMap[a], shopMap[b]),
+    );
 
     return ListView.builder(
       // The nav bar floats over the body now. See `AppShell.bottomInset`.
@@ -370,15 +377,13 @@ class _ByShopView extends StatelessWidget {
       itemBuilder: (context, i) {
         final shopId = shopOrder[i];
         final shop = shopMap[shopId];
-        final productEntries = shopProducts[shopId]!
-            .entries
-            .where((e) => e.value > 0)
-            .toList()
-          ..sort((a, b) {
-              final na = productMap[a.key]?.name.toLowerCase() ?? '';
-              final nb = productMap[b.key]?.name.toLowerCase() ?? '';
-              return na.compareTo(nb);
-            });
+        final productEntries =
+            shopProducts[shopId]!.entries.where((e) => e.value > 0).toList()
+              ..sort((a, b) {
+                final na = productMap[a.key]?.name.toLowerCase() ?? '';
+                final nb = productMap[b.key]?.name.toLowerCase() ?? '';
+                return na.compareTo(nb);
+              });
         if (productEntries.isEmpty) return const SizedBox.shrink();
 
         final total = productEntries.fold<int>(0, (s, e) => s + e.value);
@@ -399,24 +404,24 @@ class _ByShopView extends StatelessWidget {
                         children: [
                           Text(
                             shop?.name ?? 'Shop #$shopId',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                            ),
+                            style: AppType.titleS,
                           ),
                           if (shop?.area?.trim().isNotEmpty == true)
                             Text(
                               shop!.area!.trim(),
-                              style: TextStyle(
-                                  fontSize: 12, color: Colors.grey[600]),
+                              style: AppType.label.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
                             ),
                         ],
                       ),
                     ),
                     Text(
                       '$total pcs',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w600, color: kBrandBrown),
+                      style: AppType.body.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.brandDeep,
+                      ),
                     ),
                     IconButton(
                       icon: const Icon(Icons.ios_share_rounded, size: 18),
@@ -431,17 +436,19 @@ class _ByShopView extends StatelessWidget {
               ...productEntries.map(
                 (pe) => Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 28, vertical: 10),
+                    horizontal: 28,
+                    vertical: 10,
+                  ),
                   child: Row(
                     children: [
                       Expanded(
-                        child: Text(productMap[pe.key]?.name ??
-                            'Product #${pe.key}'),
+                        child: Text(
+                          productMap[pe.key]?.name ?? 'Product #${pe.key}',
+                        ),
                       ),
                       Text(
                         pe.value.toString(),
-                        style:
-                            const TextStyle(fontWeight: FontWeight.bold),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),

@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../app.dart';
 import '../../../providers/database_provider.dart';
 import '../../../services/backup_service.dart';
 import '../../../widgets/ui/ui.dart';
@@ -94,78 +93,79 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Backup & Restore',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              'Keep your data safe',
-              style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade500,
-                  fontWeight: FontWeight.normal),
-            ),
-          ],
-        ),
-      ),
+    return AppScaffold(
+      title: 'Backup & Restore',
+      caption: 'Keep your data safe',
+      background: AppColors.bg,
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpace.s4,
+          0,
+          AppSpace.s4,
+          AppSpace.s6,
+        ),
         children: [
-          Card(
-            color: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: ListTile(
-              leading: Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: kBrandGold.withAlpha(40),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.upload_outlined, color: kBrandBrown, size: 20),
-              ),
-              title: const Text('Export Backup',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-              subtitle: const Text(
-                'Save all shops, products, prices, orders, business info and photos to a file you can store safely (e.g. Google Drive, email)',
-                style: TextStyle(fontSize: 12),
-              ),
-              onTap: _busy ? null : _export,
-            ),
+          _ActionTile(
+            icon: Icons.upload_outlined,
+            title: 'Export Backup',
+            subtitle:
+                'Save all shops, products, prices, orders, business info and '
+                'photos to a file you can store safely (e.g. Google Drive, '
+                'email)',
+            onTap: _busy ? null : _export,
           ),
-          const SizedBox(height: 12),
-          Card(
-            color: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: ListTile(
-              leading: Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: kBrandGold.withAlpha(40),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.download_outlined, color: kBrandBrown, size: 20),
-              ),
-              title: const Text('Import Backup',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-              subtitle: const Text(
-                'Restore from a previously exported backup file. This erases current data on this device.',
-                style: TextStyle(fontSize: 12),
-              ),
-              onTap: _busy ? null : _import,
-            ),
+          const SizedBox(height: AppSpace.s3),
+          _ActionTile(
+            icon: Icons.download_outlined,
+            title: 'Import Backup',
+            subtitle:
+                'Restore from a previously exported backup file. This erases '
+                'current data on this device.',
+            onTap: _busy ? null : _import,
           ),
           if (_busy) ...[
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpace.s5),
             const Center(child: CircularProgressIndicator()),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _ActionTile extends StatelessWidget {
+  const _ActionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      padding: EdgeInsets.zero,
+      onTap: onTap,
+      child: ListTile(
+        leading: Container(
+          width: 38,
+          height: 38,
+          decoration: const BoxDecoration(
+            color: AppColors.surfaceMuted,
+            borderRadius: AppRadius.rS,
+          ),
+          child: Icon(icon, color: AppColors.brandDeep, size: 20),
+        ),
+        title: Text(title, style: AppType.titleS),
+        subtitle: Text(
+          subtitle,
+          style: AppType.bodyS.copyWith(color: AppColors.textSecondary),
+        ),
       ),
     );
   }

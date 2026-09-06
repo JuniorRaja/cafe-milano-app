@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import '../theme/tokens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'tokens.dart';
 
 /// Everything about the app that is *this business* rather than *this product*.
 ///

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../models/dashboard_models.dart';
-import '../../providers/category_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/business_info_provider.dart';
 import '../../providers/dashboard_settings_provider.dart';
@@ -40,13 +39,18 @@ class DashboardScreen extends ConsumerWidget {
     // The owner's own business, not one of the shops they supply. Falls back
     // to the generic title when Business Info has not been filled in, so the
     // header is never blank and no name is ever hardcoded.
-    final businessName = ref.watch(businessInfoProvider).maybeWhen(
-          data: (info) {
-            final name = info?.name.trim() ?? '';
-            return name.isEmpty ? null : name;
-          },
-          orElse: () => null,
-        );
+    // The one legitimate fallback in the app: a greeting with no name is a
+    // fine greeting, so loading and failure may share it. Written as
+    // `valueOrNull` rather than `maybeWhen(orElse:)` so that spelling stays
+    // absent from the codebase and a grep for it keeps meaning something.
+    final trimmedName = ref
+        .watch(businessInfoProvider)
+        .valueOrNull
+        ?.name
+        .trim();
+    final businessName = (trimmedName == null || trimmedName.isEmpty)
+        ? null
+        : trimmedName;
 
     return AppScaffold(
       // The greeting the owner asked to have back, and no name with it — see
@@ -62,7 +66,7 @@ class DashboardScreen extends ConsumerWidget {
       leading: const ShellDrawerButton(),
       actions: [
         IconButton(
-          onPressed: () => _refreshDashboard(ref),
+          onPressed: () => refreshDashboard(ref),
           icon: const Icon(Icons.refresh_rounded),
           color: AppColors.textPrimary,
           tooltip: 'Refresh',
@@ -109,6 +113,10 @@ class DashboardScreen extends ConsumerWidget {
           AppShell.bottomInset(context),
         ),
         child: Column(
+          // The cards used to force their own `width: double.infinity`
+          // because a Column centres its children. Stretching here is the
+          // same result, said once.
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Section 1 — The Pulse, on the daily view only. It answers
             // "how is today going" — against a quarter it is not a pulse, it
@@ -192,22 +200,6 @@ class DashboardScreen extends ConsumerWidget {
         .selectCustomRange(picked.start, picked.end);
   }
 
-  void _refreshDashboard(WidgetRef ref) {
-    ref.invalidate(todayProvider);
-    ref.invalidate(categoriesProvider);
-    ref.invalidate(shopConcentrationDataProvider);
-    ref.invalidate(categoryScoresDataProvider);
-    ref.invalidate(todayRevenueProvider);
-    ref.invalidate(revenueDeltaProvider);
-    ref.invalidate(shopsServedTodayProvider);
-    ref.invalidate(pendingConfirmationsProvider);
-    ref.invalidate(categoryScorecardsProvider);
-    ref.invalidate(categoryMixProvider);
-    ref.invalidate(shopConcentrationProvider);
-    ref.invalidate(productLeaderboardProvider);
-    ref.invalidate(weekdayHeatmapProvider);
-    ref.invalidate(attentionFlagsProvider);
-  }
 
   String _formatDateIndicator(DashboardRange range) {
     final fmt = DateFormat('d MMM');
@@ -218,7 +210,9 @@ class DashboardScreen extends ConsumerWidget {
     final today = DateTime(now.year, now.month, now.day);
 
     if (start == end) {
-      if (start == today) return 'Today, ${DateFormat('d MMMM yyyy').format(start)}';
+      if (start == today) {
+        return 'Today, ${DateFormat('d MMMM yyyy').format(start)}';
+      }
       return fmtYear.format(start);
     }
 

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../services/error_reporting.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app.dart';
@@ -35,11 +36,11 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final productsAsync = ref.watch(allProductsProvider);
-    final allCats = ref.watch(allCategoriesProvider).maybeWhen(
-          data: (c) => c,
-          orElse: () => const <Category>[],
-        );
+    // Products and categories fail together: read separately, a failed
+    // categories query silently ungrouped every product. See
+    // `catalogueViewProvider`.
+    final viewAsync = ref.watch(catalogueViewProvider);
+    final allCats = viewAsync.valueOrNull?.categories ?? const <Category>[];
     final activeCats = allCats.where((c) => c.isActive).toList();
     final catMap = {for (final c in allCats) c.id: c};
 
@@ -55,8 +56,9 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
           onPressed: () => context.push(AppRoutes.catalogShare),
         ),
       ],
-      stats: productsAsync.whenOrNull(
-        data: (products) {
+      stats: viewAsync.whenOrNull(
+        data: (view) {
+          final products = view.products;
           final active = products.where((p) => p.isActive).length;
           return [
             StatBandItem('${products.length}', label: 'products'),
@@ -70,14 +72,21 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
         icon: const Icon(Icons.add_rounded),
         label: const Text('Add product'),
       ),
-      builder: (context, query) => productsAsync.when(
+      builder: (context, query) => viewAsync.when(
         loading: AppSkeleton.list,
-        error: (e, _) => AppErrorView(
-          message: 'Could not load your products.',
-          cause: '$e',
-          onRetry: () => ref.invalidate(allProductsProvider),
-        ),
-        data: (products) {
+        error: (e, st) {
+          reportError(e, st, context: 'products');
+          return AppErrorView(
+            message: 'Could not load your products.',
+            cause: '$e',
+            onRetry: () {
+              ref.invalidate(allProductsProvider);
+              ref.invalidate(allCategoriesProvider);
+            },
+          );
+        },
+        data: (view) {
+          final products = view.products;
           final ordered = [
             ...products.where((p) => p.isActive),
             ...products.where((p) => !p.isActive),
@@ -148,15 +157,13 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
 
   bool _matchesFilter(Product product, List<Category> activeCats) {
     if (_filterIndex == 0) return true;
-    if (_filterIndex == activeCats.length + 1) return product.categoryId == null;
+    if (_filterIndex == activeCats.length + 1) {
+      return product.categoryId == null;
+    }
     return product.categoryId == activeCats[_filterIndex - 1].id;
   }
 
-  bool _matchesQuery(
-    Product product,
-    Map<int, Category> catMap,
-    String query,
-  ) {
+  bool _matchesQuery(Product product, Map<int, Category> catMap, String query) {
     if (query.isEmpty) return true;
     if (product.name.toLowerCase().contains(query)) return true;
     final cat = catMap[product.categoryId];

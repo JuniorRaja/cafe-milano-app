@@ -81,16 +81,22 @@ void main() {
       );
     });
 
-    testWidgets('section header shows active shop count', (tester) async {
+    // 10c replaced the 'Shops · N shops' section header with a FilterChipRow.
+    // The screen's job is answering "which shops still need an order today",
+    // and a bare total never did. A StatBand went in alongside and came back
+    // out on the owner's device pass: the chips already carry both counts,
+    // and the band spent a whole band of screen repeating them.
+    testWidgets('filter chips split the day into confirmed and pending',
+        (tester) async {
       await tester.pumpWidget(buildApp(shops: [
         makeShop(1, 'Hotel Raj', area: 'Anna Nagar'),
         makeShop(2, 'Star Bakery', area: 'T Nagar'),
       ]));
       await tester.pumpAndSettle();
 
-      // The header is two Texts, not one: a 'Shops' title and a count.
-      expect(find.text('Shops'), findsOneWidget);
-      expect(find.text('2 shops'), findsOneWidget);
+      expect(find.text('All'), findsOneWidget);
+      expect(find.text('Confirmed'), findsOneWidget);
+      expect(find.text('Pending'), findsOneWidget);
     });
 
     testWidgets('active shops appear as cards with area subtitle', (tester) async {
@@ -172,7 +178,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.textContaining('2 items'), findsOneWidget);
-      expect(find.textContaining('₹90'), findsOneWidget);
+      // Twice now: once on the row, once in the day's total in the StatBand.
+      expect(find.textContaining('₹90'), findsWidgets);
     });
 
     testWidgets('confirmed, pending, and no-order states coexist', (tester) async {
@@ -198,12 +205,15 @@ void main() {
       expect(find.text('Tap to add order'), findsOneWidget);
     });
 
-    testWidgets('empty shop list shows 0 count', (tester) async {
+    testWidgets('an empty shop list offers a way to fix it', (tester) async {
       await tester.pumpWidget(buildApp());
       await tester.pumpAndSettle();
 
-      expect(find.text('Shops'), findsOneWidget);
-      expect(find.text('0 shops'), findsOneWidget);
+      // No band and no chips when there is nothing to count — just the
+      // action. 10c: every empty state offers one.
+      expect(find.text('No shops yet'), findsOneWidget);
+      expect(find.text('Add your first shop'), findsOneWidget);
+      expect(find.text('All'), findsNothing);
     });
 
     testWidgets('< button navigates to previous day', (tester) async {
@@ -331,7 +341,37 @@ void main() {
       await tester.pumpWidget(buildKitchen());
       await tester.pumpAndSettle();
 
-      expect(find.text('No orders for this date'), findsOneWidget);
+      expect(find.text('Nothing to bake'), findsOneWidget);
+    });
+
+    // The defect doc 10c Phase 3 exists for. Four providers were read with
+    // `maybeWhen(orElse: () => [])`, so a failed query produced an empty list
+    // and the screen drew "No orders for this date" — the operator was told
+    // there was nothing to bake because the database had failed.
+    //
+    // Empty and failed must not look the same. This is the check.
+    testWidgets('a failed query is an error, not an empty day', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            kitchenLinesForDateProvider.overrideWith(
+              (ref, date) => Stream.error(Exception('db is down')),
+            ),
+            allShopsProvider.overrideWith((ref) => Stream.value(const [])),
+            allProductsProvider.overrideWith((ref) => Stream.value(const [])),
+            allCategoriesProvider.overrideWith((ref) => Stream.value(const [])),
+          ],
+          child: MaterialApp(
+            theme: buildAppTheme(BrandConfig.milano),
+            home: const KitchenScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Nothing to bake'), findsNothing);
+      expect(find.text("Could not load today's kitchen list."), findsOneWidget);
+      expect(find.text('Try again'), findsOneWidget);
     });
 
     testWidgets('share button disabled when no orders exist', (tester) async {

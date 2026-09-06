@@ -8,7 +8,7 @@
 | **Requires** | [10a — Design system](10a-design-system.md) · [18 — Guardrails](18-foundation-guardrails.md) · [10b — Navigation](10b-navigation.md) |
 | **Absorbs** | Lifecycle audit **Phases 2, 3** and the remainder of **6** |
 | **Part of** | [10 — UI overhaul](10-ui-overhaul.md) |
-| **Status** | Ready |
+| **Status** | **Shipped — `1.12.0+16`, 2026-09-06** |
 
 ## Why
 
@@ -30,6 +30,16 @@ no screen is built twice.
 
 **Explicitly out of scope:** any behaviour change, any new screen, any new query. If a
 number on screen changes, that is a bug — this is a restyle.
+
+> **Amended 2026-09-06, on the owner's device pass.** One figure changes on
+> purpose. An order entered against a future date — a shop ordering on Friday
+> for Sunday — counted as receivable immediately, so the ledger claimed money
+> for goods not yet delivered and put the shop in the at-risk list for an
+> order it had not received. Receivables now stop at today.
+>
+> That is a deliberate, requested departure from the rule above, and it means
+> the *"every figure matches `1.8.0`"* criterion below **cannot** hold for a
+> shop with a future-dated order. Everything else still must.
 
 ## What "restyled" means
 
@@ -103,7 +113,8 @@ emergency stop. This is the correct version, plus the rest of the phase.
       `import '../../app.dart'` lines disappear with them. **These reads _are_ the
       `@Deprecated` alias warnings** — driving the analyzer count from 84 to zero and
       finishing this item are the same task.
-- [ ] **`_router` becomes `routerProvider`.** `widget_test.dart` and `navigation_test.dart`
+- [x] **`_router` becomes `routerProvider`.** Landed with 10b's shell rewrite;
+      `app.dart:304`. `widget_test.dart` and `navigation_test.dart`
       each hand-maintain a parallel route table today; they override the real one instead.
       That also means `navigation_test.dart`'s duplicate-page-key rule is finally tested
       against the actual router.
@@ -228,10 +239,107 @@ current-generation screen rather than restyling one.
 - [ ] Order entry holds 60 fps while a quantity is held down.
 - [ ] Price matrix opens in under 400 ms with all 18 shops and 28 products loaded.
 - [ ] All six empty states offer an action.
-- [ ] **Every figure on every screen matches `1.8.0` on the same dataset.** This is a
-      restyle; any changed number is a bug.
+- [x] **Every figure on every screen matches `1.8.0` on the same dataset** —
+      *except* receivables for a shop with a future-dated order, which changed
+      on purpose. See the amendment at the top.
 - [ ] Every ledger decision from `762be58` and `dc8ce8d` survives — checked against
       those commits explicitly.
+
+## Progress
+
+Branch `release/1.12.0-screen-restyle`, cut from `1.11.0+15`.
+**Shipped 2026-09-06.** Built, then walked on the phone by the owner, whose
+findings are the last two commits.
+
+Much of the action list above was overtaken by
+[10b's device pass](10b-device-pass.md), which rebuilt eight screens from the
+phone rather than from a mockup. Those are marked *device pass*.
+
+| Item | Landed |
+|---|---|
+| Home, Kitchen, Billing, Ledger, Masters, price matrix | device pass |
+| Phase 6 · `routerProvider` | 10b |
+| `AppScaffold` on the nine Settings + KPI screens | `c333ac6` |
+| Phase 3 · error handling, all 19 + 12 sites | `31bfce6` |
+| Phase 2 · order-entry rebuild and awaited writes | `1e611f8` |
+| Greys and radii onto the tokens | `fb667b8` |
+| Ratchet to zero, aliases deleted, gate blocking | `649a24d` |
+| The last `AppBar`, and a refresh list that cannot go stale | `82cae1e` |
+| Home's `StatBand` and `FilterChipRow` | `92acb63` |
+| The dashboard cards onto the kit | `692a41d` |
+| The three forms — `AppField` and a pinned Save | `eee9d47` |
+
+### The ratchet
+
+```
+Colors.grey            139 -> 0
+fontSize: literals     198 -> 0
+BorderRadius.circular   59 -> 0
+---
+total                  396 -> 0    SCREENS_BLOCKING=1
+```
+
+`flutter analyze` reports **No issues found** — not "zero errors and warnings
+with 48 deprecation infos", which is how every release since 10a reported.
+The five `@Deprecated` aliases are deleted from `lib/app.dart`.
+
+`flutter test`: **338 passing**, from 336.
+
+### The device pass
+
+Walked by the owner on 2026-09-06. Seven findings, all fixed:
+
+| Finding | Fix |
+|---|---|
+| Category scorecards drew as empty space | `7334cef` — the AppCard conversion stripped `width: 160` from cards that scroll *horizontally*, so they collapsed |
+| Revenue mix overflowed on the right | `7334cef` — `DeltaPill` does not fit a 44px column; reverted to the arrow |
+| The Pulse card's new design | `7334cef` — reverted to its 2×2 grid |
+| The `confirmed · pending · today` band on Orders | `7334cef` — removed; the chips below already carry the counts |
+| Attention-flags card inset from its neighbours | `6c1aa54` — it paid the page gutter twice |
+| Scorecard charts blank when the period changed | `e38aca6` — the sparkline was hardwired to the last 7 days while the numbers followed the period |
+| Future-dated orders counted as receivable | `e38aca6` — receivables now stop at today |
+
+The owner confirmed the build reads correctly after these. The performance
+numbers (60 fps on a held stepper, 8 shops per viewport, price matrix under
+400 ms) were judged by eye rather than instrumented; if any of them is ever in
+doubt, the DevTools rebuild counter is the tool the original criteria named.
+
+### Deliberately not done
+
+- **The price matrix `StatBand`.** Built and reverted: watching
+  `catalogueCoverageProvider` there adds a third drift stream to that screen
+  and hangs `masters_editors_test` on the QueryStream teardown timer this repo
+  has hit before. The figure is already on the Settings row that opens the
+  screen, from 10b, so nothing is missing except the repetition. Worth a
+  retry with a one-shot read.
+- **The `OrderDraftController` / `AsyncNotifier` rewrite.** `flush()` already
+  exists, is registered with `pendingWritesProvider`, and is called from
+  `dispose` and from the lifecycle `paused` hook; [18](18-foundation-guardrails.md)'s
+  test passes unchanged. Moving working code into a Notifier is a relocation,
+  not a fix.
+- **The price matrix sticky product column.** The screen is one shop at a
+  time, so there is no second axis to pin — the doc's 18x28 grid is not what
+  the screen renders.
+
+### Corrections to this doc, found while building
+
+- **Phase 6 overstates the import removal.** `AppRoutes` also lives in
+  `lib/app.dart`, so a screen that navigates keeps `import '../../app.dart'`
+  after its colour reads are gone. 13 imports left, not 32.
+- **The forms needed a label widget, not a border fix.**
+  `inputDecorationTheme` already carried `AppRadius.rM`; the per-field
+  `border: OutlineInputBorder()` overrides were defeating it. But
+  *label-above-input* is a layout the theme cannot express, so `AppField`
+  joined the kit.
+- **`AppScaffold` has no `bottomNavigationBar` slot.** Screens with a pinned
+  action button put it in a `Column` under an `Expanded` body.
+- **`maybeWhen` was 19 sites, not 12, and the raw error texts were 12, not
+  16.** Both counts are now zero.
+- **`_refreshDashboard` cannot become "a single refresh family".** Every card
+  watches `todayProvider` or `dashboardRangeProvider` and invalidation does
+  cascade — but invalidating the range would reset the period the owner
+  picked. The list stays; it moved next to the providers and gained a test
+  that fails when it falls behind.
 
 ## Notes
 

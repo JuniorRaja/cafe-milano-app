@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../app.dart';
 import '../../models/dashboard_models.dart';
 import '../../providers/dashboard_provider.dart';
+import '../../services/error_reporting.dart';
+import '../ui/ui.dart';
 
 class AttentionFlagsWidget extends ConsumerStatefulWidget {
   const AttentionFlagsWidget({super.key});
@@ -36,28 +37,16 @@ class _AttentionFlagsWidgetState extends ConsumerState<AttentionFlagsWidget> {
           final displayFlags = _expanded ? visible : visible.take(3).toList();
           final hasMore = !_expanded && visible.length > 3;
 
-          return Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: Column(
+          return AppCard(padding: const EdgeInsets.all(16), border: Border.all(color: AppColors.border), child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
-                    Text('🚩', style: TextStyle(fontSize: 14)),
+                    Text('🚩', style: AppType.body),
                     SizedBox(width: 6),
                     Text(
                       'Attention Flags',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: kBrandBrown,
-                      ),
+                      style: AppType.body.copyWith(fontWeight: FontWeight.w700, color: AppColors.brandDeep),
                     ),
                   ],
                 ),
@@ -77,20 +66,46 @@ class _AttentionFlagsWidgetState extends ConsumerState<AttentionFlagsWidget> {
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
                         'See all (${visible.length})',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: kBrandBrown.withValues(alpha: 0.8),
-                        ),
+                        style: AppType.label.copyWith(fontWeight: FontWeight.w600, color: AppColors.brandDeep.withValues(alpha: 0.8)),
                       ),
                     ),
                   ),
               ],
+            ));
+        },
+        loading: () => const SizedBox.shrink(),
+        // Not `SizedBox.shrink()`. This card is the app's "something needs
+        // your attention" surface, so a failure that makes it *disappear* is
+        // the worst possible rendering — the screen looks calm precisely when
+        // the check that would have raised a flag did not run.
+        error: (e, st) {
+          reportError(e, st, context: 'attention flags');
+          return AppCard(
+            border: Border.all(color: AppColors.negative),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.error_outline_rounded,
+                  color: AppColors.negative,
+                  size: 20,
+                ),
+                const SizedBox(width: AppSpace.s3),
+                Expanded(
+                  child: Text(
+                    'Attention checks could not run.',
+                    style: AppType.bodyS.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+                AppButton.text(
+                  label: 'Retry',
+                  onPressed: () => ref.invalidate(attentionFlagsProvider),
+                ),
+              ],
             ),
           );
         },
-        loading: () => const SizedBox.shrink(),
-        error: (_, _) => const SizedBox.shrink(),
       ),
     );
   }
@@ -104,15 +119,15 @@ class _FlagCard extends StatelessWidget {
   Color get _bgColor {
     switch (flag.type) {
       case AttentionFlagType.decliningCategory:
-        return Colors.red.shade50;
+        return AppColors.negativeSoft;
       case AttentionFlagType.inactiveShop:
-        return Colors.orange.shade50;
+        return AppColors.warningSoft;
       case AttentionFlagType.newHigh:
-        return Colors.green.shade50;
+        return AppColors.positiveSoft;
       case AttentionFlagType.concentrationRisk:
-        return Colors.amber.shade50;
+        return AppColors.warningSoft;
       case AttentionFlagType.zeroDay:
-        return Colors.red.shade50;
+        return AppColors.negativeSoft;
     }
   }
 
@@ -124,11 +139,11 @@ class _FlagCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: _bgColor,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: AppRadius.rS,
         ),
         child: Row(
           children: [
-            Text(flag.icon, style: const TextStyle(fontSize: 16)),
+            Text(flag.icon, style: AppType.titleM),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -136,18 +151,12 @@ class _FlagCard extends StatelessWidget {
                 children: [
                   Text(
                     flag.message,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: AppType.label.copyWith(fontWeight: FontWeight.w600),
                   ),
                   if (flag.detail != null)
                     Text(
                       flag.detail!,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey.shade600,
-                      ),
+                      style: AppType.caption.copyWith(color: AppColors.textSecondary),
                     ),
                 ],
               ),
@@ -157,7 +166,7 @@ class _FlagCard extends StatelessWidget {
               child: Icon(
                 Icons.close_rounded,
                 size: 16,
-                color: Colors.grey.shade400,
+                color: AppColors.textTertiary,
               ),
             ),
           ],

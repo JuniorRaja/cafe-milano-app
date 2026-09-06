@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +5,7 @@ import '../../app.dart';
 import '../../database/app_database.dart';
 import '../../providers/date_provider.dart';
 import '../../providers/shop_provider.dart';
+import '../../services/error_reporting.dart';
 import '../../providers/order_provider.dart';
 import '../../theme/brand_config.dart';
 import '../../utils/money.dart';
@@ -15,39 +15,96 @@ import '../../widgets/staggered_fade_in.dart';
 import '../../widgets/shell/app_shell.dart';
 import '../../widgets/ui/ui.dart';
 
-class HomeShopsScreen extends ConsumerWidget {
+class HomeShopsScreen extends ConsumerStatefulWidget {
   const HomeShopsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeShopsScreen> createState() => _HomeShopsScreenState();
+}
+
+class _HomeShopsScreenState extends ConsumerState<HomeShopsScreen> {
+  /// 0 All, 1 Confirmed, 2 Pending. Index rather than an enum because
+  /// `FilterChipRow` is index-driven and a two-value enum here would exist
+  /// only to be converted back.
+  int _filter = 0;
+
+  @override
+  Widget build(BuildContext context) {
     final selectedDate = ref.watch(selectedDateProvider);
-    final shopsAsync = ref.watch(activeShopsProvider);
-    final summariesAsync = ref.watch(orderSummariesForDateProvider(selectedDate));
+    // One provider, one `.when`. The summaries used to arrive through
+    // `maybeWhen(orElse: () => {})`, so a failed query drew every shop as
+    // *not yet ordered* — an invitation to enter every order twice. See
+    // `homeViewProvider`.
+    final viewAsync = ref.watch(homeViewProvider(selectedDate));
 
     return AppScaffold(
       caption: 'Today',
       title: 'Orders',
       leading: const ShellDrawerButton(),
       bottom: const DateSelector(),
-      body: shopsAsync.when(
-        data: (shops) {
-          final summaryMap = summariesAsync.maybeWhen(
-            data: (summaries) => {for (final s in summaries) s.order.shopId: s},
-            orElse: () => <int, OrderDaySummary>{},
-          );
+      body: viewAsync.when(
+        data: (view) {
+          final shops = view.shops;
+          final summaryMap = view.summaryMap;
+
+          // The question this screen exists to answer is "which shops still
+          // need an order today", and until now you answered it by scrolling.
+          // `Confirmed` and `Pending`, not the doc's `Ordered`, because that
+          // is the word `_ShopRow`'s badge already uses — one state should not
+          // have two names on the same screen.
+          final confirmed = shops
+              .where((s) => summaryMap[s.id]?.order.isConfirmed ?? false)
+              .length;
+          final pending = shops.length - confirmed;
+          final visible = switch (_filter) {
+            1 => shops
+                .where((s) => summaryMap[s.id]?.order.isConfirmed ?? false)
+                .toList(),
+            2 => shops
+                .where((s) => !(summaryMap[s.id]?.order.isConfirmed ?? false))
+                .toList(),
+            _ => shops,
+          };
+
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SectionHeader(
-                title: 'Shops',
-                trailing: Text(
-                  '${shops.length} shops',
-                  style: AppType.label.copyWith(color: AppColors.brandDeep),
+              // No StatBand here. The chips below already carry both counts,
+              // and a band repeating them cost a whole band of screen on a
+              // list whose job is to be long — the owner asked for it back.
+              if (shops.isNotEmpty)
+                FilterChipRow(
+                  chips: [
+                    FilterChipData('All', count: shops.length),
+                    FilterChipData(
+                      'Confirmed',
+                      count: confirmed,
+                      tone: AppTone.positive,
+                    ),
+                    FilterChipData(
+                      'Pending',
+                      count: pending,
+                      tone: AppTone.warning,
+                    ),
+                  ],
+                  selectedIndex: _filter,
+                  onSelected: (i) => setState(() => _filter = i),
                 ),
-              ),
               Expanded(
                 child: shops.isEmpty
-                    ? const _EmptyState()
+                    ? _EmptyState(
+                        onAddShop: () => context.push(AppRoutes.shopNew),
+                      )
+                    : visible.isEmpty
+                    ? EmptyState.inert(
+                        icon: Icons.filter_alt_off_outlined,
+                        title: _filter == 1
+                            ? 'Nothing confirmed yet'
+                            : 'Every shop is done',
+                        message: _filter == 1
+                            ? 'No shop has a confirmed order for this date.'
+                            : 'Every shop has a confirmed order for this date.',
+                      )
                     : ListFadeIn(
                         child: ListView.builder(
                           // The nav bar floats over the body now. See
@@ -55,9 +112,9 @@ class HomeShopsScreen extends ConsumerWidget {
                           padding: EdgeInsets.only(
                             bottom: AppShell.bottomInset(context),
                           ),
-                          itemCount: shops.length,
+                          itemCount: visible.length,
                           itemBuilder: (context, index) {
-                            final shop = shops[index];
+                            final shop = visible[index];
                             return _ShopRow(
                               shop: shop,
                               summary: summaryMap[shop.id],
@@ -76,7 +133,17 @@ class HomeShopsScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, st) {
+          reportError(e, st, context: 'home/orders');
+          return AppErrorView(
+            message: "Could not load today's orders.",
+            cause: '$e',
+            onRetry: () {
+              ref.invalidate(activeShopsProvider);
+              ref.invalidate(orderSummariesForDateProvider(selectedDate));
+            },
+          );
+        },
       ),
     );
   }
@@ -135,7 +202,9 @@ class _ShopRow extends ConsumerWidget {
             ),
       // Null, never a formatted zero. `₹0` on a shop with no order reads as a
       // real zero-rupee order, which is a different and much worse thing.
-      trailing: order == null ? null : ref.watch(brandProvider).money(order.total),
+      trailing: order == null
+          ? null
+          : ref.watch(brandProvider).money(order.total),
       trailingSubtitle: order == null ? null : '${order.itemCount} items',
       onTap: onTap,
     );
@@ -143,24 +212,18 @@ class _ShopRow extends ConsumerWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  const _EmptyState({required this.onAddShop});
+
+  final VoidCallback onAddShop;
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.storefront_outlined, size: 64, color: Colors.grey),
-          SizedBox(height: 12),
-          Text(
-            'No shops yet',
-            style: TextStyle(color: Colors.grey, fontSize: 15),
-          ),
-        ],
-      ),
+    return EmptyState(
+      icon: Icons.storefront_outlined,
+      title: 'No shops yet',
+      message: 'Add a shop and it will appear here every morning.',
+      actionLabel: 'Add your first shop',
+      onAction: onAddShop,
     );
   }
 }
-
-

@@ -58,8 +58,10 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
   Future<void> _load() async {
     if (widget.productId != null) {
-      final product =
-          await ref.read(databaseProvider).productDao.getProduct(widget.productId!);
+      final product = await ref
+          .read(databaseProvider)
+          .productDao
+          .getProduct(widget.productId!);
       if (product != null && mounted) {
         _nameCtrl.text = product.name;
         _photoPath = product.photoPath;
@@ -94,7 +96,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         : _selectedUnit;
     final priceText = _priceCtrl.text.trim();
     final companion = ProductsCompanion(
-      id: widget.productId != null ? Value(widget.productId!) : const Value.absent(),
+      id: widget.productId != null
+          ? Value(widget.productId!)
+          : const Value.absent(),
       name: Value(_nameCtrl.text.trim()),
       unit: Value(unit == null || unit.isEmpty ? null : unit),
       photoPath: Value(_photoPath),
@@ -115,7 +119,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-              'Deactivate instead — this product has existing order lines, prices, or standing orders.'),
+            'Deactivate instead — this product has existing order lines, prices, or standing orders.',
+          ),
         ),
       );
       return;
@@ -126,7 +131,10 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       message: 'Delete this product permanently?',
     );
     if (confirmed && mounted) {
-      await ref.read(databaseProvider).productDao.deleteProduct(widget.productId!);
+      await ref
+          .read(databaseProvider)
+          .productDao
+          .deleteProduct(widget.productId!);
       if (mounted) context.pop();
     }
   }
@@ -141,206 +149,237 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final allCats = ref.watch(allCategoriesProvider).maybeWhen(
-          data: (c) => c,
-          orElse: () => <Category>[],
-        );
+    // Not `maybeWhen(orElse: [])`. An empty list because the query *failed*
+    // is a dropdown with nothing in it and no explanation — the field just
+    // looks broken. `_selectedCategoryId` is local state and survives either
+    // way, so nothing is lost; the failure is said out loud instead.
+    final catsAsync = ref.watch(allCategoriesProvider);
+    final catsFailed = catsAsync.hasError;
+    final allCats = catsAsync.valueOrNull ?? const <Category>[];
     final activeCats = allCats.where((c) => c.isActive).toList();
     // Ensure selected (possibly inactive) category is always in items to avoid dropdown assertion
     final selectedIsActive =
-        _selectedCategoryId == null || activeCats.any((c) => c.id == _selectedCategoryId);
+        _selectedCategoryId == null ||
+        activeCats.any((c) => c.id == _selectedCategoryId);
     final inactiveCatForValue = selectedIsActive
         ? null
         : allCats.where((c) => c.id == _selectedCategoryId).firstOrNull;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.productId == null ? 'New Product' : 'Edit Product',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              'Fill in the product details',
-              style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade500,
-                  fontWeight: FontWeight.normal),
-            ),
-          ],
-        ),
-        actions: [
-          if (widget.productId != null)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              onPressed: _saving ? null : _delete,
-            ),
-        ],
-      ),
+    return AppScaffold(
+      title: widget.productId == null ? 'New Product' : 'Edit Product',
+      caption: 'Fill in the product details',
+      background: AppColors.bg,
+      actions: [
+        if (widget.productId != null)
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            color: AppColors.negative,
+            onPressed: _saving ? null : _delete,
+          ),
+      ],
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : Form(
               key: _formKey,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
+              child: Column(
                 children: [
-                  Center(
-                    child: Stack(
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpace.s4,
+                        0,
+                        AppSpace.s4,
+                        AppSpace.s4,
+                      ),
                       children: [
-                        GestureDetector(
-                          onTap: _pickPhoto,
-                          child: Container(
-                            width: 100,
-                            height: 100,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade200,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: _photoPath != null
-                                ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Image.file(
-                                      File(_photoPath!),
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, _, _) =>
-                                          const Icon(Icons.broken_image, size: 40),
+                        Center(
+                          child: Stack(
+                            children: [
+                              GestureDetector(
+                                onTap: _pickPhoto,
+                                child: Container(
+                                  width: 100,
+                                  height: 100,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.surfaceMuted,
+                                    borderRadius: AppRadius.rS,
+                                  ),
+                                  child: _photoPath != null
+                                      ? ClipRRect(
+                                          borderRadius: AppRadius.rS,
+                                          child: Image.file(
+                                            File(_photoPath!),
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, _, _) =>
+                                                const Icon(
+                                                  Icons.broken_image,
+                                                  size: 40,
+                                                ),
+                                          ),
+                                        )
+                                      : const Icon(
+                                          Icons.add_a_photo_outlined,
+                                          size: 40,
+                                        ),
+                                ),
+                              ),
+                              if (_photoPath != null)
+                                Positioned(
+                                  top: 0,
+                                  right: 0,
+                                  child: GestureDetector(
+                                    onTap: () =>
+                                        setState(() => _photoPath = null),
+                                    child: Container(
+                                      decoration: const BoxDecoration(
+                                        color: Colors.black54,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      padding: const EdgeInsets.all(2),
+                                      child: const Icon(
+                                        Icons.close,
+                                        size: 16,
+                                        color: Colors.white,
+                                      ),
                                     ),
-                                  )
-                                : const Icon(Icons.add_a_photo_outlined, size: 40),
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
-                        if (_photoPath != null)
-                          Positioned(
-                            top: 0,
-                            right: 0,
-                            child: GestureDetector(
-                              onTap: () => setState(() => _photoPath = null),
-                              child: Container(
-                                decoration: const BoxDecoration(
-                                  color: Colors.black54,
-                                  shape: BoxShape.circle,
-                                ),
-                                padding: const EdgeInsets.all(2),
-                                child: const Icon(Icons.close, size: 16, color: Colors.white),
-                              ),
+                        const SizedBox(height: 8),
+                        Center(
+                          child: TextButton.icon(
+                            onPressed: _pickPhoto,
+                            icon: const Icon(Icons.photo_library_outlined),
+                            label: Text(
+                              _photoPath == null ? 'Add Photo' : 'Change Photo',
                             ),
                           ),
+                        ),
+                        const SizedBox(height: AppSpace.s4),
+                        AppField(
+                          label: 'Product name',
+                          isRequired: true,
+                          child: TextFormField(
+                            controller: _nameCtrl,
+                            textCapitalization: TextCapitalization.words,
+                            validator: (v) => (v == null || v.trim().isEmpty)
+                                ? 'Name is required'
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpace.s4),
+                        AppField(
+                          label: 'Price',
+                          child: TextFormField(
+                            controller: _priceCtrl,
+                            decoration: const InputDecoration(
+                              hintText: 'Default price (optional)',
+                              prefixText: '₹ ',
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'^\d*\.?\d{0,2}'),
+                              ),
+                            ],
+                            validator: (v) {
+                              if (v == null || v.trim().isEmpty) return null;
+                              final parsed = double.tryParse(v.trim());
+                              if (parsed == null || parsed < 0) {
+                                return 'Enter a valid price';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: AppSpace.s4),
+                        AppField(
+                          label: 'Unit',
+                          child: DropdownButtonFormField<String>(
+                            initialValue: _selectedUnit,
+                            items: [
+                              for (final u in _kUnitOptions)
+                                DropdownMenuItem(value: u, child: Text(u)),
+                              const DropdownMenuItem(
+                                value: _kOtherUnit,
+                                child: Text(_kOtherUnit),
+                              ),
+                            ],
+                            onChanged: (v) => setState(() => _selectedUnit = v),
+                          ),
+                        ),
+                        if (_selectedUnit == _kOtherUnit) ...[
+                          const SizedBox(height: AppSpace.s4),
+                          AppField(
+                            label: 'Custom unit',
+                            isRequired: true,
+                            child: TextFormField(
+                              controller: _unitCtrl,
+                              decoration: const InputDecoration(
+                                hintText: 'e.g. tray, sack',
+                              ),
+                              validator: (v) => (v == null || v.trim().isEmpty)
+                                  ? 'Enter a unit'
+                                  : null,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: AppSpace.s4),
+                        AppField(
+                          label: 'Category',
+                          child: DropdownButtonFormField<int?>(
+                            initialValue: _selectedCategoryId,
+                            decoration: InputDecoration(
+                              errorText: catsFailed
+                                  ? 'Categories could not be loaded. This product '
+                                        'keeps the category it already has.'
+                                  : null,
+                            ),
+                            items: [
+                              const DropdownMenuItem<int?>(
+                                value: null,
+                                child: Text('Uncategorised'),
+                              ),
+                              for (final cat in activeCats)
+                                DropdownMenuItem<int?>(
+                                  value: cat.id,
+                                  child: Text(
+                                    '${emojiFor(cat.name)} ${cat.name}',
+                                  ),
+                                ),
+                              if (inactiveCatForValue != null)
+                                DropdownMenuItem<int?>(
+                                  value: inactiveCatForValue.id,
+                                  child: Text(
+                                    '${emojiFor(inactiveCatForValue.name)} ${inactiveCatForValue.name} (inactive)',
+                                  ),
+                                ),
+                            ],
+                            onChanged: (v) =>
+                                setState(() => _selectedCategoryId = v),
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Center(
-                    child: TextButton.icon(
-                      onPressed: _pickPhoto,
-                      icon: const Icon(Icons.photo_library_outlined),
-                      label: Text(_photoPath == null ? 'Add Photo' : 'Change Photo'),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _nameCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Product Name *',
-                      border: OutlineInputBorder(),
-                    ),
-                    textCapitalization: TextCapitalization.words,
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Name is required' : null,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _priceCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Price',
-                      hintText: 'Default price (optional)',
-                      prefixText: '₹ ',
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d*\.?\d{0,2}')),
-                    ],
-                    validator: (v) {
-                      if (v == null || v.trim().isEmpty) return null;
-                      final parsed = double.tryParse(v.trim());
-                      if (parsed == null || parsed < 0) {
-                        return 'Enter a valid price';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    initialValue: _selectedUnit,
-                    decoration: const InputDecoration(
-                      labelText: 'Unit',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: [
-                      for (final u in _kUnitOptions)
-                        DropdownMenuItem(value: u, child: Text(u)),
-                      const DropdownMenuItem(
-                        value: _kOtherUnit,
-                        child: Text(_kOtherUnit),
+                  // Pinned, full width, dark brown — it was the last row of
+                  // the scroll, so on a form long enough to scroll you had to
+                  // go looking for it.
+                  SafeArea(
+                    top: false,
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpace.s4),
+                      child: AppButton(
+                        label: 'Save',
+                        expand: true,
+                        busy: _saving,
+                        onPressed: _save,
                       ),
-                    ],
-                    onChanged: (v) => setState(() => _selectedUnit = v),
-                  ),
-                  if (_selectedUnit == _kOtherUnit) ...[
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _unitCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Custom Unit',
-                        hintText: 'e.g. tray, sack',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (v) => (v == null || v.trim().isEmpty)
-                          ? 'Enter a unit'
-                          : null,
                     ),
-                  ],
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<int?>(
-                    initialValue: _selectedCategoryId,
-                    decoration: const InputDecoration(
-                      labelText: 'Category',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: [
-                      const DropdownMenuItem<int?>(
-                          value: null, child: Text('Uncategorised')),
-                      for (final cat in activeCats)
-                        DropdownMenuItem<int?>(
-                          value: cat.id,
-                          child: Text('${emojiFor(cat.name)} ${cat.name}'),
-                        ),
-                      if (inactiveCatForValue != null)
-                        DropdownMenuItem<int?>(
-                          value: inactiveCatForValue.id,
-                          child: Text(
-                              '${emojiFor(inactiveCatForValue.name)} ${inactiveCatForValue.name} (inactive)'),
-                        ),
-                    ],
-                    onChanged: (v) => setState(() => _selectedCategoryId = v),
-                  ),
-                  const SizedBox(height: 24),
-                  FilledButton(
-                    onPressed: _saving ? null : _save,
-                    child: _saving
-                        ? const SizedBox(
-                            height: 18,
-                            width: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text('Save'),
                   ),
                 ],
               ),

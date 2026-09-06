@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../app.dart';
+import '../../theme/tokens.dart';
 
 class CategorySparkline extends StatelessWidget {
   const CategorySparkline({
@@ -21,7 +21,7 @@ class CategorySparkline extends StatelessWidget {
       size: Size(width, height),
       painter: _SparklinePainter(
         data: data,
-        lineColor: color ?? kBrandGold,
+        lineColor: color ?? AppColors.brandPrimary,
       ),
     );
   }
@@ -35,10 +35,13 @@ class _SparklinePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (data.isEmpty || data.every((v) => v == 0)) {
+    // `data.length < 2` matters: the Today preset is a one-day range, and
+    // `size.width / (data.length - 1)` would divide by zero. A single day has
+    // no line to draw anyway.
+    if (data.length < 2 || data.every((v) => v == 0)) {
       // Draw a flat line in the middle
       final paint = Paint()
-        ..color = Colors.grey.shade300
+        ..color = AppColors.border
         ..strokeWidth = 1.5
         ..style = PaintingStyle.stroke;
       canvas.drawLine(

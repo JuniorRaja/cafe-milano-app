@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import '../ui/ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../app.dart';
 import '../../models/dashboard_models.dart';
 import '../../providers/dashboard_provider.dart';
 import 'category_sparkline.dart';
@@ -22,14 +22,13 @@ class CategoryScorecardsWidget extends ConsumerWidget {
             padding: const EdgeInsets.only(left: 4, bottom: 10),
             child: Row(
               children: [
-                const Text('📊', style: TextStyle(fontSize: 16)),
+                const Text('📊', style: AppType.titleM),
                 const SizedBox(width: 6),
-                const Text(
+                Text(
                   'Category Scorecards',
-                  style: TextStyle(
-                    fontSize: 15,
+                  style: AppType.titleS.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: kBrandBrown,
+                    color: AppColors.brandDeep,
                   ),
                 ),
               ],
@@ -69,64 +68,58 @@ class CategoryScorecardsWidget extends ConsumerWidget {
   }
 
   Widget _emptyState() {
-    return Container(
-      width: double.infinity,
+    return SizedBox(
       height: 120,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.category_outlined,
-              size: 32,
-              color: Colors.grey.shade300,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'No category data yet',
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
-            ),
-          ],
+      child: AppCard(
+        border: Border.all(color: AppColors.border),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.category_outlined, size: 32, color: AppColors.border),
+              const SizedBox(height: 8),
+              Text(
+                'No category data yet',
+                style: AppType.bodyS.copyWith(color: AppColors.textTertiary),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   static Widget _loadingCard() {
-    return Container(
+    // 160 wide, because this scrolls horizontally. `AppCard` sizes to its
+    // child and a horizontal ListView gives unbounded width, so dropping this
+    // collapsed the card to nothing.
+    return SizedBox(
       width: 160,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            height: 14,
-            width: 80,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(4),
+      child: AppCard(
+        padding: const EdgeInsets.all(14),
+        border: Border.all(color: AppColors.border),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              height: 14,
+              width: 80,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: AppRadius.rS,
+              ),
             ),
-          ),
-          const Spacer(),
-          Container(
-            height: 20,
-            width: 60,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(4),
+            const Spacer(),
+            Container(
+              height: 20,
+              width: 60,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: AppRadius.rS,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -139,96 +132,89 @@ class _ScorecardCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final brand = ref.watch(brandProvider);
-    return Container(
+    // Same 160 as the loading card: this row scrolls sideways.
+    return SizedBox(
       width: 160,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Emoji + Name
-          Row(
-            children: [
-              Text(scorecard.emoji, style: const TextStyle(fontSize: 18)),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  scorecard.categoryName,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: kBrandBrown,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-
-          // Revenue
-          Text(
-            brand.moneyLakh(scorecard.revenue),
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: kBrandBrown,
-            ),
-          ),
-          const SizedBox(height: 4),
-
-          // Volume + Reach
-          Text(
-            '${brand.count(scorecard.pieces)} pcs · ${scorecard.shopCount} shops',
-            style: TextStyle(
-              fontSize: 10,
-              color: Colors.grey.shade600,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const Spacer(),
-
-          // Sparkline
-          CategorySparkline(
-            data: scorecard.sparklineData,
-            width: 130,
-            height: 32,
-          ),
-          const SizedBox(height: 8),
-
-          // Star Product
-          if (scorecard.starProductName != null)
+      child: AppCard(
+        padding: const EdgeInsets.all(14),
+        border: Border.all(color: AppColors.border),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Emoji + Name
             Row(
               children: [
-                Icon(
-                  Icons.star_rounded,
-                  size: 12,
-                  color: Colors.amber.shade600,
-                ),
-                const SizedBox(width: 3),
+                Text(scorecard.emoji, style: AppType.titleM),
+                const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    '${scorecard.starProductName} (${scorecard.starProductSharePercent.toStringAsFixed(0)}%)',
-                    style: TextStyle(fontSize: 9, color: Colors.grey.shade600),
+                    scorecard.categoryName,
+                    style: AppType.label.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.brandDeep,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
-            )
-          else
-            Text(
-              'No sales yet',
-              style: TextStyle(fontSize: 9, color: Colors.grey.shade400),
             ),
-        ],
+            const SizedBox(height: 10),
+
+            // Revenue
+            Text(
+              brand.moneyLakh(scorecard.revenue),
+              style: AppType.titleM.copyWith(
+                fontWeight: FontWeight.w800,
+                color: AppColors.brandDeep,
+              ),
+            ),
+            const SizedBox(height: 4),
+
+            // Volume + Reach
+            Text(
+              '${brand.count(scorecard.pieces)} pcs · ${scorecard.shopCount} shops',
+              style: AppType.caption.copyWith(
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const Spacer(),
+
+            // Sparkline
+            CategorySparkline(
+              data: scorecard.sparklineData,
+              width: 130,
+              height: 32,
+            ),
+            const SizedBox(height: 8),
+
+            // Star Product
+            if (scorecard.starProductName != null)
+              Row(
+                children: [
+                  Icon(Icons.star_rounded, size: 12, color: AppColors.warning),
+                  const SizedBox(width: 3),
+                  Expanded(
+                    child: Text(
+                      '${scorecard.starProductName} (${scorecard.starProductSharePercent.toStringAsFixed(0)}%)',
+                      style: AppType.caption.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              )
+            else
+              Text(
+                'No sales yet',
+                style: AppType.caption.copyWith(color: AppColors.textTertiary),
+              ),
+          ],
+        ),
       ),
     );
   }
-
 }

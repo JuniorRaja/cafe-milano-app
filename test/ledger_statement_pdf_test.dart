@@ -41,7 +41,7 @@ void main() {
       }
     }
 
-    final entries = await db.ledgerDao.watchShopLedger(shopId).first;
+    final entries = await db.ledgerDao.watchShopLedger(shopId, asOf: DateTime.now()).first;
     final shop = await db.shopDao.getShop(shopId);
     final data = buildStatementData(
       entries: entries,

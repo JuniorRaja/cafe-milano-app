@@ -4,6 +4,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../widgets/ui/ui.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../theme/brand_config.dart';
 import '../../../database/app_database.dart';
@@ -21,8 +22,7 @@ class BusinessInfoFormScreen extends ConsumerStatefulWidget {
 class _BusinessInfoFormScreenState
     extends ConsumerState<BusinessInfoFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameCtrl =
-      TextEditingController(text: BrandConfig.milano.appName);
+  final _nameCtrl = TextEditingController(text: BrandConfig.milano.appName);
   final _phoneCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
   String? _logoPath;
@@ -56,12 +56,18 @@ class _BusinessInfoFormScreenState
     setState(() => _saving = true);
     final companion = BusinessInfoCompanion(
       name: Value(_nameCtrl.text.trim()),
-      phone: Value(_phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim()),
+      phone: Value(
+        _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
+      ),
       address: Value(
-          _addressCtrl.text.trim().isEmpty ? null : _addressCtrl.text.trim()),
+        _addressCtrl.text.trim().isEmpty ? null : _addressCtrl.text.trim(),
+      ),
       logoPath: Value(_logoPath),
     );
-    await ref.read(databaseProvider).businessInfoDao.upsertBusinessInfo(companion);
+    await ref
+        .read(databaseProvider)
+        .businessInfoDao
+        .upsertBusinessInfo(companion);
     if (mounted) context.pop();
   }
 
@@ -75,129 +81,137 @@ class _BusinessInfoFormScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Business Info',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              'Used on shared product catalogs',
-              style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade500,
-                  fontWeight: FontWeight.normal),
-            ),
-          ],
-        ),
-      ),
+    return AppScaffold(
+      title: 'Business Info',
+      caption: 'Used on shared product catalogs',
+      background: AppColors.bg,
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : Form(
               key: _formKey,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
+              child: Column(
                 children: [
-                  Center(
-                    child: Stack(
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpace.s4,
+                        0,
+                        AppSpace.s4,
+                        AppSpace.s4,
+                      ),
                       children: [
-                        GestureDetector(
-                          onTap: _pickLogo,
-                          child: Container(
-                            width: 100,
-                            height: 100,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade200,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: _logoPath != null
-                                  ? Image.file(
-                                      File(_logoPath!),
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, _, _) =>
-                                          Image.asset(BrandConfig.milano.logoAsset,
-                                              fit: BoxFit.cover),
-                                    )
-                                  : Image.asset(BrandConfig.milano.logoAsset,
-                                              fit: BoxFit.cover),
+                        Center(
+                          child: Stack(
+                            children: [
+                              GestureDetector(
+                                onTap: _pickLogo,
+                                child: Container(
+                                  width: 100,
+                                  height: 100,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.surfaceMuted,
+                                    borderRadius: AppRadius.rS,
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: AppRadius.rS,
+                                    child: _logoPath != null
+                                        ? Image.file(
+                                            File(_logoPath!),
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, _, _) =>
+                                                Image.asset(
+                                                  BrandConfig.milano.logoAsset,
+                                                  fit: BoxFit.cover,
+                                                ),
+                                          )
+                                        : Image.asset(
+                                            BrandConfig.milano.logoAsset,
+                                            fit: BoxFit.cover,
+                                          ),
+                                  ),
+                                ),
+                              ),
+                              if (_logoPath != null)
+                                Positioned(
+                                  top: 0,
+                                  right: 0,
+                                  child: GestureDetector(
+                                    onTap: () =>
+                                        setState(() => _logoPath = null),
+                                    child: Container(
+                                      decoration: const BoxDecoration(
+                                        color: Colors.black54,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      padding: const EdgeInsets.all(2),
+                                      child: const Icon(
+                                        Icons.close,
+                                        size: 16,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Center(
+                          child: TextButton.icon(
+                            onPressed: _pickLogo,
+                            icon: const Icon(Icons.photo_library_outlined),
+                            label: Text(
+                              _logoPath == null
+                                  ? 'Upload Custom Logo'
+                                  : 'Change Logo',
                             ),
                           ),
                         ),
-                        if (_logoPath != null)
-                          Positioned(
-                            top: 0,
-                            right: 0,
-                            child: GestureDetector(
-                              onTap: () => setState(() => _logoPath = null),
-                              child: Container(
-                                decoration: const BoxDecoration(
-                                  color: Colors.black54,
-                                  shape: BoxShape.circle,
-                                ),
-                                padding: const EdgeInsets.all(2),
-                                child: const Icon(Icons.close, size: 16, color: Colors.white),
-                              ),
-                            ),
+                        const SizedBox(height: AppSpace.s4),
+                        AppField(
+                          label: 'Business name',
+                          isRequired: true,
+                          child: TextFormField(
+                            controller: _nameCtrl,
+                            textCapitalization: TextCapitalization.words,
+                            validator: (v) => (v == null || v.trim().isEmpty)
+                                ? 'Name is required'
+                                : null,
                           ),
+                        ),
+                        const SizedBox(height: AppSpace.s4),
+                        AppField(
+                          label: 'Phone',
+                          child: TextFormField(
+                            controller: _phoneCtrl,
+                            decoration: const InputDecoration(
+                              hintText: 'Contact number for quotations',
+                            ),
+                            keyboardType: TextInputType.phone,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpace.s4),
+                        AppField(
+                          label: 'Address',
+                          child: TextFormField(
+                            controller: _addressCtrl,
+                            maxLines: 2,
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Center(
-                    child: TextButton.icon(
-                      onPressed: _pickLogo,
-                      icon: const Icon(Icons.photo_library_outlined),
-                      label: Text(_logoPath == null ? 'Upload Custom Logo' : 'Change Logo'),
+                  SafeArea(
+                    top: false,
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpace.s4),
+                      child: AppButton(
+                        label: 'Save',
+                        expand: true,
+                        busy: _saving,
+                        onPressed: _save,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _nameCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Business Name *',
-                      border: OutlineInputBorder(),
-                    ),
-                    textCapitalization: TextCapitalization.words,
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Name is required' : null,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _phoneCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Phone',
-                      hintText: 'Contact number for quotations',
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.phone,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _addressCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Address',
-                      border: OutlineInputBorder(),
-                    ),
-                    maxLines: 2,
-                  ),
-                  const SizedBox(height: 24),
-                  FilledButton(
-                    onPressed: _saving ? null : _save,
-                    child: _saving
-                        ? const SizedBox(
-                            height: 18,
-                            width: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text('Save'),
                   ),
                 ],
               ),

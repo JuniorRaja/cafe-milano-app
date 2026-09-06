@@ -8,8 +8,7 @@ import '../../providers/date_provider.dart';
 import '../../providers/ledger_provider.dart';
 import '../../providers/read_once.dart';
 import '../../providers/order_provider.dart';
-import '../../providers/shop_provider.dart';
-import '../../providers/product_provider.dart';
+import '../../services/error_reporting.dart';
 import '../../widgets/date_selector.dart';
 import '../../services/bill_share.dart';
 import '../ledger/record_payment_sheet.dart';
@@ -31,32 +30,24 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   @override
   Widget build(BuildContext context) {
     final date = ref.watch(selectedDateProvider);
-    final summariesAsync = ref.watch(orderSummariesForDateProvider(date));
-    final shopMap = ref
-        .watch(allShopsProvider)
-        .maybeWhen(
-          data: (shops) => {for (final s in shops) s.id: s},
-          orElse: () => <int, Shop>{},
-        );
-    final productMap = ref
-        .watch(allProductsProvider)
-        .maybeWhen(
-          data: (products) => {for (final p in products) p.id: p},
-          orElse: () => <int, Product>{},
-        );
-    // One watched query for every bill on this date. Per-row lookups would be
-    // an N+1, and a one-shot read would leave the chips stale until restart.
-    final billDues = ref
-        .watch(billDuesForDateProvider(date))
-        .maybeWhen(data: (dues) => dues, orElse: () => <int, BillDue>{});
+    // One provider, one `.when`. Four `maybeWhen(orElse:)` reads used to live
+    // here; the `billDues` one made a failed query look like every bill was
+    // unpaid. The bill dues are still one watched query for the whole date —
+    // per-row lookups would be an N+1, and a one-shot read would leave the
+    // chips stale until restart. See `billingViewProvider`.
+    final viewAsync = ref.watch(billingViewProvider(date));
 
     return AppScaffold(
       caption: 'Daily billing',
       title: 'Shop Bills',
       leading: const ShellDrawerButton(),
       bottom: const DateSelector(),
-      body: summariesAsync.when(
-        data: (summaries) {
+      body: viewAsync.when(
+        data: (view) {
+          final summaries = view.summaries;
+          final shopMap = view.shopMap;
+          final productMap = view.productMap;
+          final billDues = view.billDues;
           if (summaries.isEmpty) {
             return const EmptyState.inert(
               icon: Icons.receipt_long_outlined,
@@ -161,7 +152,17 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, st) {
+          reportError(e, st, context: 'billing');
+          return AppErrorView(
+            message: "Could not load this date's bills.",
+            cause: '$e',
+            onRetry: () {
+              ref.invalidate(orderSummariesForDateProvider(date));
+              ref.invalidate(billDuesForDateProvider(date));
+            },
+          );
+        },
       ),
     );
   }
@@ -506,11 +507,11 @@ class _BillingDetail extends ConsumerWidget {
     return owlAsync.when(
       data: (data) {
         if (data == null || data.lines.isEmpty) {
-          return const Padding(
+          return Padding(
             padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: Text(
               'No items',
-              style: TextStyle(color: Colors.grey, fontSize: 13),
+              style: AppType.bodyS.copyWith(color: AppColors.textTertiary),
             ),
           );
         }
@@ -527,29 +528,21 @@ class _BillingDetail extends ConsumerWidget {
               const Divider(height: 1),
               Container(
                 color: const Color(0xFFFFF3E0),
-                child: const Padding(
+                child: Padding(
                   padding: EdgeInsets.fromLTRB(16, 10, 16, 8),
                   child: Row(
                     children: [
                       Expanded(
                         child: Text(
                           'Item',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey,
-                          ),
+                          style: AppType.caption.copyWith(fontWeight: FontWeight.w600, color: AppColors.textTertiary),
                         ),
                       ),
                       SizedBox(
                         width: 44,
                         child: Text(
                           'Qty',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey,
-                          ),
+                          style: AppType.caption.copyWith(fontWeight: FontWeight.w600, color: AppColors.textTertiary),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -557,11 +550,7 @@ class _BillingDetail extends ConsumerWidget {
                         width: 64,
                         child: Text(
                           'Price',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey,
-                          ),
+                          style: AppType.caption.copyWith(fontWeight: FontWeight.w600, color: AppColors.textTertiary),
                           textAlign: TextAlign.right,
                         ),
                       ),
@@ -569,11 +558,7 @@ class _BillingDetail extends ConsumerWidget {
                         width: 72,
                         child: Text(
                           'Total',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey,
-                          ),
+                          style: AppType.caption.copyWith(fontWeight: FontWeight.w600, color: AppColors.textTertiary),
                           textAlign: TextAlign.right,
                         ),
                       ),
@@ -595,7 +580,7 @@ class _BillingDetail extends ConsumerWidget {
                       Expanded(
                         child: Text(
                           product?.name ?? 'Product #${line.productId}',
-                          style: const TextStyle(fontSize: 14),
+                          style: AppType.body,
                         ),
                       ),
                       SizedBox(
@@ -603,7 +588,7 @@ class _BillingDetail extends ConsumerWidget {
                         child: Text(
                           line.qty.toString(),
                           textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 14),
+                          style: AppType.body,
                         ),
                       ),
                       SizedBox(
@@ -611,7 +596,7 @@ class _BillingDetail extends ConsumerWidget {
                         child: Text(
                           brand.moneyTrim(line.unitPrice),
                           textAlign: TextAlign.right,
-                          style: const TextStyle(fontSize: 14),
+                          style: AppType.body,
                         ),
                       ),
                       SizedBox(
@@ -622,7 +607,7 @@ class _BillingDetail extends ConsumerWidget {
                         child: Text(
                           brand.money(lineTotal),
                           textAlign: TextAlign.right,
-                          style: const TextStyle(fontSize: 14),
+                          style: AppType.body,
                         ),
                       ),
                     ],
@@ -658,10 +643,28 @@ class _BillingDetail extends ConsumerWidget {
         padding: EdgeInsets.all(16),
         child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
       ),
-      error: (e, _) => Padding(
-        padding: const EdgeInsets.all(16),
-        child: Text('Error: $e', style: const TextStyle(color: Colors.red)),
-      ),
+      error: (e, st) {
+        reportError(e, st, context: 'bill lines');
+        return Padding(
+          padding: const EdgeInsets.all(AppSpace.s4),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.error_outline_rounded,
+                size: 18,
+                color: AppColors.negative,
+              ),
+              const SizedBox(width: AppSpace.s2),
+              Expanded(
+                child: Text(
+                  "Could not load this bill's items.",
+                  style: AppType.bodyS.copyWith(color: AppColors.negative),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

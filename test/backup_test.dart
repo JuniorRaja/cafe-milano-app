@@ -97,7 +97,7 @@ void main() {
 
       final exported = await source.backupDao.exportAll();
       final roundTripped = jsonDecode(jsonEncode(exported)) as Map<String, dynamic>;
-      final statsBefore = await source.ledgerDao.watchShopStats(shopId).first;
+      final statsBefore = await source.ledgerDao.watchShopStats(shopId, DateTime.now()).first;
       await source.close();
 
       final target = _freshDb();
@@ -109,11 +109,11 @@ void main() {
 
       expect(await target.ledgerDao.getBillStatus(order.id), BillStatus.partial);
 
-      final statsAfter = await target.ledgerDao.watchShopStats(shopId).first;
+      final statsAfter = await target.ledgerDao.watchShopStats(shopId, DateTime.now()).first;
       expect(statsAfter.totalCollected, statsBefore.totalCollected);
       expect(statsAfter.outstanding, statsBefore.outstanding);
 
-      final entries = await target.ledgerDao.watchShopLedger(shopId).first;
+      final entries = await target.ledgerDao.watchShopLedger(shopId, asOf: DateTime.now()).first;
       final restoredPayment = entries.firstWhere((e) => e.paymentId == paymentId);
       expect(restoredPayment.note, 'Partial');
       expect(restoredPayment.paymentMode, PaymentMode.upi);

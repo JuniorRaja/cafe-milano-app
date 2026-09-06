@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import '../theme/tokens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../app.dart';
 import '../providers/date_provider.dart';
 import '../utils/relative_day.dart';
 
@@ -17,9 +17,9 @@ class DateSelector extends ConsumerWidget {
     final relative = relativeDayLabel(date, today: ref.watch(todayProvider));
 
     return Card(
-      color: kSurface,
+      color: AppColors.bg,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: AppRadius.rL),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         child: Row(
@@ -41,14 +41,12 @@ class DateSelector extends ConsumerWidget {
                     children: [
                       Text(
                         label,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600, fontSize: 15),
+                        style: AppType.titleS.copyWith(fontWeight: FontWeight.w600),
                       ),
                       if (relative != null)
                         Text(
                           relative,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w500, fontSize: 11),
+                          style: AppType.caption.copyWith(fontWeight: FontWeight.w500),
                         ),
                     ],
                   ),
@@ -90,13 +88,13 @@ class _ArrowBtn extends StatelessWidget {
       width: 36,
       height: 36,
       decoration: BoxDecoration(
-        color: kBrandGold.withAlpha(30),
-        borderRadius: BorderRadius.circular(8),
+        color: AppColors.brandPrimary.withAlpha(30),
+        borderRadius: AppRadius.rS,
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.rS,
         onTap: onPressed,
-        child: Icon(icon, size: 20, color: kBrandBrown),
+        child: Icon(icon, size: 20, color: AppColors.brandDeep),
       ),
     );
   }

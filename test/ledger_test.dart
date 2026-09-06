@@ -27,6 +27,36 @@ void main() {
       return order.id;
     }
 
+    // A shop can order on Friday for Sunday, and the owner enters it against
+    // Sunday. Nothing is owed until Sunday — nothing has been delivered — so
+    // the receivable must not appear early. Reported on the device pass.
+    test('an order dated after today is not receivable yet', () async {
+      final today = DateTime(2026, 3, 6);
+      await bill(today.subtract(const Duration(days: 1)), 400); // delivered
+      await bill(today, 600);                                   // due today
+      await bill(today.add(const Duration(days: 2)), 5000);     // Sunday order
+
+      final stats = await db.ledgerDao.watchShopStats(shopId, today).first;
+      expect(
+        stats.outstanding,
+        closeTo(1000, 0.001),
+        reason: 'the future-dated 5000 must not count yet',
+      );
+
+      final rows = await db.ledgerDao.watchOutstandingByShop(today).first;
+      expect(rows.single.outstanding, closeTo(1000, 0.001));
+
+      // And it is not drawn in the running balance either.
+      final entries =
+          await db.ledgerDao.watchShopLedger(shopId, asOf: today).first;
+      expect(entries.every((e) => !e.date.isAfter(today)), isTrue);
+
+      // Once Sunday arrives it counts, with no other change.
+      final sunday = today.add(const Duration(days: 2));
+      final later = await db.ledgerDao.watchShopStats(shopId, sunday).first;
+      expect(later.outstanding, closeTo(6000, 0.001));
+    });
+
     test('FIFO settles the oldest bills first, leaving the last one partial', () async {
       final o1 = await bill(DateTime(2026, 1, 1), 1300);
       final o2 = await bill(DateTime(2026, 1, 2), 1300);
@@ -41,7 +71,7 @@ void main() {
       expect(await db.ledgerDao.getBillStatus(o3), BillStatus.paid);
       expect(await db.ledgerDao.getBillStatus(o4), BillStatus.partial);
 
-      final stats = await db.ledgerDao.watchShopStats(shopId).first;
+      final stats = await db.ledgerDao.watchShopStats(shopId, DateTime.now()).first;
       expect(stats.outstanding, closeTo(200, 0.001));
     });
 
@@ -52,7 +82,7 @@ void main() {
         shopId: shopId, amount: 2000, paidAt: DateTime(2026, 1, 2), mode: PaymentMode.upi);
 
       expect(await db.ledgerDao.getBillStatus(o1), BillStatus.paid);
-      final stats = await db.ledgerDao.watchShopStats(shopId).first;
+      final stats = await db.ledgerDao.watchShopStats(shopId, DateTime.now()).first;
       expect(stats.totalCollected, 2000);
       // The 1500 overpayment shows up as negative outstanding (a credit), never
       // as a phantom unpaid bill or a clamped/lost amount.
@@ -63,11 +93,11 @@ void main() {
       final paymentId = await db.ledgerDao.recordPayment(
         shopId: shopId, amount: 1000, paidAt: DateTime(2026, 1, 1), mode: PaymentMode.cash);
 
-      final stats = await db.ledgerDao.watchShopStats(shopId).first;
+      final stats = await db.ledgerDao.watchShopStats(shopId, DateTime.now()).first;
       expect(stats.totalCollected, 1000);
       expect(stats.totalBilled, 0);
 
-      final entries = await db.ledgerDao.watchShopLedger(shopId).first;
+      final entries = await db.ledgerDao.watchShopLedger(shopId, asOf: DateTime.now()).first;
       expect(entries, hasLength(1));
       expect(entries.first.type, LedgerType.payment);
       expect(entries.first.paymentId, paymentId);
@@ -92,15 +122,15 @@ void main() {
 
     test('deleting a payment restores outstanding to exactly its prior value', () async {
       await bill(DateTime(2026, 1, 1), 1000);
-      final before = (await db.ledgerDao.watchShopStats(shopId).first).outstanding;
+      final before = (await db.ledgerDao.watchShopStats(shopId, DateTime.now()).first).outstanding;
 
       final paymentId = await db.ledgerDao.recordPayment(
         shopId: shopId, amount: 400, paidAt: DateTime(2026, 1, 2), mode: PaymentMode.cash);
-      final afterPayment = (await db.ledgerDao.watchShopStats(shopId).first).outstanding;
+      final afterPayment = (await db.ledgerDao.watchShopStats(shopId, DateTime.now()).first).outstanding;
       expect(afterPayment, closeTo(before - 400, 0.001));
 
       await db.ledgerDao.deletePayment(paymentId);
-      final afterDelete = (await db.ledgerDao.watchShopStats(shopId).first).outstanding;
+      final afterDelete = (await db.ledgerDao.watchShopStats(shopId, DateTime.now()).first).outstanding;
       expect(afterDelete, closeTo(before, 0.001));
     });
 
@@ -134,7 +164,7 @@ void main() {
       await db.ledgerDao.recordPayment(
         shopId: shopId, amount: 2000, paidAt: DateTime(2026, 1, 10), mode: PaymentMode.bank);
 
-      final entries = await db.ledgerDao.watchShopLedger(shopId).first;
+      final entries = await db.ledgerDao.watchShopLedger(shopId, asOf: DateTime.now()).first;
       final paymentEntries = entries.where((e) => e.type == LedgerType.payment).toList();
       expect(paymentEntries, hasLength(1));
       expect(paymentEntries.first.amount, 2000);
@@ -155,8 +185,8 @@ void main() {
       await db.ledgerDao.recordPayment(
         shopId: shopId, amount: 700, paidAt: DateTime(2026, 1, 3), mode: PaymentMode.cash);
 
-      final entries = await db.ledgerDao.watchShopLedger(shopId).first;
-      final stats = await db.ledgerDao.watchShopStats(shopId).first;
+      final entries = await db.ledgerDao.watchShopLedger(shopId, asOf: DateTime.now()).first;
+      final stats = await db.ledgerDao.watchShopStats(shopId, DateTime.now()).first;
 
       expect(stats.outstanding, closeTo(500 + 1500 - 700, 0.001));
       expect(entries.last.runningBalance, closeTo(stats.outstanding, 0.001));
@@ -169,7 +199,7 @@ void main() {
       await db.ledgerDao.recordPayment(
         shopId: shopId, amount: 400, paidAt: DateTime(2026, 1, 5), mode: PaymentMode.cash);
 
-      final entries = await db.ledgerDao.watchShopLedger(shopId).first;
+      final entries = await db.ledgerDao.watchShopLedger(shopId, asOf: DateTime.now()).first;
       expect(entries, hasLength(2));
       expect(entries[0].type, LedgerType.payment);
       expect(entries[0].date, DateTime(2026, 1, 5));
@@ -197,12 +227,12 @@ void main() {
         note: 'Opening catch-up',
       );
 
-      final stats = await db.ledgerDao.watchShopStats(shopId).first;
+      final stats = await db.ledgerDao.watchShopStats(shopId, DateTime.now()).first;
       expect(stats.totalBilled, closeTo(50000, 0.001));
       expect(stats.outstanding, closeTo(8400, 0.001));
 
       final bills = await db.ledgerDao
-          .watchShopLedger(shopId, type: LedgerType.bill)
+          .watchShopLedger(shopId, asOf: DateTime.now(), type: LedgerType.bill)
           .first;
       final open = bills.where((b) => b.billStatus != BillStatus.paid).toList();
       expect(open.fold<double>(0, (sum, b) => sum + b.amountDue),
@@ -221,7 +251,7 @@ void main() {
         shopId: shopId, amount: 300, paidAt: DateTime(2026, 1, 2), mode: PaymentMode.cash);
 
       final bills = await db.ledgerDao
-          .watchShopLedger(shopId, type: LedgerType.bill)
+          .watchShopLedger(shopId, asOf: DateTime.now(), type: LedgerType.bill)
           .first;
       expect(bills, hasLength(1));
       expect(bills.first.amount, closeTo(1000, 0.001));
@@ -229,7 +259,7 @@ void main() {
       expect(bills.first.amountDue, closeTo(700, 0.001));
 
       final payments = await db.ledgerDao
-          .watchShopLedger(shopId, type: LedgerType.payment)
+          .watchShopLedger(shopId, asOf: DateTime.now(), type: LedgerType.payment)
           .first;
       expect(payments.first.allocatedAmount, 0.0);
     });
@@ -242,12 +272,12 @@ void main() {
       await db.orderDao.getOrCreateOrder(shopId, DateTime(2026, 1, 2));
       final realBill = await bill(DateTime(2026, 1, 3), 750);
 
-      final entries = await db.ledgerDao.watchShopLedger(shopId).first;
+      final entries = await db.ledgerDao.watchShopLedger(shopId, asOf: DateTime.now()).first;
       expect(entries, hasLength(1));
       expect(entries.first.orderId, realBill);
       expect(entries.first.amount, closeTo(750, 0.001));
 
-      final stats = await db.ledgerDao.watchShopStats(shopId).first;
+      final stats = await db.ledgerDao.watchShopStats(shopId, DateTime.now()).first;
       expect(stats.totalBilled, closeTo(750, 0.001));
       expect(stats.outstanding, closeTo(750, 0.001));
     });
@@ -271,6 +301,7 @@ void main() {
       final entries = await db.ledgerDao
           .watchShopLedger(
             shopId,
+            asOf: DateTime.now(),
             rangeStart: DateTime(2026, 7, 24),
             rangeEnd: DateTime(2026, 8, 23),
             status: BillStatus.unpaid,
@@ -384,7 +415,7 @@ void main() {
       expect(await db.ledgerDao.getBillStatus(today), BillStatus.paid);
       expect(await db.ledgerDao.getBillStatus(older), BillStatus.paid);
       expect(await db.ledgerDao.getBillStatus(newer), BillStatus.partial);
-      final stats = await db.ledgerDao.watchShopStats(shopId).first;
+      final stats = await db.ledgerDao.watchShopStats(shopId, DateTime.now()).first;
       expect(stats.outstanding, closeTo(700, 0.001));
     });
 
@@ -400,10 +431,10 @@ void main() {
       );
 
       final bills =
-          await db.ledgerDao.watchShopLedger(shopId, type: LedgerType.bill).first;
+          await db.ledgerDao.watchShopLedger(shopId, asOf: DateTime.now(), type: LedgerType.bill).first;
       expect(bills.single.allocatedAmount, closeTo(500, 0.001));
       // The 1,500 with nowhere to go stays unallocated, as a credit.
-      final stats = await db.ledgerDao.watchShopStats(shopId).first;
+      final stats = await db.ledgerDao.watchShopStats(shopId, DateTime.now()).first;
       expect(stats.outstanding, closeTo(-1500, 0.001));
     });
 
@@ -420,6 +451,7 @@ void main() {
 
       final entries = await db.ledgerDao
           .watchShopLedger(shopId,
+      asOf: DateTime.now(),
               rangeStart: DateTime(2026, 5, 1), rangeEnd: DateTime(2026, 5, 31))
           .first;
       expect(entries.where((e) => e.type == LedgerType.payment), hasLength(1));
@@ -450,7 +482,7 @@ void main() {
       await db.ledgerDao.recordPayment(
           shopId: credit, amount: 900, paidAt: DateTime(2026, 6, 2), mode: PaymentMode.cash);
 
-      final rows = await db.ledgerDao.watchOutstandingByShop().first;
+      final rows = await db.ledgerDao.watchOutstandingByShop(DateTime.now()).first;
       final ids = rows.map((r) => r.shopId).toList();
 
       expect(ids, contains(owing));
@@ -459,7 +491,7 @@ void main() {
       expect(ids, isNot(contains(credit)));
 
       for (final row in rows) {
-        final stats = await db.ledgerDao.watchShopStats(row.shopId).first;
+        final stats = await db.ledgerDao.watchShopStats(row.shopId, DateTime.now()).first;
         expect(row.outstanding, closeTo(stats.outstanding, 0.001));
       }
       // Sorted largest first — the list and its dashboard total read together.
@@ -486,8 +518,8 @@ void main() {
       await billFor(b, DateTime(2026, 3, 2), 800.20);
       await billFor(c, DateTime(2026, 3, 3), 99.25);
 
-      final rows = await db.ledgerDao.watchOutstandingByShop().first;
-      final summary = await db.ledgerDao.watchOutstandingSummary().first;
+      final rows = await db.ledgerDao.watchOutstandingByShop(DateTime.now()).first;
+      final summary = await db.ledgerDao.watchOutstandingSummary(DateTime.now()).first;
 
       final sum = rows.fold<double>(0, (t, r) => t + r.outstanding);
       // To the paisa: the drawer headline and the list behind it are one
@@ -511,12 +543,12 @@ void main() {
       await db.ledgerDao.recordPayment(
           shopId: b, amount: 250, paidAt: DateTime(2026, 3, 3), mode: PaymentMode.cash);
 
-      final summary = await db.ledgerDao.watchOutstandingSummary().first;
-      final rows = await db.ledgerDao.watchOutstandingByShop().first;
+      final summary = await db.ledgerDao.watchOutstandingSummary(DateTime.now()).first;
+      final rows = await db.ledgerDao.watchOutstandingByShop(DateTime.now()).first;
 
       var viaStats = 0.0;
       for (final row in rows) {
-        viaStats += (await db.ledgerDao.watchShopStats(row.shopId).first).outstanding;
+        viaStats += (await db.ledgerDao.watchShopStats(row.shopId, DateTime.now()).first).outstanding;
       }
       expect(summary.total, closeTo(viaStats, 0.001));
       expect(summary.total, closeTo(1450, 0.001));
@@ -533,14 +565,14 @@ void main() {
       }
       await bill(DateTime(2026, 4, 1), 500);
 
-      final summary = await db.ledgerDao.watchOutstandingSummary().first;
-      final ids = (await db.ledgerDao.watchOutstandingByShop().first)
+      final summary = await db.ledgerDao.watchOutstandingSummary(DateTime.now()).first;
+      final ids = (await db.ledgerDao.watchOutstandingByShop(DateTime.now()).first)
           .map((r) => r.shopId);
 
       expect(ids, isNot(contains(empty)));
       expect(summary.shopCount, 1);
       expect(summary.total, closeTo(500, 0.001));
-      expect((await db.ledgerDao.watchShopStats(empty).first).outstanding,
+      expect((await db.ledgerDao.watchShopStats(empty, DateTime.now()).first).outstanding,
           closeTo(0, 0.001));
     });
 
@@ -549,7 +581,7 @@ void main() {
       await db.ledgerDao.recordPayment(
           shopId: shopId, amount: 400, paidAt: DateTime(2026, 4, 2), mode: PaymentMode.cash);
 
-      final summary = await db.ledgerDao.watchOutstandingSummary().first;
+      final summary = await db.ledgerDao.watchOutstandingSummary(DateTime.now()).first;
       expect(summary.shopCount, 0);
       expect(summary.total, closeTo(0, 0.001));
       expect(summary.oldestUnpaidAt, isNull);
@@ -563,7 +595,7 @@ void main() {
       await db.ledgerDao.recordPayment(
           shopId: shopId, amount: 300, paidAt: DateTime(2026, 2, 2), mode: PaymentMode.cash);
 
-      final summary = await db.ledgerDao.watchOutstandingSummary().first;
+      final summary = await db.ledgerDao.watchOutstandingSummary(DateTime.now()).first;
       expect(summary.oldestUnpaidAt, DateTime(2026, 2, 20));
       expect(summary.ageInDays(DateTime(2026, 3, 2)), 10);
     });
@@ -574,7 +606,7 @@ void main() {
       await db.ledgerDao.recordPayment(
           shopId: shopId, amount: 400, paidAt: DateTime(2026, 2, 2), mode: PaymentMode.cash);
 
-      final summary = await db.ledgerDao.watchOutstandingSummary().first;
+      final summary = await db.ledgerDao.watchOutstandingSummary(DateTime.now()).first;
       expect(summary.total, closeTo(600, 0.001));
       expect(summary.oldestUnpaidAt, DateTime(2026, 2, 1));
     });
@@ -588,7 +620,7 @@ void main() {
         openingBalanceAt: Value(DateTime(2026, 1, 1)),
       ));
 
-      final summary = await db.ledgerDao.watchOutstandingSummary().first;
+      final summary = await db.ledgerDao.watchOutstandingSummary(DateTime.now()).first;
       expect(summary.total, closeTo(1500, 0.001));
       expect(summary.shopCount, 1);
       // The balance is real; its age is not knowable, and inventing one would
@@ -605,7 +637,7 @@ void main() {
       ));
       await bill(DateTime(2026, 1, 5), 1000);
 
-      final row = (await db.ledgerDao.watchOutstandingByShop().first)
+      final row = (await db.ledgerDao.watchOutstandingByShop(DateTime.now()).first)
           .firstWhere((r) => r.shopId == shopId);
       expect(row.outstanding, closeTo(3500, 0.001));
     });
@@ -633,8 +665,8 @@ void main() {
       await db.ledgerDao.recordPayment(
           shopId: shopId, amount: 450, paidAt: DateTime(2026, 1, 28), mode: PaymentMode.cheque);
 
-      final entries = await db.ledgerDao.watchShopLedger(shopId).first;
-      final stats = await db.ledgerDao.watchShopStats(shopId).first;
+      final entries = await db.ledgerDao.watchShopLedger(shopId, asOf: DateTime.now()).first;
+      final stats = await db.ledgerDao.watchShopStats(shopId, DateTime.now()).first;
       final shop = await db.shopDao.getShop(shopId);
 
       final full = buildStatementData(
@@ -655,7 +687,7 @@ void main() {
       expect(full.rows, hasLength(entries.length));
 
       // 3. The statement against the dashboard's outstanding figure.
-      final row = (await db.ledgerDao.watchOutstandingByShop().first)
+      final row = (await db.ledgerDao.watchOutstandingByShop(DateTime.now()).first)
           .firstWhere((r) => r.shopId == shopId);
       expect(row.outstanding, closeTo(full.closing, 0.001));
     });
@@ -667,7 +699,7 @@ void main() {
       await db.ledgerDao.recordPayment(
           shopId: shopId, amount: 1000, paidAt: DateTime(2026, 2, 20), mode: PaymentMode.cash);
 
-      final entries = await db.ledgerDao.watchShopLedger(shopId).first;
+      final entries = await db.ledgerDao.watchShopLedger(shopId, asOf: DateTime.now()).first;
       final february = buildStatementData(
         entries: entries,
         from: DateTime(2026, 2, 1),
@@ -693,7 +725,7 @@ void main() {
       await bill(DateTime(2026, 2, 15), 200);
       final last = await bill(DateTime(2026, 2, 28), 300);
 
-      final entries = await db.ledgerDao.watchShopLedger(shopId).first;
+      final entries = await db.ledgerDao.watchShopLedger(shopId, asOf: DateTime.now()).first;
       final data = buildStatementData(
         entries: entries,
         from: DateTime(2026, 2, 1),
@@ -708,7 +740,7 @@ void main() {
 
     test('a statement for a period with nothing in it still balances', () async {
       await bill(DateTime(2026, 1, 10), 900);
-      final entries = await db.ledgerDao.watchShopLedger(shopId).first;
+      final entries = await db.ledgerDao.watchShopLedger(shopId, asOf: DateTime.now()).first;
 
       final quiet = buildStatementData(
         entries: entries,

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../app.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../services/category_emoji.dart';
 import '../ui/ui.dart';
@@ -16,35 +15,23 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
     final scorecardsAsync = ref.watch(categoryScorecardsProvider);
 
     return RepaintBoundary(
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
-        ),
-        child: Column(
+      child: AppCard(padding: const EdgeInsets.all(20), border: Border.all(color: AppColors.border), child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Text('📅', style: TextStyle(fontSize: 16)),
+                Text('📅', style: AppType.titleM),
                 SizedBox(width: 6),
                 Text(
                   'Day-of-Week Heatmap',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: kBrandBrown,
-                  ),
+                  style: AppType.titleS.copyWith(fontWeight: FontWeight.w700, color: AppColors.brandDeep),
                 ),
               ],
             ),
             const SizedBox(height: 4),
             Text(
               'Average demand per category per weekday (4 weeks)',
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+              style: AppType.caption.copyWith(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 16),
             heatmapAsync.when(
@@ -64,8 +51,7 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
               error: (e, _) => _failedState(ref, e),
             ),
           ],
-        ),
-      ),
+        )),
     );
   }
 
@@ -109,11 +95,7 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
                     child: Text(
                       d,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade500,
-                      ),
+                      style: AppType.caption.copyWith(fontWeight: FontWeight.w600, color: AppColors.textSecondary),
                     ),
                   ),
                 )
@@ -136,15 +118,12 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
                   width: 70,
                   child: Row(
                     children: [
-                      Text(emoji, style: const TextStyle(fontSize: 12)),
+                      Text(emoji, style: AppType.label),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
                           catName,
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                          ),
+                          style: AppType.caption.copyWith(fontWeight: FontWeight.w500),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -163,22 +142,18 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
                         height: 28,
                         margin: const EdgeInsets.symmetric(horizontal: 2),
                         decoration: BoxDecoration(
-                          color: kBrandGold.withValues(
+                          color: AppColors.brandPrimary.withValues(
                             alpha: 0.1 + (intensity * 0.8),
                           ),
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: AppRadius.rS,
                         ),
                         child: Center(
                           child: val > 0
                               ? Text(
                                   val.toStringAsFixed(0),
-                                  style: TextStyle(
-                                    fontSize: 8,
-                                    fontWeight: FontWeight.w600,
-                                    color: intensity > 0.5
+                                  style: AppType.caption.copyWith(fontWeight: FontWeight.w600, color: intensity > 0.5
                                         ? Colors.black87
-                                        : Colors.grey.shade700,
-                                  ),
+                                        : AppColors.textSecondary),
                                 )
                               : null,
                         ),
@@ -201,11 +176,11 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.grid_on_rounded, size: 28, color: Colors.grey.shade300),
+            Icon(Icons.grid_on_rounded, size: 28, color: AppColors.border),
             const SizedBox(height: 6),
             Text(
               'Not enough data for heatmap (needs 4 weeks)',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+              style: AppType.label.copyWith(color: AppColors.textTertiary),
             ),
           ],
         ),
@@ -256,7 +231,7 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
     return const SizedBox(
       height: 100,
       child: Center(
-        child: CircularProgressIndicator(strokeWidth: 2, color: kBrandBrown),
+        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.brandDeep),
       ),
     );
   }

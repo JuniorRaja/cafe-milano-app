@@ -8,7 +8,7 @@ import '../theme/brand_config.dart';
 // default pdf-package document, in one place so the catalogue and the shop
 // statement cannot drift into two visual languages.
 
-// Brand colours as PDF equivalents of kBrandGold / kBrandBrown from app.dart
+// Brand colours as PDF equivalents of AppColors.brandPrimary / brandDeep.
 const kPdfGold  = PdfColor(1.0, 192 / 255, 0.0);         // 0xFFFFC000
 const kPdfBrown = PdfColor(74 / 255, 44 / 255, 42 / 255); // 0xFF4A2C2A
 

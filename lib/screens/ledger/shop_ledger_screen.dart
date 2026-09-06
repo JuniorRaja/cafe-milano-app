@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../services/error_reporting.dart';
 import 'package:intl/intl.dart';
-import '../../app.dart';
 import '../../database/app_database.dart';
 import '../../providers/business_info_provider.dart';
 import '../../providers/database_provider.dart';
@@ -16,8 +16,6 @@ import '../../theme/brand_config.dart';
 import '../../widgets/ui/ui.dart';
 
 final _dateFmt = DateFormat('dd MMM yyyy');
-
-
 
 String _modeLabel(PaymentMode mode) {
   switch (mode) {
@@ -33,16 +31,16 @@ String _modeLabel(PaymentMode mode) {
 }
 
 String _statusLabel(BillStatus status) => switch (status) {
-      BillStatus.paid => 'Paid',
-      BillStatus.partial => 'Partial',
-      BillStatus.unpaid => 'Unpaid',
-    };
+  BillStatus.paid => 'Paid',
+  BillStatus.partial => 'Partial',
+  BillStatus.unpaid => 'Unpaid',
+};
 
 MaterialColor _statusColor(BillStatus status) => switch (status) {
-      BillStatus.paid => Colors.green,
-      BillStatus.partial => Colors.orange,
-      BillStatus.unpaid => Colors.red,
-    };
+  BillStatus.paid => Colors.green,
+  BillStatus.partial => Colors.orange,
+  BillStatus.unpaid => Colors.red,
+};
 
 typedef LedgerFilters = ({
   DateTimeRange? range,
@@ -79,9 +77,8 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
     super.dispose();
   }
 
-  int get _activeFilterCount => [_range, _statusFilter, _typeFilter]
-      .where((f) => f != null)
-      .length;
+  int get _activeFilterCount =>
+      [_range, _statusFilter, _typeFilter].where((f) => f != null).length;
 
   String get _filterSummary {
     final parts = <String>[];
@@ -91,17 +88,20 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
     if (_statusFilter != null) parts.add(_statusLabel(_statusFilter!));
     if (_range != null) {
       parts.add(
-          '${DateFormat('dd MMM').format(_range!.start)} – ${DateFormat('dd MMM').format(_range!.end)}');
+        '${DateFormat('dd MMM').format(_range!.start)} – ${DateFormat('dd MMM').format(_range!.end)}',
+      );
     }
     return parts.isEmpty ? 'All entries' : parts.join(' · ');
   }
 
   void _openPaymentSheet() {
-    unawaited(showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => RecordPaymentSheet(shopId: widget.shopId),
-    ));
+    unawaited(
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => RecordPaymentSheet(shopId: widget.shopId),
+      ),
+    );
   }
 
   /// Pick a period, then build and share that period's statement.
@@ -115,13 +115,15 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
       context: context,
       firstDate: DateTime(2020),
       lastDate: now,
-      initialDateRange: _range ??
+      initialDateRange:
+          _range ??
           DateTimeRange(start: DateTime(now.year, now.month, 1), end: now),
       helpText: 'Statement period',
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme:
-              Theme.of(context).colorScheme.copyWith(primary: kBrandBrown),
+          colorScheme: Theme.of(
+            context,
+          ).colorScheme.copyWith(primary: AppColors.brandDeep),
         ),
         child: child!,
       ),
@@ -133,12 +135,14 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
       final shop = await ref.readFutureOnce(shopByIdProvider(widget.shopId));
       if (shop == null) return;
       final business = await ref.read(businessInfoProvider.future);
-      final entries = await ref.readStreamOnce(shopLedgerProvider((
-        shopId: widget.shopId,
-        range: null,
-        status: null,
-        type: null,
-      )));
+      final entries = await ref.readStreamOnce(
+        shopLedgerProvider((
+          shopId: widget.shopId,
+          range: null,
+          status: null,
+          type: null,
+        )),
+      );
 
       await shareLedgerStatement(
         brand: ref.read(brandProvider),
@@ -191,14 +195,19 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
     final confirmed = await confirmDestructive(
       context,
       title: 'Delete Payment',
-      message: 'Delete the '
+      message:
+          'Delete the '
           '${ref.read(brandProvider).moneyDecimal(entry.amount)} payment '
           'dated ${_dateFmt.format(entry.date)}?',
-      detail: 'Any bills it settled go back to unpaid. To correct a payment, '
+      detail:
+          'Any bills it settled go back to unpaid. To correct a payment, '
           'delete it and record it again.',
     );
     if (confirmed) {
-      await ref.read(databaseProvider).ledgerDao.deletePayment(entry.paymentId!);
+      await ref
+          .read(databaseProvider)
+          .ledgerDao
+          .deletePayment(entry.paymentId!);
     }
   }
 
@@ -207,51 +216,39 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
     final shop = ref.watch(shopByIdProvider(widget.shopId)).value;
     final statsAsync = ref.watch(shopStatsProvider(widget.shopId));
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(shop?.name ?? 'Statement',
-                style: const TextStyle(fontWeight: FontWeight.bold)),
-            // `Statement`, not `Ledger`. The drawer's Ledger is the whole
-            // business; this is one shop's bills, payments and running
-            // balance. Two screens called the same word is how the owner ends
-            // up on the wrong one.
-            Text(
-              shop?.area == null ? 'Statement' : 'Statement · ${shop!.area}',
-              style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade500,
-                  fontWeight: FontWeight.normal),
-            ),
-          ],
+    // The last screen off a bare AppBar. `Statement`, not `Ledger`: the
+    // drawer's Ledger is the whole business, this is one shop's bills,
+    // payments and running balance. Two screens called the same word is how
+    // the owner ends up on the wrong one — so the caption carries the word and
+    // the title carries the shop.
+    return AppScaffold(
+      title: shop?.name ?? 'Statement',
+      caption: shop?.area == null ? 'Statement' : 'Statement · ${shop!.area}',
+      background: AppColors.bg,
+      actions: [
+        IconButton(
+          icon: _exporting
+              ? const SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.picture_as_pdf_outlined),
+          color: AppColors.textPrimary,
+          tooltip: 'Export Statement',
+          onPressed: _exporting ? null : _exportStatement,
         ),
-        actions: [
-          IconButton(
-            icon: _exporting
-                ? const SizedBox(
-                    height: 18,
-                    width: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.picture_as_pdf_outlined),
-            tooltip: 'Export Statement',
-            onPressed: _exporting ? null : _exportStatement,
-          ),
+      ],
+      bottom: TabBar(
+        controller: _tabController,
+        tabs: const [
+          Tab(text: 'Outstanding'),
+          Tab(text: 'History'),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Outstanding'),
-            Tab(text: 'History'),
-          ],
-        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openPaymentSheet,
-        backgroundColor: kBrandGold,
+        backgroundColor: AppColors.brandPrimary,
         foregroundColor: Colors.black87,
         icon: const Icon(Icons.payments_outlined),
         label: const Text('Record Payment'),
@@ -262,10 +259,7 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
           Expanded(
             child: TabBarView(
               controller: _tabController,
-              children: [
-                _buildOutstandingTab(),
-                _buildHistoryTab(),
-              ],
+              children: [_buildOutstandingTab(), _buildHistoryTab()],
             ),
           ),
         ],
@@ -278,19 +272,29 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
   // since when". Deliberately unfiltered: this tab answers one question.
 
   Widget _buildOutstandingTab() {
-    final billsAsync = ref.watch(shopLedgerProvider((
-      shopId: widget.shopId,
-      range: null,
-      status: null,
-      type: LedgerType.bill,
-    )));
+    final billsAsync = ref.watch(
+      shopLedgerProvider((
+        shopId: widget.shopId,
+        range: null,
+        status: null,
+        type: LedgerType.bill,
+      )),
+    );
 
     return billsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
+      error: (e, st) {
+        reportError(e, st, context: 'ledger bills');
+        return AppErrorView(
+          message: "Could not load this shop's bills.",
+          cause: '$e',
+          onRetry: () => ref.invalidate(shopLedgerProvider),
+        );
+      },
       data: (bills) {
-        final open =
-            bills.where((b) => b.billStatus != BillStatus.paid).toList();
+        final open = bills
+            .where((b) => b.billStatus != BillStatus.paid)
+            .toList();
 
         if (open.isEmpty) {
           return Center(
@@ -304,7 +308,7 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
                         ? Icons.receipt_long_outlined
                         : Icons.check_circle_outline,
                     size: 56,
-                    color: bills.isEmpty ? Colors.grey : Colors.green.shade400,
+                    color: bills.isEmpty ? AppColors.textTertiary : Colors.green.shade400,
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -312,7 +316,7 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
                         ? 'No bills yet for this shop.'
                         : 'All settled — nothing pending.',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.grey, fontSize: 15),
+                    style: AppType.titleS.copyWith(color: AppColors.textTertiary),
                   ),
                 ],
               ),
@@ -331,12 +335,16 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: Colors.red.shade50,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: AppRadius.rM,
                 border: Border.all(color: Colors.red.shade100),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.error_outline, size: 18, color: Colors.red.shade700),
+                  Icon(
+                    Icons.error_outline,
+                    size: 18,
+                    color: Colors.red.shade700,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -351,7 +359,7 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
                   if (daysOld > 0)
                     Text(
                       'oldest ${daysOld}d',
-                      style: TextStyle(fontSize: 11, color: Colors.red.shade400),
+                      style: AppType.caption.copyWith(color: Colors.red.shade400),
                     ),
                 ],
               ),
@@ -374,12 +382,14 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
   // ─── History ─────────────────────────────────────────────────────────────
 
   Widget _buildHistoryTab() {
-    final ledgerAsync = ref.watch(shopLedgerProvider((
-      shopId: widget.shopId,
-      range: _range,
-      status: _statusFilter,
-      type: _typeFilter,
-    )));
+    final ledgerAsync = ref.watch(
+      shopLedgerProvider((
+        shopId: widget.shopId,
+        range: _range,
+        status: _statusFilter,
+        type: _typeFilter,
+      )),
+    );
     final hasFilters = _activeFilterCount > 0;
 
     return Column(
@@ -393,13 +403,15 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
                 icon: const Icon(Icons.tune, size: 16),
                 label: Text(
                   hasFilters ? 'Filters ($_activeFilterCount)' : 'Filters',
-                  style: const TextStyle(fontSize: 13),
+                  style: AppType.bodyS,
                 ),
                 style: OutlinedButton.styleFrom(
                   visualDensity: VisualDensity.compact,
-                  foregroundColor: hasFilters ? kBrandBrown : Colors.grey.shade700,
+                  foregroundColor: hasFilters
+                      ? AppColors.brandDeep
+                      : AppColors.textSecondary,
                   side: BorderSide(
-                    color: hasFilters ? kBrandBrown : Colors.grey.shade300,
+                    color: hasFilters ? AppColors.brandDeep : AppColors.border,
                   ),
                 ),
               ),
@@ -408,17 +420,15 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
                 child: Text(
                   _filterSummary,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                    fontWeight: hasFilters ? FontWeight.w600 : FontWeight.normal,
-                  ),
+                  style: AppType.label.copyWith(color: AppColors.textSecondary, fontWeight: hasFilters
+                        ? FontWeight.w600
+                        : FontWeight.normal),
                 ),
               ),
               if (hasFilters)
                 IconButton(
                   icon: const Icon(Icons.close, size: 18),
-                  color: Colors.grey.shade600,
+                  color: AppColors.textSecondary,
                   visualDensity: VisualDensity.compact,
                   tooltip: 'Clear filters',
                   onPressed: _clearFilters,
@@ -430,7 +440,14 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
         Expanded(
           child: ledgerAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('Error: $e')),
+            error: (e, st) {
+              reportError(e, st, context: 'ledger entries');
+              return AppErrorView(
+                message: "Could not load this shop's ledger.",
+                cause: '$e',
+                onRetry: () => ref.invalidate(shopLedgerProvider),
+              );
+            },
             data: (entries) {
               if (entries.isEmpty) {
                 return Center(
@@ -495,12 +512,17 @@ class _LedgerFilterSheetState extends State<_LedgerFilterSheet> {
       context: context,
       firstDate: DateTime(2020),
       lastDate: now,
-      initialDateRange: _range ??
-          DateTimeRange(start: now.subtract(const Duration(days: 30)), end: now),
+      initialDateRange:
+          _range ??
+          DateTimeRange(
+            start: now.subtract(const Duration(days: 30)),
+            end: now,
+          ),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme:
-              Theme.of(context).colorScheme.copyWith(primary: kBrandBrown),
+          colorScheme: Theme.of(
+            context,
+          ).colorScheme.copyWith(primary: AppColors.brandDeep),
         ),
         child: child!,
       ),
@@ -509,21 +531,16 @@ class _LedgerFilterSheetState extends State<_LedgerFilterSheet> {
   }
 
   Widget _sectionLabel(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Text(
-          text.toUpperCase(),
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.8,
-            color: Colors.grey.shade500,
-          ),
-        ),
-      );
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Text(
+      text.toUpperCase(),
+      style: AppType.caption.copyWith(fontWeight: FontWeight.w700, letterSpacing: 0.8, color: AppColors.textSecondary),
+    ),
+  );
 
   Widget _choice<T>(String label, T value, T selected, ValueChanged<T> onPick) {
     return ChoiceChip(
-      label: Text(label, style: const TextStyle(fontSize: 12)),
+      label: Text(label, style: AppType.label),
       selected: selected == value,
       onSelected: (_) => onPick(value),
       visualDensity: VisualDensity.compact,
@@ -545,8 +562,10 @@ class _LedgerFilterSheetState extends State<_LedgerFilterSheet> {
         children: [
           Row(
             children: [
-              const Text('Filters',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              Text(
+                'Filters',
+                style: AppType.titleM.copyWith(fontWeight: FontWeight.bold),
+              ),
               const Spacer(),
               TextButton(
                 onPressed: () => setState(() {
@@ -570,14 +589,14 @@ class _LedgerFilterSheetState extends State<_LedgerFilterSheet> {
                     _range == null
                         ? 'Any date'
                         : '${_dateFmt.format(_range!.start)} – ${_dateFmt.format(_range!.end)}',
-                    style: const TextStyle(fontSize: 13),
+                    style: AppType.bodyS,
                   ),
                 ),
               ),
               if (_range != null)
                 IconButton(
                   icon: const Icon(Icons.close, size: 18),
-                  color: Colors.grey.shade600,
+                  color: AppColors.textSecondary,
                   tooltip: 'Clear date range',
                   onPressed: () => setState(() => _range = null),
                 ),
@@ -589,12 +608,24 @@ class _LedgerFilterSheetState extends State<_LedgerFilterSheet> {
             spacing: 8,
             children: [
               _choice('All', null, _status, (v) => setState(() => _status = v)),
-              _choice('Unpaid', BillStatus.unpaid, _status,
-                  (v) => setState(() => _status = v)),
-              _choice('Partial', BillStatus.partial, _status,
-                  (v) => setState(() => _status = v)),
-              _choice('Paid', BillStatus.paid, _status,
-                  (v) => setState(() => _status = v)),
+              _choice(
+                'Unpaid',
+                BillStatus.unpaid,
+                _status,
+                (v) => setState(() => _status = v),
+              ),
+              _choice(
+                'Partial',
+                BillStatus.partial,
+                _status,
+                (v) => setState(() => _status = v),
+              ),
+              _choice(
+                'Paid',
+                BillStatus.paid,
+                _status,
+                (v) => setState(() => _status = v),
+              ),
             ],
           ),
           const SizedBox(height: 18),
@@ -603,20 +634,29 @@ class _LedgerFilterSheetState extends State<_LedgerFilterSheet> {
             spacing: 8,
             children: [
               _choice('All', null, _type, (v) => setState(() => _type = v)),
-              _choice('Bills', LedgerType.bill, _type,
-                  (v) => setState(() => _type = v)),
-              _choice('Payments', LedgerType.payment, _type,
-                  (v) => setState(() => _type = v)),
+              _choice(
+                'Bills',
+                LedgerType.bill,
+                _type,
+                (v) => setState(() => _type = v),
+              ),
+              _choice(
+                'Payments',
+                LedgerType.payment,
+                _type,
+                (v) => setState(() => _type = v),
+              ),
             ],
           ),
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: () => Navigator.pop(
-                context,
-                (range: _range, status: _status, type: _type),
-              ),
+              onPressed: () => Navigator.pop(context, (
+                range: _range,
+                status: _status,
+                type: _type,
+              )),
               child: const Text('Apply'),
             ),
           ),
@@ -639,22 +679,32 @@ class _StatsHeader extends ConsumerWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: AppRadius.rM,
+        border: Border.all(color: AppColors.border),
       ),
       child: statsAsync.when(
         loading: () => const SizedBox(
           height: 64,
           child: Center(child: CircularProgressIndicator()),
         ),
-        error: (e, _) => Text('Error: $e'),
+        // Inline, not an AppErrorView: this is a strip inside a card, and a
+        // full-height error view would push the ledger off the screen.
+        error: (e, st) {
+          reportError(e, st, context: 'ledger stats');
+          return Text(
+            'Totals unavailable',
+            style: AppType.bodyS.copyWith(color: AppColors.negative),
+          );
+        },
         data: (stats) => Column(
           children: [
             Row(
               children: [
                 Expanded(
                   child: _StatTile(
-                      label: 'Total Billed', value: brand.moneyDecimal(stats.totalBilled)),
+                    label: 'Total Billed',
+                    value: brand.moneyDecimal(stats.totalBilled),
+                  ),
                 ),
                 Expanded(
                   child: _StatTile(
@@ -672,7 +722,9 @@ class _StatsHeader extends ConsumerWidget {
                   child: _StatTile(
                     label: 'Outstanding',
                     value: brand.moneyDecimal(stats.outstanding),
-                    color: stats.outstanding > 0.005 ? Colors.red.shade700 : null,
+                    color: stats.outstanding > 0.005
+                        ? Colors.red.shade700
+                        : null,
                   ),
                 ),
                 Expanded(
@@ -706,17 +758,12 @@ class _StatTile extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(
-              fontSize: 11, color: Colors.grey.shade500, fontWeight: FontWeight.w500),
+          style: AppType.caption.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 4),
         Text(
           value,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            color: color ?? kBrandBrown,
-          ),
+          style: AppType.titleM.copyWith(fontWeight: FontWeight.w800, color: color ?? AppColors.brandDeep),
         ),
       ],
     );
@@ -764,10 +811,11 @@ class _OpenBillRow extends ConsumerWidget {
                 Text(
                   [
                     'Bill ${brand.moneyDecimal(entry.amount)}',
-                    if (partlyPaid) 'paid ${brand.moneyDecimal(entry.allocatedAmount)}',
+                    if (partlyPaid)
+                      'paid ${brand.moneyDecimal(entry.allocatedAmount)}',
                     if (daysOld > 0) '${daysOld}d ago',
                   ].join(' · '),
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  style: AppType.label.copyWith(color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -778,15 +826,11 @@ class _OpenBillRow extends ConsumerWidget {
             children: [
               Text(
                 'Due',
-                style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                style: AppType.caption.copyWith(color: AppColors.textSecondary),
               ),
               Text(
                 brand.moneyDecimal(entry.amountDue),
-                style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 16,
-                  color: Colors.red.shade700,
-                ),
+                style: AppType.titleM.copyWith(fontWeight: FontWeight.w800, color: Colors.red.shade700),
               ),
             ],
           ),
@@ -847,17 +891,13 @@ class _LedgerRow extends ConsumerWidget {
                   const SizedBox(height: 3),
                   Text(
                     subtitle,
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    style: AppType.label.copyWith(color: AppColors.textSecondary),
                   ),
                   if (!isBill && (note?.isNotEmpty ?? false)) ...[
                     const SizedBox(height: 2),
                     Text(
                       note!,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade500,
-                        fontStyle: FontStyle.italic,
-                      ),
+                      style: AppType.label.copyWith(color: AppColors.textSecondary, fontStyle: FontStyle.italic),
                     ),
                   ],
                 ],
@@ -869,12 +909,15 @@ class _LedgerRow extends ConsumerWidget {
               children: [
                 Text(
                   '${isBill ? 'Dr' : 'Cr'} ${brand.moneyDecimal(entry.amount)}',
-                  style: TextStyle(fontWeight: FontWeight.w700, color: amountColor),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: amountColor,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   'Bal ${brand.moneyDecimal(entry.runningBalance)}',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                  style: AppType.caption.copyWith(color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -897,12 +940,11 @@ class _StatusBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: AppRadius.rS,
       ),
       child: Text(
         _statusLabel(status),
-        style: TextStyle(
-            fontSize: 11, fontWeight: FontWeight.w600, color: color.shade700),
+        style: AppType.caption.copyWith(fontWeight: FontWeight.w600, color: color.shade700),
       ),
     );
   }

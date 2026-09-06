@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import '../ui/ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../../app.dart';
 import '../../models/dashboard_models.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../utils/money.dart';
@@ -30,28 +30,16 @@ class RevenueMixCard extends ConsumerWidget {
     final mixAsync = ref.watch(categoryMixProvider);
 
     return RepaintBoundary(
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
-        ),
-        child: Column(
+      child: AppCard(padding: const EdgeInsets.all(20), border: Border.all(color: AppColors.border), child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Text('🍩', style: TextStyle(fontSize: 16)),
+                Text('🍩', style: AppType.titleM),
                 SizedBox(width: 6),
                 Text(
                   'Category Revenue Mix',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: kBrandBrown,
-                  ),
+                  style: AppType.titleS.copyWith(fontWeight: FontWeight.w700, color: AppColors.brandDeep),
                 ),
               ],
             ),
@@ -66,15 +54,14 @@ class RevenueMixCard extends ConsumerWidget {
                 child: Center(
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: kBrandBrown,
+                    color: AppColors.brandDeep,
                   ),
                 ),
               ),
               error: (_, _) => _emptyState(),
             ),
           ],
-        ),
-      ),
+        )),
     );
   }
 
@@ -113,16 +100,12 @@ class RevenueMixCard extends ConsumerWidget {
                 children: [
                   Text(
                     brand.moneyLakh(totalRevenue),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: kBrandBrown,
-                    ),
+                    style: AppType.titleM.copyWith(fontWeight: FontWeight.w800, color: AppColors.brandDeep),
                     maxLines: 1,
                   ),
                   Text(
                     'Total',
-                    style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                    style: AppType.caption.copyWith(color: AppColors.textSecondary),
                     maxLines: 1,
                   ),
                 ],
@@ -158,12 +141,12 @@ class RevenueMixCard extends ConsumerWidget {
             Icon(
               Icons.pie_chart_outline,
               size: 32,
-              color: Colors.grey.shade300,
+              color: AppColors.border,
             ),
             const SizedBox(height: 8),
             Text(
               'No revenue data for this period',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+              style: AppType.label.copyWith(color: AppColors.textTertiary),
             ),
           ],
         ),
@@ -194,12 +177,12 @@ class _MixRow extends ConsumerWidget {
           ),
           const SizedBox(width: 8),
           // Emoji + Name
-          Text(row.emoji, style: const TextStyle(fontSize: 14)),
+          Text(row.emoji, style: AppType.body),
           const SizedBox(width: 4),
           Expanded(
             child: Text(
               row.categoryName,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+              style: AppType.label.copyWith(fontWeight: FontWeight.w500),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -207,7 +190,7 @@ class _MixRow extends ConsumerWidget {
           // Revenue
           Text(
             ref.watch(brandProvider).money(row.revenue.round()),
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            style: AppType.label.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(width: 8),
           // Share %
@@ -215,7 +198,7 @@ class _MixRow extends ConsumerWidget {
             width: 40,
             child: Text(
               '${row.sharePercent.toStringAsFixed(0)}%',
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+              style: AppType.caption.copyWith(color: AppColors.textSecondary),
               textAlign: TextAlign.right,
             ),
           ),
@@ -231,11 +214,16 @@ class _MixRow extends ConsumerWidget {
     if (trend == null) {
       return Text(
         '—',
-        style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
+        style: AppType.caption.copyWith(color: AppColors.textTertiary),
         textAlign: TextAlign.right,
       );
     }
+    // Not a `DeltaPill`. The pill carries its own padding and pill fill, and
+    // this column is 44px wide — it overflowed the card on the right. An
+    // arrow and a percentage, in the same semantic colours the pill would
+    // have used.
     final isUp = trend >= 0;
+    final tone = isUp ? AppColors.positive : AppColors.negative;
     return Row(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.end,
@@ -243,14 +231,17 @@ class _MixRow extends ConsumerWidget {
         Icon(
           isUp ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
           size: 12,
-          color: isUp ? Colors.green.shade600 : Colors.red.shade600,
+          color: tone,
         ),
-        Text(
-          '${trend.abs().toStringAsFixed(0)}%',
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-            color: isUp ? Colors.green.shade600 : Colors.red.shade600,
+        Flexible(
+          child: Text(
+            '${trend.abs().toStringAsFixed(0)}%',
+            style: AppType.caption.copyWith(
+              fontWeight: FontWeight.w600,
+              color: tone,
+            ),
+            overflow: TextOverflow.clip,
+            softWrap: false,
           ),
         ),
       ],

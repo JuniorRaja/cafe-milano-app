@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../app.dart';
+import '../theme/tokens.dart';
 
 class LetterAvatar extends StatelessWidget {
   const LetterAvatar({super.key, required this.name, this.radius = 24});
@@ -12,12 +12,15 @@ class LetterAvatar extends StatelessWidget {
     final letter = name.isNotEmpty ? name[0].toUpperCase() : '?';
     return CircleAvatar(
       radius: radius,
-      backgroundColor: kBrandBrown,
+      backgroundColor: AppColors.brandDeep,
       child: Text(
         letter,
-        style: TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
+        // The one size in the app that is not a token, and cannot be: the
+        // glyph scales with the circle it sits in, so it is a computed value
+        // rather than one of the eight steps. Family, weight and colour still
+        // come from the system.
+        style: AppType.titleM.copyWith(
+          color: AppColors.textOnDark,
           fontSize: radius * 0.75,
         ),
       ),

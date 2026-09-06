@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../app.dart';
+import '../../widgets/ui/ui.dart';
 
 class KpiHelpScreen extends StatefulWidget {
   const KpiHelpScreen({super.key, this.scrollToSection});
@@ -177,34 +177,36 @@ class _KpiHelpScreenState extends State<KpiHelpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('KPI Help Guide',
-            style: TextStyle(fontWeight: FontWeight.bold)),
-      ),
+    return AppScaffold(
+      title: 'KPI Help Guide',
+      background: AppColors.bg,
       body: ListView.separated(
         controller: _scrollController,
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpace.s4,
+          0,
+          AppSpace.s4,
+          AppSpace.s6,
+        ),
         itemCount: _entries.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 8),
+        separatorBuilder: (_, _) => const SizedBox(height: AppSpace.s2),
         itemBuilder: (context, index) {
           final entry = _entries[index];
           final isExpanded = _expandedKey == entry.key;
 
-          return Card(
+          return AppCard(
             key: _sectionKeys[entry.key],
-            color: Colors.white,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            padding: EdgeInsets.zero,
             child: ExpansionTile(
               initiallyExpanded: isExpanded,
-              leading: Text(entry.icon, style: const TextStyle(fontSize: 22)),
+              shape: const Border(),
+              collapsedShape: const Border(),
+              leading: Text(entry.icon, style: AppType.titleL),
               title: Text(
                 entry.title,
-                style: const TextStyle(
+                style: AppType.body.copyWith(
                   fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  color: kBrandBrown,
+                  color: AppColors.brandDeep,
                 ),
               ),
               onExpansionChanged: (expanded) {
@@ -212,13 +214,17 @@ class _KpiHelpScreenState extends State<KpiHelpScreen> {
               },
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpace.s4,
+                    0,
+                    AppSpace.s4,
+                    AppSpace.s4,
+                  ),
                   child: Text(
                     entry.text,
-                    style: TextStyle(
-                      fontSize: 13,
+                    style: AppType.bodyS.copyWith(
                       height: 1.5,
-                      color: Colors.grey.shade700,
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 ),

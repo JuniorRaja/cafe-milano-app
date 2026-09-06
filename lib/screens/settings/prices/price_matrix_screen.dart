@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../app.dart';
+import 'package:go_router/go_router.dart';
+import '../../../app.dart' show AppRoutes;
+import '../../../services/error_reporting.dart';
 import '../../../database/app_database.dart';
 import '../../../providers/shop_provider.dart';
 import '../../../providers/product_provider.dart';
@@ -123,115 +125,111 @@ class _PriceMatrixScreenState extends ConsumerState<PriceMatrixScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final shopsAsync = ref.watch(activeShopsProvider);
-    final productsAsync = ref.watch(activeProductsProvider);
+    // One `.when`, not a `productsAsync.when` nested inside a
+    // `shopsAsync.when`. See `activeShopsAndProductsProvider`.
+    final viewAsync = ref.watch(activeShopsAndProductsProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Price Matrix',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              'Manage product prices for each shop',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade500,
-                fontWeight: FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton.icon(
-            onPressed: () => _showAboutDialog(context),
-            icon: const Icon(Icons.info_outline, color: kBrandBrown),
-            label: const Text('About', style: TextStyle(color: kBrandBrown)),
+    return AppScaffold(
+      title: 'Price Matrix',
+      caption: 'Manage product prices for each shop',
+      background: AppColors.bg,
+      actions: [
+        TextButton.icon(
+          onPressed: () => _showAboutDialog(context),
+          icon: const Icon(Icons.info_outline, color: AppColors.brandDeep),
+          label: Text(
+            'About',
+            style: AppType.label.copyWith(color: AppColors.brandDeep),
           ),
-        ],
-      ),
+        ),
+      ],
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         behavior: HitTestBehavior.opaque,
-        child: shopsAsync.when(
+        child: viewAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('Error: $e')),
-          data: (shops) {
+          error: (e, st) {
+            reportError(e, st, context: 'price matrix');
+            return AppErrorView(
+              message: 'Could not load shops and products.',
+              cause: '$e',
+              onRetry: () {
+                ref.invalidate(activeShopsProvider);
+                ref.invalidate(activeProductsProvider);
+              },
+            );
+          },
+          data: (view) {
+            final shops = view.shops;
+            final products = view.products;
             if (shops.isEmpty) {
-              return const Center(
-                child: Text('No active shops. Add shops in Profile > Shops.'),
+              return EmptyState(
+                icon: Icons.storefront_outlined,
+                title: 'No active shops',
+                message: 'Add a shop before setting prices.',
+                actionLabel: 'Add a shop',
+                onAction: () => context.push(AppRoutes.shopNew),
               );
             }
             final selectedShop = shops
                 .where((s) => s.id == _selectedShopId)
                 .firstOrNull;
-            return productsAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
-              data: (products) => Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: DropdownButtonFormField<int>(
-                      initialValue: selectedShop?.id,
-                      // A shop name with an area can be longer than the field.
-                      // Left to wrap it overflows the menu row's fixed height,
-                      // which is the "overflowed by 3 pixels" warning.
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Select Shop',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: shops
-                          .map(
-                            (s) => DropdownMenuItem<int>(
-                              value: s.id,
-                              child: Text(
-                                s.area != null
-                                    ? '${s.name} · ${s.area}'
-                                    : s.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: DropdownButtonFormField<int>(
+                    initialValue: selectedShop?.id,
+                    // A shop name with an area can be longer than the field.
+                    // Left to wrap it overflows the menu row's fixed height,
+                    // which is the "overflowed by 3 pixels" warning.
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Select Shop',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: shops
+                        .map(
+                          (s) => DropdownMenuItem<int>(
+                            value: s.id,
+                            child: Text(
+                              s.area != null ? '${s.name} · ${s.area}' : s.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          )
-                          .toList(),
-                      onChanged: (id) {
-                        if (id != null) unawaited(_onShopChanged(id, products));
-                      },
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (id) {
+                      if (id != null) unawaited(_onShopChanged(id, products));
+                    },
+                  ),
+                ),
+                if (_selectedShopId == null)
+                  const Expanded(
+                    child: Center(child: Text('Select a shop to set prices.')),
+                  )
+                else if (_loadingPrices)
+                  const Expanded(
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (products.isEmpty)
+                  const Expanded(
+                    child: Center(child: Text('No active products.')),
+                  )
+                else
+                  Expanded(
+                    child: _ProductPrices(
+                      products: products,
+                      visible: products.where(_matches).toList(),
+                      searchCtrl: _searchCtrl,
+                      onQuery: (value) =>
+                          setState(() => _query = value.trim().toLowerCase()),
+                      onSave: _save,
+                      controllerFor: (id) => _controllers[id],
                     ),
                   ),
-                  if (_selectedShopId == null)
-                    const Expanded(
-                      child: Center(
-                        child: Text('Select a shop to set prices.'),
-                      ),
-                    )
-                  else if (_loadingPrices)
-                    const Expanded(
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  else if (products.isEmpty)
-                    const Expanded(
-                      child: Center(child: Text('No active products.')),
-                    )
-                  else
-                    Expanded(
-                      child: _ProductPrices(
-                        products: products,
-                        visible: products.where(_matches).toList(),
-                        searchCtrl: _searchCtrl,
-                        onQuery: (value) =>
-                            setState(() => _query = value.trim().toLowerCase()),
-                        onSave: _save,
-                        controllerFor: (id) => _controllers[id],
-                      ),
-                    ),
-                ],
-              ),
+              ],
             );
           },
         ),

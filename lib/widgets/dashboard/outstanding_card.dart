@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../ui/ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../app.dart';
@@ -20,33 +21,21 @@ class OutstandingCard extends ConsumerWidget {
 
     return RepaintBoundary(
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.rM,
         onTap: () => context.push(AppRoutes.outstanding),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200),
-          ),
-          child: Column(
+        child: AppCard(padding: const EdgeInsets.all(20), border: Border.all(color: AppColors.border), child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Text('💰', style: TextStyle(fontSize: 16)),
+                  Text('💰', style: AppType.titleM),
                   SizedBox(width: 6),
                   Text(
                     'Outstanding Receivables',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: kBrandBrown,
-                    ),
+                    style: AppType.titleS.copyWith(fontWeight: FontWeight.w700, color: AppColors.brandDeep),
                   ),
                   Spacer(),
-                  Icon(Icons.chevron_right, size: 20, color: Colors.grey),
+                  Icon(Icons.chevron_right, size: 20, color: AppColors.textTertiary),
                 ],
               ),
               const SizedBox(height: 14),
@@ -62,15 +51,12 @@ class OutstandingCard extends ConsumerWidget {
                         Icon(
                           Icons.check_circle_outline,
                           size: 20,
-                          color: Colors.green.shade400,
+                          color: AppColors.positive,
                         ),
                         const SizedBox(width: 8),
                         Text(
                           'Every shop is settled up.',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey.shade600,
-                          ),
+                          style: AppType.bodyS.copyWith(color: AppColors.textSecondary),
                         ),
                       ],
                     );
@@ -80,19 +66,12 @@ class OutstandingCard extends ConsumerWidget {
                     children: [
                       Text(
                         ref.watch(brandProvider).money(total),
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.red.shade700,
-                        ),
+                        style: AppType.displayL.copyWith(fontWeight: FontWeight.w800, color: AppColors.negative),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         'owed by ${shops.length} ${shops.length == 1 ? 'shop' : 'shops'}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade500,
-                        ),
+                        style: AppType.label.copyWith(color: AppColors.textSecondary),
                       ),
                     ],
                   );
@@ -102,18 +81,17 @@ class OutstandingCard extends ConsumerWidget {
                   child: Center(
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: kBrandBrown,
+                      color: AppColors.brandDeep,
                     ),
                   ),
                 ),
                 error: (e, _) => Text(
                   'Could not load receivables',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                  style: AppType.label.copyWith(color: AppColors.textTertiary),
                 ),
               ),
             ],
-          ),
-        ),
+          )),
       ),
     );
   }

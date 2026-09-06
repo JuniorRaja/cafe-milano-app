@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import '../ui/ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../app.dart';
 import '../../models/dashboard_models.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../utils/money.dart';
@@ -14,35 +14,23 @@ class ShopConcentrationCard extends ConsumerWidget {
     final concAsync = ref.watch(shopConcentrationProvider);
 
     return RepaintBoundary(
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
-        ),
-        child: Column(
+      child: AppCard(padding: const EdgeInsets.all(20), border: Border.all(color: AppColors.border), child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Text('🏪', style: TextStyle(fontSize: 16)),
+                Text('🏪', style: AppType.titleM),
                 SizedBox(width: 6),
                 Text(
                   'Shop Concentration',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: kBrandBrown,
-                  ),
+                  style: AppType.titleS.copyWith(fontWeight: FontWeight.w700, color: AppColors.brandDeep),
                 ),
               ],
             ),
             const SizedBox(height: 4),
             Text(
               'Top 5 shops by revenue',
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+              style: AppType.caption.copyWith(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 14),
             concAsync.when(
@@ -55,15 +43,14 @@ class ShopConcentrationCard extends ConsumerWidget {
                 child: Center(
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: kBrandBrown,
+                    color: AppColors.brandDeep,
                   ),
                 ),
               ),
               error: (_, _) => _emptyState(),
             ),
           ],
-        ),
-      ),
+        )),
     );
   }
 
@@ -84,11 +71,11 @@ class ShopConcentrationCard extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.store_outlined, size: 28, color: Colors.grey.shade300),
+            Icon(Icons.store_outlined, size: 28, color: AppColors.border),
             const SizedBox(height: 6),
             Text(
               'No shop data for this period',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+              style: AppType.label.copyWith(color: AppColors.textTertiary),
             ),
           ],
         ),
@@ -116,18 +103,14 @@ class _ShopRow extends ConsumerWidget {
             height: 22,
             decoration: BoxDecoration(
               color: rank <= 3
-                  ? kBrandBrown.withValues(alpha: 0.1)
-                  : Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(6),
+                  ? AppColors.brandDeep.withValues(alpha: 0.1)
+                  : AppColors.surfaceMuted,
+              borderRadius: AppRadius.rS,
             ),
             child: Center(
               child: Text(
                 '$rank',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: rank <= 3 ? kBrandBrown : Colors.grey.shade600,
-                ),
+                style: AppType.caption.copyWith(fontWeight: FontWeight.w700, color: rank <= 3 ? AppColors.brandDeep : AppColors.textSecondary),
               ),
             ),
           ),
@@ -139,17 +122,14 @@ class _ShopRow extends ConsumerWidget {
               children: [
                 Text(
                   row.shopName,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: AppType.bodyS.copyWith(fontWeight: FontWeight.w600),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 if (row.area != null)
                   Text(
                     row.area!,
-                    style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                    style: AppType.caption.copyWith(color: AppColors.textSecondary),
                   ),
               ],
             ),
@@ -159,7 +139,7 @@ class _ShopRow extends ConsumerWidget {
             width: 60,
             child: Text(
               row.categoryEmojis.take(4).join(''),
-              style: const TextStyle(fontSize: 12),
+              style: AppType.label,
               textAlign: TextAlign.center,
             ),
           ),
@@ -170,10 +150,7 @@ class _ShopRow extends ConsumerWidget {
             children: [
               Text(
                 ref.watch(brandProvider).money(row.revenue.round()),
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: AppType.label.copyWith(fontWeight: FontWeight.w700),
               ),
               Row(
                 mainAxisSize: MainAxisSize.min,
@@ -184,18 +161,14 @@ class _ShopRow extends ConsumerWidget {
                       child: Icon(
                         Icons.warning_amber_rounded,
                         size: 10,
-                        color: Colors.orange.shade700,
+                        color: AppColors.warning,
                       ),
                     ),
                   Text(
                     '${row.sharePercent.toStringAsFixed(0)}%',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                      color: isHighConcentration
-                          ? Colors.orange.shade700
-                          : Colors.grey.shade500,
-                    ),
+                    style: AppType.caption.copyWith(fontWeight: FontWeight.w500, color: isHighConcentration
+                          ? AppColors.warning
+                          : AppColors.textSecondary),
                   ),
                 ],
               ),
