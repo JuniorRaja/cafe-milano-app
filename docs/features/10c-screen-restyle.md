@@ -103,7 +103,8 @@ emergency stop. This is the correct version, plus the rest of the phase.
       `import '../../app.dart'` lines disappear with them. **These reads _are_ the
       `@Deprecated` alias warnings** — driving the analyzer count from 84 to zero and
       finishing this item are the same task.
-- [ ] **`_router` becomes `routerProvider`.** `widget_test.dart` and `navigation_test.dart`
+- [x] **`_router` becomes `routerProvider`.** Landed with 10b's shell rewrite;
+      `app.dart:304`. `widget_test.dart` and `navigation_test.dart`
       each hand-maintain a parallel route table today; they override the real one instead.
       That also means `navigation_test.dart`'s duplicate-page-key rule is finally tested
       against the actual router.
@@ -232,6 +233,57 @@ current-generation screen rather than restyling one.
       restyle; any changed number is a bug.
 - [ ] Every ledger decision from `762be58` and `dc8ce8d` survives — checked against
       those commits explicitly.
+
+## Progress
+
+Branch `release/1.12.0-screen-restyle`, cut from `1.11.0+15`.
+
+**Read this before picking up an unticked box.** Much of the action list below
+was overtaken by [10b's device pass](10b-device-pass.md), which rebuilt eight
+screens from the phone rather than from a mockup. Audited against the tree on
+2026-09-06:
+
+| Action item | State |
+|---|---|
+| Home — `ShopOrderCard` -> `ListRow` | **Done** — device pass D1, the widget is deleted |
+| Kitchen | **Done** — device pass F1/F2 |
+| Billing — grand total into a `StatBand` | **Done** — device pass G1 |
+| Ledger + `record_payment_sheet` onto the kit | **Visually done** — device pass H1-H4. Phase 2's `_save` guard is not |
+| Masters — shop / product / category lists | **Done** — device pass I1-I3 |
+| `price_matrix` eager `ListView` | **Done** — already `ListView.separated`. Sticky column, `warning` for unset prices and the `StatBand` are **not** |
+| Phase 6 · `routerProvider` | **Done** — 10b |
+| `AppScaffold` on the nine Settings + KPI screens | **Done** — `c333ac6` |
+
+Still open, with the numbers as measured:
+
+| | Count | Note |
+|---|---|---|
+| `tool/check_tokens.sh` | **248**, from 396 | 91 grey, 124 `fontSize:`, 33 radius |
+| `kBrand*` alias reads | **49** in 27 files | These are the 48 deprecation infos |
+| Bare `AppBar` | **2** | `order_entry`, `shop_ledger` — each rebuilt in its own step |
+| `maybeWhen(orElse:)` | **19** | Phase 3 |
+| `Text('Error: $e')` | **12** in 7 files | Phase 3. The doc says 16; 12 is what is left |
+| `SCREENS_BLOCKING` | `0` | Flips last |
+
+| Step | Commit | Note |
+|---|---|---|
+| Version bump, closing 1.11 | `3b140b5` | `1.11.0+15`, last on the navigation branch |
+| Settings + KPI help onto the kit | `c333ac6` | Nine screens; ratchet 289 -> 248 |
+
+### Corrections to this doc, found while building
+
+- **Phase 6 overstates the import removal.** `AppRoutes` also lives in
+  `lib/app.dart`, so a screen that navigates keeps `import '../../app.dart'`
+  after its colour reads are gone. The alias reads disappear; not all 32
+  imports.
+- **The forms need no new field widget.** `inputDecorationTheme` in
+  `app_theme.dart` already carries `AppRadius.rM` on every border. What stopped
+  the forms following the tokens was the per-field
+  `border: OutlineInputBorder()` override at each call site. Deleting those is
+  the whole fix.
+- **`AppScaffold` has no `bottomNavigationBar` slot.** Screens with a pinned
+  action button (`catalog_share_picker`, and the forms when they get there) put
+  it in a `Column` under an `Expanded` body instead.
 
 ## Notes
 
