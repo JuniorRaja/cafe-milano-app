@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../services/error_reporting.dart';
 
 import '../../../database/app_database.dart';
 import '../../../providers/category_provider.dart';
@@ -24,15 +25,15 @@ class CategoryListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final catsAsync = ref.watch(allCategoriesProvider);
-    final products = ref.watch(allProductsProvider).maybeWhen(
-          data: (p) => p,
-          orElse: () => const <Product>[],
-        );
+    // Categories and products fail together. Read separately, a failed
+    // products query showed every category as "0 products" rather than saying
+    // the count was unavailable. See `catalogueViewProvider`.
+    final viewAsync = ref.watch(catalogueViewProvider);
 
     // One pass over the products, not a query per category.
     final counts = <int?, int>{};
-    for (final product in products) {
+    for (final product
+        in viewAsync.valueOrNull?.products ?? const <Product>[]) {
       counts[product.categoryId] = (counts[product.categoryId] ?? 0) + 1;
     }
 
@@ -40,10 +41,13 @@ class CategoryListScreen extends ConsumerWidget {
       caption: 'Catalogue',
       title: 'Categories',
       searchHint: 'Search categories',
-      stats: catsAsync.whenOrNull(
-        data: (cats) => [
-          StatBandItem('${cats.length}', label: 'categories'),
-          StatBandItem('${cats.where((c) => c.isActive).length}', label: 'active'),
+      stats: viewAsync.whenOrNull(
+        data: (view) => [
+          StatBandItem('${view.categories.length}', label: 'categories'),
+          StatBandItem(
+            '${view.categories.where((c) => c.isActive).length}',
+            label: 'active',
+          ),
           if ((counts[null] ?? 0) > 0)
             StatBandItem(
               '${counts[null]}',
@@ -53,22 +57,31 @@ class CategoryListScreen extends ConsumerWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => catsAsync.whenData(
-          (cats) => _addCategory(context, ref, cats),
+        onPressed: () => viewAsync.whenData(
+          (view) => _addCategory(context, ref, view.categories),
         ),
         icon: const Icon(Icons.add_rounded),
         label: const Text('Add category'),
       ),
-      builder: (context, query) => catsAsync.when(
+      builder: (context, query) => viewAsync.when(
         loading: AppSkeleton.list,
-        error: (e, _) => AppErrorView(
-          message: 'Could not load your categories.',
-          cause: '$e',
-          onRetry: () => ref.invalidate(allCategoriesProvider),
-        ),
-        data: (cats) {
+        error: (e, st) {
+          reportError(e, st, context: 'categories');
+          return AppErrorView(
+            message: 'Could not load your categories.',
+            cause: '$e',
+            onRetry: () {
+              ref.invalidate(allCategoriesProvider);
+              ref.invalidate(allProductsProvider);
+            },
+          );
+        },
+        data: (view) {
+          final cats = view.categories;
           final matches = cats
-              .where((c) => query.isEmpty || c.name.toLowerCase().contains(query))
+              .where(
+                (c) => query.isEmpty || c.name.toLowerCase().contains(query),
+              )
               .toList();
 
           if (matches.isEmpty) {
@@ -76,7 +89,8 @@ class CategoryListScreen extends ConsumerWidget {
                 ? EmptyState(
                     icon: Icons.category_outlined,
                     title: 'No categories yet',
-                    message: 'Group your products so the kitchen list and the '
+                    message:
+                        'Group your products so the kitchen list and the '
                         'dashboard read in a sensible order.',
                     actionLabel: 'Add your first category',
                     onAction: () => _addCategory(context, ref, cats),
@@ -89,12 +103,12 @@ class CategoryListScreen extends ConsumerWidget {
           }
 
           Widget rowFor(Category cat) => _CategoryRow(
-                key: ValueKey(cat.id),
-                category: cat,
-                productCount: counts[cat.id] ?? 0,
-                onEdit: () => _editCategory(context, ref, cat),
-                onDelete: () => _deleteCategory(context, ref, cat),
-              );
+            key: ValueKey(cat.id),
+            category: cat,
+            productCount: counts[cat.id] ?? 0,
+            onEdit: () => _editCategory(context, ref, cat),
+            onDelete: () => _deleteCategory(context, ref, cat),
+          );
 
           const padding = EdgeInsets.only(top: AppSpace.s2, bottom: 96);
 
@@ -128,7 +142,10 @@ class CategoryListScreen extends ConsumerWidget {
     final name = await _showNameDialog(context, null);
     if (name == null) return;
     final sortOrder = current.isEmpty ? 0 : (current.last.sortOrder + 1);
-    await ref.read(databaseProvider).categoryDao.insertCategory(name, sortOrder);
+    await ref
+        .read(databaseProvider)
+        .categoryDao
+        .insertCategory(name, sortOrder);
   }
 
   Future<void> _editCategory(
@@ -191,7 +208,7 @@ class CategoryListScreen extends ConsumerWidget {
       detail: count == 0
           ? null
           : '$count ${count == 1 ? 'product' : 'products'} will become '
-              'uncategorised.',
+                'uncategorised.',
     );
     if (confirmed && context.mounted) {
       await db.categoryDao.deleteCategory(cat.id);

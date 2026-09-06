@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app.dart';
 import '../../models/dashboard_models.dart';
 import '../../providers/dashboard_provider.dart';
+import '../../services/error_reporting.dart';
+import '../ui/ui.dart';
 
 class AttentionFlagsWidget extends ConsumerStatefulWidget {
   const AttentionFlagsWidget({super.key});
@@ -90,7 +92,39 @@ class _AttentionFlagsWidgetState extends ConsumerState<AttentionFlagsWidget> {
           );
         },
         loading: () => const SizedBox.shrink(),
-        error: (_, _) => const SizedBox.shrink(),
+        // Not `SizedBox.shrink()`. This card is the app's "something needs
+        // your attention" surface, so a failure that makes it *disappear* is
+        // the worst possible rendering — the screen looks calm precisely when
+        // the check that would have raised a flag did not run.
+        error: (e, st) {
+          reportError(e, st, context: 'attention flags');
+          return AppCard(
+            margin: const EdgeInsets.symmetric(horizontal: AppSpace.s4),
+            border: Border.all(color: AppColors.negative),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.error_outline_rounded,
+                  color: AppColors.negative,
+                  size: 20,
+                ),
+                const SizedBox(width: AppSpace.s3),
+                Expanded(
+                  child: Text(
+                    'Attention checks could not run.',
+                    style: AppType.bodyS.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+                AppButton.text(
+                  label: 'Retry',
+                  onPressed: () => ref.invalidate(attentionFlagsProvider),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

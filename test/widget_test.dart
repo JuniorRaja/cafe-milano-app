@@ -331,7 +331,37 @@ void main() {
       await tester.pumpWidget(buildKitchen());
       await tester.pumpAndSettle();
 
-      expect(find.text('No orders for this date'), findsOneWidget);
+      expect(find.text('Nothing to bake'), findsOneWidget);
+    });
+
+    // The defect doc 10c Phase 3 exists for. Four providers were read with
+    // `maybeWhen(orElse: () => [])`, so a failed query produced an empty list
+    // and the screen drew "No orders for this date" — the operator was told
+    // there was nothing to bake because the database had failed.
+    //
+    // Empty and failed must not look the same. This is the check.
+    testWidgets('a failed query is an error, not an empty day', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            kitchenLinesForDateProvider.overrideWith(
+              (ref, date) => Stream.error(Exception('db is down')),
+            ),
+            allShopsProvider.overrideWith((ref) => Stream.value(const [])),
+            allProductsProvider.overrideWith((ref) => Stream.value(const [])),
+            allCategoriesProvider.overrideWith((ref) => Stream.value(const [])),
+          ],
+          child: MaterialApp(
+            theme: buildAppTheme(BrandConfig.milano),
+            home: const KitchenScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Nothing to bake'), findsNothing);
+      expect(find.text("Could not load today's kitchen list."), findsOneWidget);
+      expect(find.text('Try again'), findsOneWidget);
     });
 
     testWidgets('share button disabled when no orders exist', (tester) async {

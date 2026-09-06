@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../services/error_reporting.dart';
 import 'package:intl/intl.dart';
 import '../../app.dart';
 import '../../database/app_database.dart';
@@ -17,8 +18,6 @@ import '../../widgets/ui/ui.dart';
 
 final _dateFmt = DateFormat('dd MMM yyyy');
 
-
-
 String _modeLabel(PaymentMode mode) {
   switch (mode) {
     case PaymentMode.upi:
@@ -33,16 +32,16 @@ String _modeLabel(PaymentMode mode) {
 }
 
 String _statusLabel(BillStatus status) => switch (status) {
-      BillStatus.paid => 'Paid',
-      BillStatus.partial => 'Partial',
-      BillStatus.unpaid => 'Unpaid',
-    };
+  BillStatus.paid => 'Paid',
+  BillStatus.partial => 'Partial',
+  BillStatus.unpaid => 'Unpaid',
+};
 
 MaterialColor _statusColor(BillStatus status) => switch (status) {
-      BillStatus.paid => Colors.green,
-      BillStatus.partial => Colors.orange,
-      BillStatus.unpaid => Colors.red,
-    };
+  BillStatus.paid => Colors.green,
+  BillStatus.partial => Colors.orange,
+  BillStatus.unpaid => Colors.red,
+};
 
 typedef LedgerFilters = ({
   DateTimeRange? range,
@@ -79,9 +78,8 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
     super.dispose();
   }
 
-  int get _activeFilterCount => [_range, _statusFilter, _typeFilter]
-      .where((f) => f != null)
-      .length;
+  int get _activeFilterCount =>
+      [_range, _statusFilter, _typeFilter].where((f) => f != null).length;
 
   String get _filterSummary {
     final parts = <String>[];
@@ -91,17 +89,20 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
     if (_statusFilter != null) parts.add(_statusLabel(_statusFilter!));
     if (_range != null) {
       parts.add(
-          '${DateFormat('dd MMM').format(_range!.start)} – ${DateFormat('dd MMM').format(_range!.end)}');
+        '${DateFormat('dd MMM').format(_range!.start)} – ${DateFormat('dd MMM').format(_range!.end)}',
+      );
     }
     return parts.isEmpty ? 'All entries' : parts.join(' · ');
   }
 
   void _openPaymentSheet() {
-    unawaited(showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => RecordPaymentSheet(shopId: widget.shopId),
-    ));
+    unawaited(
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => RecordPaymentSheet(shopId: widget.shopId),
+      ),
+    );
   }
 
   /// Pick a period, then build and share that period's statement.
@@ -115,13 +116,15 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
       context: context,
       firstDate: DateTime(2020),
       lastDate: now,
-      initialDateRange: _range ??
+      initialDateRange:
+          _range ??
           DateTimeRange(start: DateTime(now.year, now.month, 1), end: now),
       helpText: 'Statement period',
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme:
-              Theme.of(context).colorScheme.copyWith(primary: kBrandBrown),
+          colorScheme: Theme.of(
+            context,
+          ).colorScheme.copyWith(primary: kBrandBrown),
         ),
         child: child!,
       ),
@@ -133,12 +136,14 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
       final shop = await ref.readFutureOnce(shopByIdProvider(widget.shopId));
       if (shop == null) return;
       final business = await ref.read(businessInfoProvider.future);
-      final entries = await ref.readStreamOnce(shopLedgerProvider((
-        shopId: widget.shopId,
-        range: null,
-        status: null,
-        type: null,
-      )));
+      final entries = await ref.readStreamOnce(
+        shopLedgerProvider((
+          shopId: widget.shopId,
+          range: null,
+          status: null,
+          type: null,
+        )),
+      );
 
       await shareLedgerStatement(
         brand: ref.read(brandProvider),
@@ -191,14 +196,19 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
     final confirmed = await confirmDestructive(
       context,
       title: 'Delete Payment',
-      message: 'Delete the '
+      message:
+          'Delete the '
           '${ref.read(brandProvider).moneyDecimal(entry.amount)} payment '
           'dated ${_dateFmt.format(entry.date)}?',
-      detail: 'Any bills it settled go back to unpaid. To correct a payment, '
+      detail:
+          'Any bills it settled go back to unpaid. To correct a payment, '
           'delete it and record it again.',
     );
     if (confirmed) {
-      await ref.read(databaseProvider).ledgerDao.deletePayment(entry.paymentId!);
+      await ref
+          .read(databaseProvider)
+          .ledgerDao
+          .deletePayment(entry.paymentId!);
     }
   }
 
@@ -213,8 +223,10 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(shop?.name ?? 'Statement',
-                style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(
+              shop?.name ?? 'Statement',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
             // `Statement`, not `Ledger`. The drawer's Ledger is the whole
             // business; this is one shop's bills, payments and running
             // balance. Two screens called the same word is how the owner ends
@@ -222,9 +234,10 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
             Text(
               shop?.area == null ? 'Statement' : 'Statement · ${shop!.area}',
               style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade500,
-                  fontWeight: FontWeight.normal),
+                fontSize: 12,
+                color: Colors.grey.shade500,
+                fontWeight: FontWeight.normal,
+              ),
             ),
           ],
         ),
@@ -262,10 +275,7 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
           Expanded(
             child: TabBarView(
               controller: _tabController,
-              children: [
-                _buildOutstandingTab(),
-                _buildHistoryTab(),
-              ],
+              children: [_buildOutstandingTab(), _buildHistoryTab()],
             ),
           ),
         ],
@@ -278,19 +288,29 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
   // since when". Deliberately unfiltered: this tab answers one question.
 
   Widget _buildOutstandingTab() {
-    final billsAsync = ref.watch(shopLedgerProvider((
-      shopId: widget.shopId,
-      range: null,
-      status: null,
-      type: LedgerType.bill,
-    )));
+    final billsAsync = ref.watch(
+      shopLedgerProvider((
+        shopId: widget.shopId,
+        range: null,
+        status: null,
+        type: LedgerType.bill,
+      )),
+    );
 
     return billsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
+      error: (e, st) {
+        reportError(e, st, context: 'ledger bills');
+        return AppErrorView(
+          message: "Could not load this shop's bills.",
+          cause: '$e',
+          onRetry: () => ref.invalidate(shopLedgerProvider),
+        );
+      },
       data: (bills) {
-        final open =
-            bills.where((b) => b.billStatus != BillStatus.paid).toList();
+        final open = bills
+            .where((b) => b.billStatus != BillStatus.paid)
+            .toList();
 
         if (open.isEmpty) {
           return Center(
@@ -336,7 +356,11 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
               ),
               child: Row(
                 children: [
-                  Icon(Icons.error_outline, size: 18, color: Colors.red.shade700),
+                  Icon(
+                    Icons.error_outline,
+                    size: 18,
+                    color: Colors.red.shade700,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -351,7 +375,10 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
                   if (daysOld > 0)
                     Text(
                       'oldest ${daysOld}d',
-                      style: TextStyle(fontSize: 11, color: Colors.red.shade400),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.red.shade400,
+                      ),
                     ),
                 ],
               ),
@@ -374,12 +401,14 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
   // ─── History ─────────────────────────────────────────────────────────────
 
   Widget _buildHistoryTab() {
-    final ledgerAsync = ref.watch(shopLedgerProvider((
-      shopId: widget.shopId,
-      range: _range,
-      status: _statusFilter,
-      type: _typeFilter,
-    )));
+    final ledgerAsync = ref.watch(
+      shopLedgerProvider((
+        shopId: widget.shopId,
+        range: _range,
+        status: _statusFilter,
+        type: _typeFilter,
+      )),
+    );
     final hasFilters = _activeFilterCount > 0;
 
     return Column(
@@ -397,7 +426,9 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
                 ),
                 style: OutlinedButton.styleFrom(
                   visualDensity: VisualDensity.compact,
-                  foregroundColor: hasFilters ? kBrandBrown : Colors.grey.shade700,
+                  foregroundColor: hasFilters
+                      ? kBrandBrown
+                      : Colors.grey.shade700,
                   side: BorderSide(
                     color: hasFilters ? kBrandBrown : Colors.grey.shade300,
                   ),
@@ -411,7 +442,9 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey.shade600,
-                    fontWeight: hasFilters ? FontWeight.w600 : FontWeight.normal,
+                    fontWeight: hasFilters
+                        ? FontWeight.w600
+                        : FontWeight.normal,
                   ),
                 ),
               ),
@@ -430,7 +463,14 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
         Expanded(
           child: ledgerAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('Error: $e')),
+            error: (e, st) {
+              reportError(e, st, context: 'ledger entries');
+              return AppErrorView(
+                message: "Could not load this shop's ledger.",
+                cause: '$e',
+                onRetry: () => ref.invalidate(shopLedgerProvider),
+              );
+            },
             data: (entries) {
               if (entries.isEmpty) {
                 return Center(
@@ -495,12 +535,17 @@ class _LedgerFilterSheetState extends State<_LedgerFilterSheet> {
       context: context,
       firstDate: DateTime(2020),
       lastDate: now,
-      initialDateRange: _range ??
-          DateTimeRange(start: now.subtract(const Duration(days: 30)), end: now),
+      initialDateRange:
+          _range ??
+          DateTimeRange(
+            start: now.subtract(const Duration(days: 30)),
+            end: now,
+          ),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme:
-              Theme.of(context).colorScheme.copyWith(primary: kBrandBrown),
+          colorScheme: Theme.of(
+            context,
+          ).colorScheme.copyWith(primary: kBrandBrown),
         ),
         child: child!,
       ),
@@ -509,17 +554,17 @@ class _LedgerFilterSheetState extends State<_LedgerFilterSheet> {
   }
 
   Widget _sectionLabel(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Text(
-          text.toUpperCase(),
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.8,
-            color: Colors.grey.shade500,
-          ),
-        ),
-      );
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Text(
+      text.toUpperCase(),
+      style: TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.8,
+        color: Colors.grey.shade500,
+      ),
+    ),
+  );
 
   Widget _choice<T>(String label, T value, T selected, ValueChanged<T> onPick) {
     return ChoiceChip(
@@ -545,8 +590,10 @@ class _LedgerFilterSheetState extends State<_LedgerFilterSheet> {
         children: [
           Row(
             children: [
-              const Text('Filters',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              const Text(
+                'Filters',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
               const Spacer(),
               TextButton(
                 onPressed: () => setState(() {
@@ -589,12 +636,24 @@ class _LedgerFilterSheetState extends State<_LedgerFilterSheet> {
             spacing: 8,
             children: [
               _choice('All', null, _status, (v) => setState(() => _status = v)),
-              _choice('Unpaid', BillStatus.unpaid, _status,
-                  (v) => setState(() => _status = v)),
-              _choice('Partial', BillStatus.partial, _status,
-                  (v) => setState(() => _status = v)),
-              _choice('Paid', BillStatus.paid, _status,
-                  (v) => setState(() => _status = v)),
+              _choice(
+                'Unpaid',
+                BillStatus.unpaid,
+                _status,
+                (v) => setState(() => _status = v),
+              ),
+              _choice(
+                'Partial',
+                BillStatus.partial,
+                _status,
+                (v) => setState(() => _status = v),
+              ),
+              _choice(
+                'Paid',
+                BillStatus.paid,
+                _status,
+                (v) => setState(() => _status = v),
+              ),
             ],
           ),
           const SizedBox(height: 18),
@@ -603,20 +662,29 @@ class _LedgerFilterSheetState extends State<_LedgerFilterSheet> {
             spacing: 8,
             children: [
               _choice('All', null, _type, (v) => setState(() => _type = v)),
-              _choice('Bills', LedgerType.bill, _type,
-                  (v) => setState(() => _type = v)),
-              _choice('Payments', LedgerType.payment, _type,
-                  (v) => setState(() => _type = v)),
+              _choice(
+                'Bills',
+                LedgerType.bill,
+                _type,
+                (v) => setState(() => _type = v),
+              ),
+              _choice(
+                'Payments',
+                LedgerType.payment,
+                _type,
+                (v) => setState(() => _type = v),
+              ),
             ],
           ),
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: () => Navigator.pop(
-                context,
-                (range: _range, status: _status, type: _type),
-              ),
+              onPressed: () => Navigator.pop(context, (
+                range: _range,
+                status: _status,
+                type: _type,
+              )),
               child: const Text('Apply'),
             ),
           ),
@@ -647,14 +715,24 @@ class _StatsHeader extends ConsumerWidget {
           height: 64,
           child: Center(child: CircularProgressIndicator()),
         ),
-        error: (e, _) => Text('Error: $e'),
+        // Inline, not an AppErrorView: this is a strip inside a card, and a
+        // full-height error view would push the ledger off the screen.
+        error: (e, st) {
+          reportError(e, st, context: 'ledger stats');
+          return Text(
+            'Totals unavailable',
+            style: AppType.bodyS.copyWith(color: AppColors.negative),
+          );
+        },
         data: (stats) => Column(
           children: [
             Row(
               children: [
                 Expanded(
                   child: _StatTile(
-                      label: 'Total Billed', value: brand.moneyDecimal(stats.totalBilled)),
+                    label: 'Total Billed',
+                    value: brand.moneyDecimal(stats.totalBilled),
+                  ),
                 ),
                 Expanded(
                   child: _StatTile(
@@ -672,7 +750,9 @@ class _StatsHeader extends ConsumerWidget {
                   child: _StatTile(
                     label: 'Outstanding',
                     value: brand.moneyDecimal(stats.outstanding),
-                    color: stats.outstanding > 0.005 ? Colors.red.shade700 : null,
+                    color: stats.outstanding > 0.005
+                        ? Colors.red.shade700
+                        : null,
                   ),
                 ),
                 Expanded(
@@ -707,7 +787,10 @@ class _StatTile extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-              fontSize: 11, color: Colors.grey.shade500, fontWeight: FontWeight.w500),
+            fontSize: 11,
+            color: Colors.grey.shade500,
+            fontWeight: FontWeight.w500,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
@@ -764,7 +847,8 @@ class _OpenBillRow extends ConsumerWidget {
                 Text(
                   [
                     'Bill ${brand.moneyDecimal(entry.amount)}',
-                    if (partlyPaid) 'paid ${brand.moneyDecimal(entry.allocatedAmount)}',
+                    if (partlyPaid)
+                      'paid ${brand.moneyDecimal(entry.allocatedAmount)}',
                     if (daysOld > 0) '${daysOld}d ago',
                   ].join(' · '),
                   style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
@@ -869,7 +953,10 @@ class _LedgerRow extends ConsumerWidget {
               children: [
                 Text(
                   '${isBill ? 'Dr' : 'Cr'} ${brand.moneyDecimal(entry.amount)}',
-                  style: TextStyle(fontWeight: FontWeight.w700, color: amountColor),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: amountColor,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -902,7 +989,10 @@ class _StatusBadge extends StatelessWidget {
       child: Text(
         _statusLabel(status),
         style: TextStyle(
-            fontSize: 11, fontWeight: FontWeight.w600, color: color.shade700),
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: color.shade700,
+        ),
       ),
     );
   }

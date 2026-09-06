@@ -7,6 +7,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../app.dart';
+import '../../services/error_reporting.dart';
 import '../../providers/business_info_provider.dart';
 import '../../providers/dashboard_settings_provider.dart';
 import '../../providers/category_provider.dart';
@@ -111,8 +112,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   // ---------------------------------------------------------------------------
 
   Widget _searchResults() {
-    final destinations =
-        visibleDestinations.where((d) => d.matches(_query)).toList();
+    final destinations = visibleDestinations
+        .where((d) => d.matches(_query))
+        .toList();
     // Config rows only. The catalogue rows are the same four destinations the
     // Screens section above already lists, and searching "shops" should not
     // return Shops twice.
@@ -221,28 +223,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final categories = ref.watch(allCategoriesProvider);
     final coverage = ref.watch(catalogueCoverageProvider);
 
-    String activeSplit<T>(AsyncValue<List<T>> list, bool Function(T) isActive) =>
-        list.maybeWhen(
-          data: (rows) {
-            final active = rows.where(isActive).length;
-            final off = rows.length - active;
-            if (rows.isEmpty) return 'None yet';
-            return off == 0
-                ? '$active active'
-                : '$active active · $off inactive';
-          },
-          orElse: () => '…',
-        );
+    _Summary activeSplit<T>(
+      AsyncValue<List<T>> list,
+      bool Function(T) isActive,
+    ) => _summarise(list, (rows) {
+      final active = rows.where(isActive).length;
+      final off = rows.length - active;
+      if (rows.isEmpty) return (text: 'None yet', tone: null);
+      return (
+        text: off == 0 ? '$active active' : '$active active · $off inactive',
+        tone: null,
+      );
+    });
 
-    final summaries = <String, String>{
+    final summaries = <String, _Summary>{
       AppRoutes.shops: activeSplit(shops, (s) => s.isActive),
       AppRoutes.products: activeSplit(products, (p) => p.isActive),
       AppRoutes.categories: activeSplit(categories, (c) => c.isActive),
-      AppRoutes.prices: coverage.maybeWhen(
-        data: (c) => c.priceSlots == 0
-            ? 'No shops or products yet'
-            : '${c.pricesSet} of ${c.priceSlots} prices set',
-        orElse: () => '…',
+      AppRoutes.prices: _summarise(
+        coverage,
+        (c) => (
+          text: c.priceSlots == 0
+              ? 'No shops or products yet'
+              : '${c.pricesSet} of ${c.priceSlots} prices set',
+          tone: null,
+        ),
       ),
     };
 
@@ -258,8 +263,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         _Row(
           icon: dest.icon,
           title: dest.label,
-          subtitle: summaries[dest.route] ?? dest.route,
-          tone: summaries[dest.route] == 'None yet' ? AppTone.warning : null,
+          subtitle: summaries[dest.route]?.text ?? dest.route,
+          tone:
+              summaries[dest.route]?.tone ??
+              (summaries[dest.route]?.text == 'None yet'
+                  ? AppTone.warning
+                  : null),
           keywords: dest.keywords,
           onTap: () => unawaited(context.push(dest.route)),
         ),
@@ -277,38 +286,42 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _Row(
         icon: Icons.storefront_outlined,
         title: 'Business Info',
-        subtitle: businessInfo.maybeWhen(
-          data: (data) => data?.name.trim().isNotEmpty == true
-              ? data!.name
-              : 'Not set — used on shared catalogues',
-          orElse: () => '…',
-        ),
-        tone: businessInfo.maybeWhen(
-          data: (data) =>
-              data?.name.trim().isNotEmpty == true ? null : AppTone.warning,
-          orElse: () => null,
-        ),
+        subtitle: _summarise(businessInfo, (data) {
+          final named = data?.name.trim().isNotEmpty == true;
+          return (
+            text: named ? data!.name : 'Not set — used on shared catalogues',
+            tone: named ? null : AppTone.warning,
+          );
+        }).text,
+        tone: _summarise(businessInfo, (data) {
+          final named = data?.name.trim().isNotEmpty == true;
+          return (text: '', tone: named ? null : AppTone.warning);
+        }).tone,
         keywords: const ['name', 'address', 'logo', 'contact'],
         onTap: () => context.push(AppRoutes.businessInfo),
       ),
       _Row(
         icon: Icons.repeat_outlined,
         title: 'Standing Orders',
-        subtitle: coverage.maybeWhen(
-          data: (c) => c.shopsWithStandingOrders == 0
-              ? 'No default quantities set'
-              : '${c.shopsWithStandingOrders} '
-                  '${c.shopsWithStandingOrders == 1 ? 'shop has' : 'shops have'}'
-                  ' default quantities',
-          orElse: () => '…',
-        ),
+        subtitle: _summarise(
+          coverage,
+          (c) => (
+            text: c.shopsWithStandingOrders == 0
+                ? 'No default quantities set'
+                : '${c.shopsWithStandingOrders} '
+                      '${c.shopsWithStandingOrders == 1 ? 'shop has' : 'shops have'}'
+                      ' default quantities',
+            tone: null,
+          ),
+        ).text,
         keywords: const ['defaults', 'quantities', 'prefill'],
         onTap: () => context.push(AppRoutes.standingOrders),
       ),
       _Row(
         icon: Icons.dashboard_customize_outlined,
         title: 'Dashboard sections',
-        subtitle: '${dashboard.enabledSectionCount} '
+        subtitle:
+            '${dashboard.enabledSectionCount} '
             '${dashboard.enabledSectionCount == 1 ? 'section' : 'sections'} '
             'visible',
         keywords: const ['kpi', 'cards', 'customise', 'customize'],
@@ -317,16 +330,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _Row(
         icon: Icons.backup_outlined,
         title: 'Backup & Restore',
-        subtitle: lastExport.maybeWhen(
-          data: (at) => at == null
-              ? 'Never exported'
-              : 'Last exported ${_relativeDay(at)}',
-          orElse: () => '…',
-        ),
-        tone: lastExport.maybeWhen(
-          data: (at) => at == null ? AppTone.warning : null,
-          orElse: () => null,
-        ),
+        subtitle: _summarise(
+          lastExport,
+          (at) => (
+            text: at == null
+                ? 'Never exported'
+                : 'Last exported ${_relativeDay(at)}',
+            tone: at == null ? AppTone.warning : null,
+          ),
+        ).text,
+        tone: _summarise(
+          lastExport,
+          (at) => (text: '', tone: at == null ? AppTone.warning : null),
+        ).tone,
         keywords: const ['export', 'import', 'restore', 'data', 'json'],
         onTap: () => context.push(AppRoutes.backupRestore),
       ),
@@ -408,10 +424,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             FilledButton(
               onPressed: () {
                 Navigator.pop(ctx);
-                unawaited(launchUrl(
-                  Uri.parse(update.downloadUrl),
-                  mode: LaunchMode.externalApplication,
-                ));
+                unawaited(
+                  launchUrl(
+                    Uri.parse(update.downloadUrl),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                );
               },
               child: const Text('Download'),
             ),
@@ -441,9 +459,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
 String _relativeDay(DateTime at) {
   final now = DateTime.now();
-  final days = DateTime(now.year, now.month, now.day)
-      .difference(DateTime(at.year, at.month, at.day))
-      .inDays;
+  final days = DateTime(
+    now.year,
+    now.month,
+    now.day,
+  ).difference(DateTime(at.year, at.month, at.day)).inDays;
   return switch (days) {
     <= 0 => 'today',
     1 => 'yesterday',
@@ -454,6 +474,27 @@ String _relativeDay(DateTime at) {
 
 /// One settings row, before it becomes a widget. Held as data so the search
 /// field can filter the same list the screen draws.
+/// A settings row's subtitle plus the tone it should carry.
+typedef _Summary = ({String text, AppTone? tone});
+
+/// Builds a row subtitle from an `AsyncValue`, keeping **loading** and
+/// **failed** distinct.
+///
+/// Eight sites here used `maybeWhen(orElse: () => '…')`, which gave a query
+/// that had died the same ellipsis as one that was merely slow — so a broken
+/// summary read as a loading one, forever. Failure now says so and is toned
+/// `negative`.
+_Summary _summarise<T>(AsyncValue<T> value, _Summary Function(T) onData) {
+  return value.when(
+    data: onData,
+    loading: () => (text: '…', tone: null),
+    error: (e, st) {
+      reportError(e, st, context: 'settings summary');
+      return (text: 'Could not load', tone: AppTone.negative);
+    },
+  );
+}
+
 class _Row {
   const _Row({
     required this.icon,
@@ -522,7 +563,8 @@ class _Tile extends StatelessWidget {
             color: tone?.fg ?? AppColors.textSecondary,
           ),
         ),
-        trailing: trailing ??
+        trailing:
+            trailing ??
             const Icon(
               Icons.chevron_right_rounded,
               color: AppColors.textTertiary,

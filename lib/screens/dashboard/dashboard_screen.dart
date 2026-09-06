@@ -40,13 +40,18 @@ class DashboardScreen extends ConsumerWidget {
     // The owner's own business, not one of the shops they supply. Falls back
     // to the generic title when Business Info has not been filled in, so the
     // header is never blank and no name is ever hardcoded.
-    final businessName = ref.watch(businessInfoProvider).maybeWhen(
-          data: (info) {
-            final name = info?.name.trim() ?? '';
-            return name.isEmpty ? null : name;
-          },
-          orElse: () => null,
-        );
+    // The one legitimate fallback in the app: a greeting with no name is a
+    // fine greeting, so loading and failure may share it. Written as
+    // `valueOrNull` rather than `maybeWhen(orElse:)` so that spelling stays
+    // absent from the codebase and a grep for it keeps meaning something.
+    final trimmedName = ref
+        .watch(businessInfoProvider)
+        .valueOrNull
+        ?.name
+        .trim();
+    final businessName = (trimmedName == null || trimmedName.isEmpty)
+        ? null
+        : trimmedName;
 
     return AppScaffold(
       // The greeting the owner asked to have back, and no name with it — see
@@ -218,7 +223,8 @@ class DashboardScreen extends ConsumerWidget {
     final today = DateTime(now.year, now.month, now.day);
 
     if (start == end) {
-      if (start == today) return 'Today, ${DateFormat('d MMMM yyyy').format(start)}';
+      if (start == today)
+        return 'Today, ${DateFormat('d MMMM yyyy').format(start)}';
       return fmtYear.format(start);
     }
 

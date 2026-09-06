@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +5,7 @@ import '../../app.dart';
 import '../../database/app_database.dart';
 import '../../providers/date_provider.dart';
 import '../../providers/shop_provider.dart';
+import '../../services/error_reporting.dart';
 import '../../providers/order_provider.dart';
 import '../../theme/brand_config.dart';
 import '../../utils/money.dart';
@@ -21,20 +21,21 @@ class HomeShopsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedDate = ref.watch(selectedDateProvider);
-    final shopsAsync = ref.watch(activeShopsProvider);
-    final summariesAsync = ref.watch(orderSummariesForDateProvider(selectedDate));
+    // One provider, one `.when`. The summaries used to arrive through
+    // `maybeWhen(orElse: () => {})`, so a failed query drew every shop as
+    // *not yet ordered* — an invitation to enter every order twice. See
+    // `homeViewProvider`.
+    final viewAsync = ref.watch(homeViewProvider(selectedDate));
 
     return AppScaffold(
       caption: 'Today',
       title: 'Orders',
       leading: const ShellDrawerButton(),
       bottom: const DateSelector(),
-      body: shopsAsync.when(
-        data: (shops) {
-          final summaryMap = summariesAsync.maybeWhen(
-            data: (summaries) => {for (final s in summaries) s.order.shopId: s},
-            orElse: () => <int, OrderDaySummary>{},
-          );
+      body: viewAsync.when(
+        data: (view) {
+          final shops = view.shops;
+          final summaryMap = view.summaryMap;
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -47,7 +48,9 @@ class HomeShopsScreen extends ConsumerWidget {
               ),
               Expanded(
                 child: shops.isEmpty
-                    ? const _EmptyState()
+                    ? _EmptyState(
+                        onAddShop: () => context.push(AppRoutes.shopNew),
+                      )
                     : ListFadeIn(
                         child: ListView.builder(
                           // The nav bar floats over the body now. See
@@ -76,7 +79,17 @@ class HomeShopsScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, st) {
+          reportError(e, st, context: 'home/orders');
+          return AppErrorView(
+            message: "Could not load today's orders.",
+            cause: '$e',
+            onRetry: () {
+              ref.invalidate(activeShopsProvider);
+              ref.invalidate(orderSummariesForDateProvider(selectedDate));
+            },
+          );
+        },
       ),
     );
   }
@@ -135,7 +148,9 @@ class _ShopRow extends ConsumerWidget {
             ),
       // Null, never a formatted zero. `₹0` on a shop with no order reads as a
       // real zero-rupee order, which is a different and much worse thing.
-      trailing: order == null ? null : ref.watch(brandProvider).money(order.total),
+      trailing: order == null
+          ? null
+          : ref.watch(brandProvider).money(order.total),
       trailingSubtitle: order == null ? null : '${order.itemCount} items',
       onTap: onTap,
     );
@@ -143,24 +158,18 @@ class _ShopRow extends ConsumerWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  const _EmptyState({required this.onAddShop});
+
+  final VoidCallback onAddShop;
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.storefront_outlined, size: 64, color: Colors.grey),
-          SizedBox(height: 12),
-          Text(
-            'No shops yet',
-            style: TextStyle(color: Colors.grey, fontSize: 15),
-          ),
-        ],
-      ),
+    return EmptyState(
+      icon: Icons.storefront_outlined,
+      title: 'No shops yet',
+      message: 'Add a shop and it will appear here every morning.',
+      actionLabel: 'Add your first shop',
+      onAction: onAddShop,
     );
   }
 }
-
-

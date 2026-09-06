@@ -58,8 +58,10 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
   Future<void> _load() async {
     if (widget.productId != null) {
-      final product =
-          await ref.read(databaseProvider).productDao.getProduct(widget.productId!);
+      final product = await ref
+          .read(databaseProvider)
+          .productDao
+          .getProduct(widget.productId!);
       if (product != null && mounted) {
         _nameCtrl.text = product.name;
         _photoPath = product.photoPath;
@@ -94,7 +96,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         : _selectedUnit;
     final priceText = _priceCtrl.text.trim();
     final companion = ProductsCompanion(
-      id: widget.productId != null ? Value(widget.productId!) : const Value.absent(),
+      id: widget.productId != null
+          ? Value(widget.productId!)
+          : const Value.absent(),
       name: Value(_nameCtrl.text.trim()),
       unit: Value(unit == null || unit.isEmpty ? null : unit),
       photoPath: Value(_photoPath),
@@ -115,7 +119,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-              'Deactivate instead — this product has existing order lines, prices, or standing orders.'),
+            'Deactivate instead — this product has existing order lines, prices, or standing orders.',
+          ),
         ),
       );
       return;
@@ -126,7 +131,10 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       message: 'Delete this product permanently?',
     );
     if (confirmed && mounted) {
-      await ref.read(databaseProvider).productDao.deleteProduct(widget.productId!);
+      await ref
+          .read(databaseProvider)
+          .productDao
+          .deleteProduct(widget.productId!);
       if (mounted) context.pop();
     }
   }
@@ -141,14 +149,18 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final allCats = ref.watch(allCategoriesProvider).maybeWhen(
-          data: (c) => c,
-          orElse: () => <Category>[],
-        );
+    // Not `maybeWhen(orElse: [])`. An empty list because the query *failed*
+    // is a dropdown with nothing in it and no explanation — the field just
+    // looks broken. `_selectedCategoryId` is local state and survives either
+    // way, so nothing is lost; the failure is said out loud instead.
+    final catsAsync = ref.watch(allCategoriesProvider);
+    final catsFailed = catsAsync.hasError;
+    final allCats = catsAsync.valueOrNull ?? const <Category>[];
     final activeCats = allCats.where((c) => c.isActive).toList();
     // Ensure selected (possibly inactive) category is always in items to avoid dropdown assertion
     final selectedIsActive =
-        _selectedCategoryId == null || activeCats.any((c) => c.id == _selectedCategoryId);
+        _selectedCategoryId == null ||
+        activeCats.any((c) => c.id == _selectedCategoryId);
     final inactiveCatForValue = selectedIsActive
         ? null
         : allCats.where((c) => c.id == _selectedCategoryId).firstOrNull;
@@ -190,11 +202,16 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                                     child: Image.file(
                                       File(_photoPath!),
                                       fit: BoxFit.cover,
-                                      errorBuilder: (_, _, _) =>
-                                          const Icon(Icons.broken_image, size: 40),
+                                      errorBuilder: (_, _, _) => const Icon(
+                                        Icons.broken_image,
+                                        size: 40,
+                                      ),
                                     ),
                                   )
-                                : const Icon(Icons.add_a_photo_outlined, size: 40),
+                                : const Icon(
+                                    Icons.add_a_photo_outlined,
+                                    size: 40,
+                                  ),
                           ),
                         ),
                         if (_photoPath != null)
@@ -209,7 +226,11 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                                   shape: BoxShape.circle,
                                 ),
                                 padding: const EdgeInsets.all(2),
-                                child: const Icon(Icons.close, size: 16, color: Colors.white),
+                                child: const Icon(
+                                  Icons.close,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                           ),
@@ -221,7 +242,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                     child: TextButton.icon(
                       onPressed: _pickPhoto,
                       icon: const Icon(Icons.photo_library_outlined),
-                      label: Text(_photoPath == null ? 'Add Photo' : 'Change Photo'),
+                      label: Text(
+                        _photoPath == null ? 'Add Photo' : 'Change Photo',
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -232,8 +255,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                       border: OutlineInputBorder(),
                     ),
                     textCapitalization: TextCapitalization.words,
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Name is required' : null,
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Name is required'
+                        : null,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
@@ -244,11 +268,13 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                       prefixText: '₹ ',
                       border: OutlineInputBorder(),
                     ),
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d*\.?\d{0,2}')),
+                        RegExp(r'^\d*\.?\d{0,2}'),
+                      ),
                     ],
                     validator: (v) {
                       if (v == null || v.trim().isEmpty) return null;
@@ -293,13 +319,18 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                   const SizedBox(height: 16),
                   DropdownButtonFormField<int?>(
                     initialValue: _selectedCategoryId,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Category',
-                      border: OutlineInputBorder(),
+                      errorText: catsFailed
+                          ? 'Categories could not be loaded. This product '
+                                'keeps the category it already has.'
+                          : null,
                     ),
                     items: [
                       const DropdownMenuItem<int?>(
-                          value: null, child: Text('Uncategorised')),
+                        value: null,
+                        child: Text('Uncategorised'),
+                      ),
                       for (final cat in activeCats)
                         DropdownMenuItem<int?>(
                           value: cat.id,
@@ -309,7 +340,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                         DropdownMenuItem<int?>(
                           value: inactiveCatForValue.id,
                           child: Text(
-                              '${emojiFor(inactiveCatForValue.name)} ${inactiveCatForValue.name} (inactive)'),
+                            '${emojiFor(inactiveCatForValue.name)} ${inactiveCatForValue.name} (inactive)',
+                          ),
                         ),
                     ],
                     onChanged: (v) => setState(() => _selectedCategoryId = v),

@@ -2,6 +2,9 @@ import 'dart:async';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../app.dart' show AppRoutes;
+import '../../../services/error_reporting.dart';
 import '../../../database/app_database.dart';
 import '../../../providers/shop_provider.dart';
 import '../../../providers/product_provider.dart';
@@ -91,8 +94,9 @@ class _StandingOrdersScreenState extends ConsumerState<StandingOrdersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final shopsAsync = ref.watch(activeShopsProvider);
-    final productsAsync = ref.watch(activeProductsProvider);
+    // One `.when`, not a `productsAsync.when` nested inside a
+    // `shopsAsync.when`. See `activeShopsAndProductsProvider`.
+    final viewAsync = ref.watch(activeShopsAndProductsProvider);
 
     return AppScaffold(
       title: 'Standing Orders',
@@ -101,82 +105,92 @@ class _StandingOrdersScreenState extends ConsumerState<StandingOrdersScreen> {
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         behavior: HitTestBehavior.opaque,
-        child: shopsAsync.when(
+        child: viewAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('Error: $e')),
-          data: (shops) {
+          error: (e, st) {
+            reportError(e, st, context: 'standing orders');
+            return AppErrorView(
+              message: 'Could not load shops and products.',
+              cause: '$e',
+              onRetry: () {
+                ref.invalidate(activeShopsProvider);
+                ref.invalidate(activeProductsProvider);
+              },
+            );
+          },
+          data: (view) {
+            final shops = view.shops;
+            final products = view.products;
             if (shops.isEmpty) {
-              return const Center(
-                child: Text('No active shops. Add shops in Profile > Shops.'),
+              return EmptyState(
+                icon: Icons.storefront_outlined,
+                title: 'No active shops',
+                message: 'Add a shop before setting default quantities.',
+                actionLabel: 'Add a shop',
+                onAction: () => context.push(AppRoutes.shopNew),
               );
             }
             final selectedShop = shops
                 .where((s) => s.id == _selectedShopId)
                 .firstOrNull;
-            return productsAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
-              data: (products) => Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: DropdownButtonFormField<int>(
-                      initialValue: selectedShop?.id,
-                      // A shop name with an area can be longer than the field.
-                      // Left to wrap it overflows the menu row's fixed height,
-                      // which is the "overflowed by 3 pixels" warning.
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Select Shop',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: shops
-                          .map(
-                            (s) => DropdownMenuItem<int>(
-                              value: s.id,
-                              child: Text(
-                                s.area != null
-                                    ? '${s.name} · ${s.area}'
-                                    : s.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: DropdownButtonFormField<int>(
+                    initialValue: selectedShop?.id,
+                    // A shop name with an area can be longer than the field.
+                    // Left to wrap it overflows the menu row's fixed height,
+                    // which is the "overflowed by 3 pixels" warning.
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Select Shop',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: shops
+                        .map(
+                          (s) => DropdownMenuItem<int>(
+                            value: s.id,
+                            child: Text(
+                              s.area != null ? '${s.name} · ${s.area}' : s.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          )
-                          .toList(),
-                      onChanged: (id) {
-                        if (id != null) unawaited(_onShopChanged(id, products));
-                      },
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (id) {
+                      if (id != null) unawaited(_onShopChanged(id, products));
+                    },
+                  ),
+                ),
+                if (_selectedShopId == null)
+                  const Expanded(
+                    child: Center(
+                      child: Text('Select a shop to set standing orders.'),
+                    ),
+                  )
+                else if (_loadingOrders)
+                  const Expanded(
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (products.isEmpty)
+                  const Expanded(
+                    child: Center(child: Text('No active products.')),
+                  )
+                else
+                  Expanded(
+                    child: _ProductQuantities(
+                      products: products,
+                      visible: products.where(_matches).toList(),
+                      searchCtrl: _searchCtrl,
+                      onQuery: (value) =>
+                          setState(() => _query = value.trim().toLowerCase()),
+                      onSave: _save,
+                      controllerFor: (id) => _controllers[id],
                     ),
                   ),
-                  if (_selectedShopId == null)
-                    const Expanded(
-                      child: Center(
-                        child: Text('Select a shop to set standing orders.'),
-                      ),
-                    )
-                  else if (_loadingOrders)
-                    const Expanded(
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  else if (products.isEmpty)
-                    const Expanded(
-                      child: Center(child: Text('No active products.')),
-                    )
-                  else
-                    Expanded(
-                      child: _ProductQuantities(
-                        products: products,
-                        visible: products.where(_matches).toList(),
-                        searchCtrl: _searchCtrl,
-                        onQuery: (value) =>
-                            setState(() => _query = value.trim().toLowerCase()),
-                        onSave: _save,
-                        controllerFor: (id) => _controllers[id],
-                      ),
-                    ),
-                ],
-              ),
+              ],
             );
           },
         ),
