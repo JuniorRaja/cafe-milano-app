@@ -5,7 +5,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
-import '../app.dart' show kDefaultLogoAsset;
+import '../theme/brand_config.dart';
 import '../database/app_database.dart';
 import 'category_emoji.dart';
 import 'pdf_brand.dart';
@@ -34,7 +34,7 @@ Future<pw.MemoryImage?> _loadLogo(BusinessInfoData? business) async {
       final bytes = await File(business!.logoPath!).readAsBytes();
       return pw.MemoryImage(bytes);
     }
-    final asset = await rootBundle.load(kDefaultLogoAsset);
+    final asset = await rootBundle.load(BrandConfig.milano.logoAsset);
     return pw.MemoryImage(asset.buffer.asUint8List());
   } catch (_) {
     return null;
@@ -92,7 +92,7 @@ List<({String? name, String emoji, List<Product> products})> _groupProducts(
 // ---------------------------------------------------------------------------
 
 pw.Widget _buildCoverPage(BusinessInfoData? business, pw.MemoryImage? logo) {
-  final name    = business?.name ?? 'Cafe Milano';
+  final name    = business?.name ?? BrandConfig.milano.appName;
   final address = business?.address;
   final phone   = business?.phone;
 
@@ -297,7 +297,7 @@ String _buildCatalogText({
   required List<Category> categories,
 }) {
   final buf  = StringBuffer();
-  final name = business?.name ?? 'Cafe Milano';
+  final name = business?.name ?? BrandConfig.milano.appName;
   buf.writeln('🍽️ $name — Product Catalog');
   final phone = business?.phone;
   if (phone != null && phone.isNotEmpty) buf.writeln('☎ $phone');
