@@ -237,53 +237,89 @@ current-generation screen rather than restyling one.
 ## Progress
 
 Branch `release/1.12.0-screen-restyle`, cut from `1.11.0+15`.
+**Code complete 2026-09-06. Device pass outstanding — see below.**
 
-**Read this before picking up an unticked box.** Much of the action list below
-was overtaken by [10b's device pass](10b-device-pass.md), which rebuilt eight
-screens from the phone rather than from a mockup. Audited against the tree on
-2026-09-06:
+Much of the action list above was overtaken by
+[10b's device pass](10b-device-pass.md), which rebuilt eight screens from the
+phone rather than from a mockup. Those are marked *device pass*.
 
-| Action item | State |
+| Item | Landed |
 |---|---|
-| Home — `ShopOrderCard` -> `ListRow` | **Done** — device pass D1, the widget is deleted |
-| Kitchen | **Done** — device pass F1/F2 |
-| Billing — grand total into a `StatBand` | **Done** — device pass G1 |
-| Ledger + `record_payment_sheet` onto the kit | **Visually done** — device pass H1-H4. Phase 2's `_save` guard is not |
-| Masters — shop / product / category lists | **Done** — device pass I1-I3 |
-| `price_matrix` eager `ListView` | **Done** — already `ListView.separated`. Sticky column, `warning` for unset prices and the `StatBand` are **not** |
-| Phase 6 · `routerProvider` | **Done** — 10b |
-| `AppScaffold` on the nine Settings + KPI screens | **Done** — `c333ac6` |
+| Home, Kitchen, Billing, Ledger, Masters, price matrix | device pass |
+| Phase 6 · `routerProvider` | 10b |
+| `AppScaffold` on the nine Settings + KPI screens | `c333ac6` |
+| Phase 3 · error handling, all 19 + 12 sites | `31bfce6` |
+| Phase 2 · order-entry rebuild and awaited writes | `1e611f8` |
+| Greys and radii onto the tokens | `fb667b8` |
+| Ratchet to zero, aliases deleted, gate blocking | `649a24d` |
+| The last `AppBar`, and a refresh list that cannot go stale | `82cae1e` |
+| Home's `StatBand` and `FilterChipRow` | `92acb63` |
+| The dashboard cards onto the kit | `692a41d` |
+| The three forms — `AppField` and a pinned Save | `eee9d47` |
 
-Still open, with the numbers as measured:
+### The ratchet
 
-| | Count | Note |
-|---|---|---|
-| `tool/check_tokens.sh` | **248**, from 396 | 91 grey, 124 `fontSize:`, 33 radius |
-| `kBrand*` alias reads | **49** in 27 files | These are the 48 deprecation infos |
-| Bare `AppBar` | **2** | `order_entry`, `shop_ledger` — each rebuilt in its own step |
-| `maybeWhen(orElse:)` | **19** | Phase 3 |
-| `Text('Error: $e')` | **12** in 7 files | Phase 3. The doc says 16; 12 is what is left |
-| `SCREENS_BLOCKING` | `0` | Flips last |
+```
+Colors.grey            139 -> 0
+fontSize: literals     198 -> 0
+BorderRadius.circular   59 -> 0
+---
+total                  396 -> 0    SCREENS_BLOCKING=1
+```
 
-| Step | Commit | Note |
-|---|---|---|
-| Version bump, closing 1.11 | `3b140b5` | `1.11.0+15`, last on the navigation branch |
-| Settings + KPI help onto the kit | `c333ac6` | Nine screens; ratchet 289 -> 248 |
+`flutter analyze` reports **No issues found** — not "zero errors and warnings
+with 48 deprecation infos", which is how every release since 10a reported.
+The five `@Deprecated` aliases are deleted from `lib/app.dart`.
+
+`flutter test`: **338 passing**, from 336.
+
+### Gates that still need the phone
+
+Nothing here can be closed from a terminal. These are the owner's to walk:
+
+- [ ] Order entry holds 60 fps while a quantity is held down.
+- [ ] The home list shows at least 8 shops in one viewport on the owner's device.
+- [ ] Price matrix opens in under 400 ms with 18 shops and 28 products.
+- [ ] A quantity tap rebuilds **one** row, on the DevTools rebuild counter.
+- [ ] **Every figure on every screen matches `1.8.0` on the same dataset.**
+- [ ] Every ledger decision from `762be58` and `dc8ce8d` survives.
+
+### Deliberately not done
+
+- **The price matrix `StatBand`.** Built and reverted: watching
+  `catalogueCoverageProvider` there adds a third drift stream to that screen
+  and hangs `masters_editors_test` on the QueryStream teardown timer this repo
+  has hit before. The figure is already on the Settings row that opens the
+  screen, from 10b, so nothing is missing except the repetition. Worth a
+  retry with a one-shot read.
+- **The `OrderDraftController` / `AsyncNotifier` rewrite.** `flush()` already
+  exists, is registered with `pendingWritesProvider`, and is called from
+  `dispose` and from the lifecycle `paused` hook; [18](18-foundation-guardrails.md)'s
+  test passes unchanged. Moving working code into a Notifier is a relocation,
+  not a fix.
+- **The price matrix sticky product column.** The screen is one shop at a
+  time, so there is no second axis to pin — the doc's 18x28 grid is not what
+  the screen renders.
 
 ### Corrections to this doc, found while building
 
 - **Phase 6 overstates the import removal.** `AppRoutes` also lives in
   `lib/app.dart`, so a screen that navigates keeps `import '../../app.dart'`
-  after its colour reads are gone. The alias reads disappear; not all 32
-  imports.
-- **The forms need no new field widget.** `inputDecorationTheme` in
-  `app_theme.dart` already carries `AppRadius.rM` on every border. What stopped
-  the forms following the tokens was the per-field
-  `border: OutlineInputBorder()` override at each call site. Deleting those is
-  the whole fix.
+  after its colour reads are gone. 13 imports left, not 32.
+- **The forms needed a label widget, not a border fix.**
+  `inputDecorationTheme` already carried `AppRadius.rM`; the per-field
+  `border: OutlineInputBorder()` overrides were defeating it. But
+  *label-above-input* is a layout the theme cannot express, so `AppField`
+  joined the kit.
 - **`AppScaffold` has no `bottomNavigationBar` slot.** Screens with a pinned
-  action button (`catalog_share_picker`, and the forms when they get there) put
-  it in a `Column` under an `Expanded` body instead.
+  action button put it in a `Column` under an `Expanded` body.
+- **`maybeWhen` was 19 sites, not 12, and the raw error texts were 12, not
+  16.** Both counts are now zero.
+- **`_refreshDashboard` cannot become "a single refresh family".** Every card
+  watches `todayProvider` or `dashboardRangeProvider` and invalidation does
+  cascade — but invalidating the range would reset the period the owner
+  picked. The list stays; it moved next to the providers and gained a test
+  that fails when it falls behind.
 
 ## Notes
 
