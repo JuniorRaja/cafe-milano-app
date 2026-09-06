@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../theme/tokens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../app.dart';
 import '../../models/dashboard_models.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../utils/money.dart';
@@ -19,8 +19,8 @@ class ShopConcentrationCard extends ConsumerWidget {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
+          borderRadius: AppRadius.rM,
+          border: Border.all(color: AppColors.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -34,7 +34,7 @@ class ShopConcentrationCard extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: kBrandBrown,
+                    color: AppColors.brandDeep,
                   ),
                 ),
               ],
@@ -42,7 +42,7 @@ class ShopConcentrationCard extends ConsumerWidget {
             const SizedBox(height: 4),
             Text(
               'Top 5 shops by revenue',
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 14),
             concAsync.when(
@@ -55,7 +55,7 @@ class ShopConcentrationCard extends ConsumerWidget {
                 child: Center(
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: kBrandBrown,
+                    color: AppColors.brandDeep,
                   ),
                 ),
               ),
@@ -84,11 +84,11 @@ class ShopConcentrationCard extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.store_outlined, size: 28, color: Colors.grey.shade300),
+            Icon(Icons.store_outlined, size: 28, color: AppColors.border),
             const SizedBox(height: 6),
             Text(
               'No shop data for this period',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+              style: TextStyle(fontSize: 12, color: AppColors.textTertiary),
             ),
           ],
         ),
@@ -116,9 +116,9 @@ class _ShopRow extends ConsumerWidget {
             height: 22,
             decoration: BoxDecoration(
               color: rank <= 3
-                  ? kBrandBrown.withValues(alpha: 0.1)
-                  : Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(6),
+                  ? AppColors.brandDeep.withValues(alpha: 0.1)
+                  : AppColors.surfaceMuted,
+              borderRadius: AppRadius.rS,
             ),
             child: Center(
               child: Text(
@@ -126,7 +126,7 @@ class _ShopRow extends ConsumerWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: rank <= 3 ? kBrandBrown : Colors.grey.shade600,
+                  color: rank <= 3 ? AppColors.brandDeep : AppColors.textSecondary,
                 ),
               ),
             ),
@@ -149,7 +149,7 @@ class _ShopRow extends ConsumerWidget {
                 if (row.area != null)
                   Text(
                     row.area!,
-                    style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                    style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
                   ),
               ],
             ),
@@ -194,7 +194,7 @@ class _ShopRow extends ConsumerWidget {
                       fontWeight: FontWeight.w500,
                       color: isHighConcentration
                           ? Colors.orange.shade700
-                          : Colors.grey.shade500,
+                          : AppColors.textSecondary,
                     ),
                   ),
                 ],

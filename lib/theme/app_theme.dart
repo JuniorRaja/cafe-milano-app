@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import '../theme/tokens.dart';
 
 import 'brand_config.dart';
-import 'tokens.dart';
 
 /// Builds the app's single [ThemeData] from [AppColors]/[AppType] and the
 /// supplied [BrandConfig].

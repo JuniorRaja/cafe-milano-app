@@ -511,7 +511,7 @@ class _BillingDetail extends ConsumerWidget {
             padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: Text(
               'No items',
-              style: TextStyle(color: Colors.grey, fontSize: 13),
+              style: TextStyle(color: AppColors.textTertiary, fontSize: 13),
             ),
           );
         }
@@ -538,7 +538,7 @@ class _BillingDetail extends ConsumerWidget {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: Colors.grey,
+                            color: AppColors.textTertiary,
                           ),
                         ),
                       ),
@@ -549,7 +549,7 @@ class _BillingDetail extends ConsumerWidget {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: Colors.grey,
+                            color: AppColors.textTertiary,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -561,7 +561,7 @@ class _BillingDetail extends ConsumerWidget {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: Colors.grey,
+                            color: AppColors.textTertiary,
                           ),
                           textAlign: TextAlign.right,
                         ),
@@ -573,7 +573,7 @@ class _BillingDetail extends ConsumerWidget {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: Colors.grey,
+                            color: AppColors.textTertiary,
                           ),
                           textAlign: TextAlign.right,
                         ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../theme/tokens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../app.dart';
 import '../../models/dashboard_models.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../utils/money.dart';
@@ -19,8 +19,8 @@ class ProductLeaderboardCard extends ConsumerWidget {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
+          borderRadius: AppRadius.rM,
+          border: Border.all(color: AppColors.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -34,7 +34,7 @@ class ProductLeaderboardCard extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: kBrandBrown,
+                    color: AppColors.brandDeep,
                   ),
                 ),
               ],
@@ -42,7 +42,7 @@ class ProductLeaderboardCard extends ConsumerWidget {
             const SizedBox(height: 4),
             Text(
               'Top 10 products by revenue',
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 14),
             leaderAsync.when(
@@ -55,7 +55,7 @@ class ProductLeaderboardCard extends ConsumerWidget {
                 child: Center(
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: kBrandBrown,
+                    color: AppColors.brandDeep,
                   ),
                 ),
               ),
@@ -82,7 +82,7 @@ class ProductLeaderboardCard extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade500,
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ),
@@ -93,7 +93,7 @@ class ProductLeaderboardCard extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade500,
+                    color: AppColors.textSecondary,
                   ),
                   textAlign: TextAlign.right,
                 ),
@@ -105,7 +105,7 @@ class ProductLeaderboardCard extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade500,
+                    color: AppColors.textSecondary,
                   ),
                   textAlign: TextAlign.right,
                 ),
@@ -117,7 +117,7 @@ class ProductLeaderboardCard extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade500,
+                    color: AppColors.textSecondary,
                   ),
                   textAlign: TextAlign.right,
                 ),
@@ -148,12 +148,12 @@ class ProductLeaderboardCard extends ConsumerWidget {
             Icon(
               Icons.emoji_events_outlined,
               size: 28,
-              color: Colors.grey.shade300,
+              color: AppColors.border,
             ),
             const SizedBox(height: 6),
             Text(
               'No product data for this period',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+              style: TextStyle(fontSize: 12, color: AppColors.textTertiary),
             ),
           ],
         ),
@@ -186,7 +186,7 @@ class _ProductRow extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: rank <= 3 ? kBrandBrown : Colors.grey.shade500,
+                    color: rank <= 3 ? AppColors.brandDeep : AppColors.textSecondary,
                   ),
                   maxLines: 1,
                 ),
@@ -224,7 +224,7 @@ class _ProductRow extends ConsumerWidget {
             width: 40,
             child: Text(
               brand.countLakh(row.qty),
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
               textAlign: TextAlign.right,
             ),
           ),
@@ -233,7 +233,7 @@ class _ProductRow extends ConsumerWidget {
             width: 36,
             child: Text(
               '${row.shopCount}',
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
               textAlign: TextAlign.right,
             ),
           ),

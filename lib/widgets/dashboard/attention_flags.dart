@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../theme/tokens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../app.dart';
 import '../../models/dashboard_models.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../services/error_reporting.dart';
@@ -43,8 +43,8 @@ class _AttentionFlagsWidgetState extends ConsumerState<AttentionFlagsWidget> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
+              borderRadius: AppRadius.rM,
+              border: Border.all(color: AppColors.border),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -58,7 +58,7 @@ class _AttentionFlagsWidgetState extends ConsumerState<AttentionFlagsWidget> {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: kBrandBrown,
+                        color: AppColors.brandDeep,
                       ),
                     ),
                   ],
@@ -82,7 +82,7 @@ class _AttentionFlagsWidgetState extends ConsumerState<AttentionFlagsWidget> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: kBrandBrown.withValues(alpha: 0.8),
+                          color: AppColors.brandDeep.withValues(alpha: 0.8),
                         ),
                       ),
                     ),
@@ -158,7 +158,7 @@ class _FlagCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: _bgColor,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: AppRadius.rS,
         ),
         child: Row(
           children: [
@@ -180,7 +180,7 @@ class _FlagCard extends StatelessWidget {
                       flag.detail!,
                       style: TextStyle(
                         fontSize: 10,
-                        color: Colors.grey.shade600,
+                        color: AppColors.textSecondary,
                       ),
                     ),
                 ],
@@ -191,7 +191,7 @@ class _FlagCard extends StatelessWidget {
               child: Icon(
                 Icons.close_rounded,
                 size: 16,
-                color: Colors.grey.shade400,
+                color: AppColors.textTertiary,
               ),
             ),
           ],

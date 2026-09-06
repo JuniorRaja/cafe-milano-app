@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../services/error_reporting.dart';
 import 'package:intl/intl.dart';
-import '../../app.dart';
 import '../../database/app_database.dart';
 import '../../providers/business_info_provider.dart';
 import '../../providers/database_provider.dart';
@@ -124,7 +123,7 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
         data: Theme.of(context).copyWith(
           colorScheme: Theme.of(
             context,
-          ).colorScheme.copyWith(primary: kBrandBrown),
+          ).colorScheme.copyWith(primary: AppColors.brandDeep),
         ),
         child: child!,
       ),
@@ -235,7 +234,7 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
               shop?.area == null ? 'Statement' : 'Statement · ${shop!.area}',
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey.shade500,
+                color: AppColors.textSecondary,
                 fontWeight: FontWeight.normal,
               ),
             ),
@@ -264,7 +263,7 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openPaymentSheet,
-        backgroundColor: kBrandGold,
+        backgroundColor: AppColors.brandPrimary,
         foregroundColor: Colors.black87,
         icon: const Icon(Icons.payments_outlined),
         label: const Text('Record Payment'),
@@ -324,7 +323,7 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
                         ? Icons.receipt_long_outlined
                         : Icons.check_circle_outline,
                     size: 56,
-                    color: bills.isEmpty ? Colors.grey : Colors.green.shade400,
+                    color: bills.isEmpty ? AppColors.textTertiary : Colors.green.shade400,
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -332,7 +331,7 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
                         ? 'No bills yet for this shop.'
                         : 'All settled — nothing pending.',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.grey, fontSize: 15),
+                    style: const TextStyle(color: AppColors.textTertiary, fontSize: 15),
                   ),
                 ],
               ),
@@ -351,7 +350,7 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: Colors.red.shade50,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: AppRadius.rM,
                 border: Border.all(color: Colors.red.shade100),
               ),
               child: Row(
@@ -427,10 +426,10 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
                 style: OutlinedButton.styleFrom(
                   visualDensity: VisualDensity.compact,
                   foregroundColor: hasFilters
-                      ? kBrandBrown
-                      : Colors.grey.shade700,
+                      ? AppColors.brandDeep
+                      : AppColors.textSecondary,
                   side: BorderSide(
-                    color: hasFilters ? kBrandBrown : Colors.grey.shade300,
+                    color: hasFilters ? AppColors.brandDeep : AppColors.border,
                   ),
                 ),
               ),
@@ -441,7 +440,7 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey.shade600,
+                    color: AppColors.textSecondary,
                     fontWeight: hasFilters
                         ? FontWeight.w600
                         : FontWeight.normal,
@@ -451,7 +450,7 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
               if (hasFilters)
                 IconButton(
                   icon: const Icon(Icons.close, size: 18),
-                  color: Colors.grey.shade600,
+                  color: AppColors.textSecondary,
                   visualDensity: VisualDensity.compact,
                   tooltip: 'Clear filters',
                   onPressed: _clearFilters,
@@ -545,7 +544,7 @@ class _LedgerFilterSheetState extends State<_LedgerFilterSheet> {
         data: Theme.of(context).copyWith(
           colorScheme: Theme.of(
             context,
-          ).colorScheme.copyWith(primary: kBrandBrown),
+          ).colorScheme.copyWith(primary: AppColors.brandDeep),
         ),
         child: child!,
       ),
@@ -561,7 +560,7 @@ class _LedgerFilterSheetState extends State<_LedgerFilterSheet> {
         fontSize: 11,
         fontWeight: FontWeight.w700,
         letterSpacing: 0.8,
-        color: Colors.grey.shade500,
+        color: AppColors.textSecondary,
       ),
     ),
   );
@@ -624,7 +623,7 @@ class _LedgerFilterSheetState extends State<_LedgerFilterSheet> {
               if (_range != null)
                 IconButton(
                   icon: const Icon(Icons.close, size: 18),
-                  color: Colors.grey.shade600,
+                  color: AppColors.textSecondary,
                   tooltip: 'Clear date range',
                   onPressed: () => setState(() => _range = null),
                 ),
@@ -707,8 +706,8 @@ class _StatsHeader extends ConsumerWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: AppRadius.rM,
+        border: Border.all(color: AppColors.border),
       ),
       child: statsAsync.when(
         loading: () => const SizedBox(
@@ -788,7 +787,7 @@ class _StatTile extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 11,
-            color: Colors.grey.shade500,
+            color: AppColors.textSecondary,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -798,7 +797,7 @@ class _StatTile extends StatelessWidget {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w800,
-            color: color ?? kBrandBrown,
+            color: color ?? AppColors.brandDeep,
           ),
         ),
       ],
@@ -851,7 +850,7 @@ class _OpenBillRow extends ConsumerWidget {
                       'paid ${brand.moneyDecimal(entry.allocatedAmount)}',
                     if (daysOld > 0) '${daysOld}d ago',
                   ].join(' · '),
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -862,7 +861,7 @@ class _OpenBillRow extends ConsumerWidget {
             children: [
               Text(
                 'Due',
-                style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
               ),
               Text(
                 brand.moneyDecimal(entry.amountDue),
@@ -931,7 +930,7 @@ class _LedgerRow extends ConsumerWidget {
                   const SizedBox(height: 3),
                   Text(
                     subtitle,
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                   ),
                   if (!isBill && (note?.isNotEmpty ?? false)) ...[
                     const SizedBox(height: 2),
@@ -939,7 +938,7 @@ class _LedgerRow extends ConsumerWidget {
                       note!,
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade500,
+                        color: AppColors.textSecondary,
                         fontStyle: FontStyle.italic,
                       ),
                     ),
@@ -961,7 +960,7 @@ class _LedgerRow extends ConsumerWidget {
                 const SizedBox(height: 2),
                 Text(
                   'Bal ${brand.moneyDecimal(entry.runningBalance)}',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                  style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -984,7 +983,7 @@ class _StatusBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: AppRadius.rS,
       ),
       child: Text(
         _statusLabel(status),

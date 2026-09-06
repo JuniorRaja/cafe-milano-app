@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../theme/tokens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../app.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../services/category_emoji.dart';
 import '../ui/ui.dart';
@@ -21,8 +21,8 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
+          borderRadius: AppRadius.rM,
+          border: Border.all(color: AppColors.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -36,7 +36,7 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: kBrandBrown,
+                    color: AppColors.brandDeep,
                   ),
                 ),
               ],
@@ -44,7 +44,7 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
             const SizedBox(height: 4),
             Text(
               'Average demand per category per weekday (4 weeks)',
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 16),
             heatmapAsync.when(
@@ -112,7 +112,7 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
                       style: TextStyle(
                         fontSize: 9,
                         fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade500,
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ),
@@ -163,10 +163,10 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
                         height: 28,
                         margin: const EdgeInsets.symmetric(horizontal: 2),
                         decoration: BoxDecoration(
-                          color: kBrandGold.withValues(
+                          color: AppColors.brandPrimary.withValues(
                             alpha: 0.1 + (intensity * 0.8),
                           ),
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: AppRadius.rS,
                         ),
                         child: Center(
                           child: val > 0
@@ -177,7 +177,7 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
                                     fontWeight: FontWeight.w600,
                                     color: intensity > 0.5
                                         ? Colors.black87
-                                        : Colors.grey.shade700,
+                                        : AppColors.textSecondary,
                                   ),
                                 )
                               : null,
@@ -201,11 +201,11 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.grid_on_rounded, size: 28, color: Colors.grey.shade300),
+            Icon(Icons.grid_on_rounded, size: 28, color: AppColors.border),
             const SizedBox(height: 6),
             Text(
               'Not enough data for heatmap (needs 4 weeks)',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+              style: TextStyle(fontSize: 12, color: AppColors.textTertiary),
             ),
           ],
         ),
@@ -256,7 +256,7 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
     return const SizedBox(
       height: 100,
       child: Center(
-        child: CircularProgressIndicator(strokeWidth: 2, color: kBrandBrown),
+        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.brandDeep),
       ),
     );
   }

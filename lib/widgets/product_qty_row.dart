@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import '../theme/tokens.dart';
 import 'package:flutter/services.dart';
 
 import '../utils/haptics.dart';
@@ -53,7 +54,7 @@ class ProductQtyRow extends ConsumerWidget {
             height: 48,
             child: product.photoPath != null
                 ? ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: AppRadius.rS,
                     child: Image.file(
                       File(product.photoPath!),
                       fit: BoxFit.cover,
@@ -80,7 +81,7 @@ class ProductQtyRow extends ConsumerWidget {
                   hasPrce
                       ? '$priceLabel  ·  ${brand.moneyTrim(lineTotal)}'
                       : 'Price not set',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -411,7 +412,7 @@ class _StepperBtnState extends State<_StepperBtn> {
       onLongPressEnd: (_) => _stopRepeat(),
       onLongPressCancel: _stopRepeat,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.rS,
         onTap: isActive
             ? () {
                 unawaited(AppHaptics.tap());

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../theme/tokens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../../app.dart';
 import '../../models/dashboard_models.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../utils/money.dart';
@@ -35,8 +35,8 @@ class RevenueMixCard extends ConsumerWidget {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
+          borderRadius: AppRadius.rM,
+          border: Border.all(color: AppColors.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -50,7 +50,7 @@ class RevenueMixCard extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: kBrandBrown,
+                    color: AppColors.brandDeep,
                   ),
                 ),
               ],
@@ -66,7 +66,7 @@ class RevenueMixCard extends ConsumerWidget {
                 child: Center(
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: kBrandBrown,
+                    color: AppColors.brandDeep,
                   ),
                 ),
               ),
@@ -116,13 +116,13 @@ class RevenueMixCard extends ConsumerWidget {
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
-                      color: kBrandBrown,
+                      color: AppColors.brandDeep,
                     ),
                     maxLines: 1,
                   ),
                   Text(
                     'Total',
-                    style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                    style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
                     maxLines: 1,
                   ),
                 ],
@@ -158,12 +158,12 @@ class RevenueMixCard extends ConsumerWidget {
             Icon(
               Icons.pie_chart_outline,
               size: 32,
-              color: Colors.grey.shade300,
+              color: AppColors.border,
             ),
             const SizedBox(height: 8),
             Text(
               'No revenue data for this period',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+              style: TextStyle(fontSize: 12, color: AppColors.textTertiary),
             ),
           ],
         ),
@@ -215,7 +215,7 @@ class _MixRow extends ConsumerWidget {
             width: 40,
             child: Text(
               '${row.sharePercent.toStringAsFixed(0)}%',
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
               textAlign: TextAlign.right,
             ),
           ),
@@ -231,7 +231,7 @@ class _MixRow extends ConsumerWidget {
     if (trend == null) {
       return Text(
         '—',
-        style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
+        style: TextStyle(fontSize: 11, color: AppColors.textTertiary),
         textAlign: TextAlign.right,
       );
     }

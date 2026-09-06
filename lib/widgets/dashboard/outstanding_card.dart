@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/tokens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../app.dart';
@@ -20,15 +21,15 @@ class OutstandingCard extends ConsumerWidget {
 
     return RepaintBoundary(
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.rM,
         onTap: () => context.push(AppRoutes.outstanding),
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200),
+            borderRadius: AppRadius.rM,
+            border: Border.all(color: AppColors.border),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -42,11 +43,11 @@ class OutstandingCard extends ConsumerWidget {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: kBrandBrown,
+                      color: AppColors.brandDeep,
                     ),
                   ),
                   Spacer(),
-                  Icon(Icons.chevron_right, size: 20, color: Colors.grey),
+                  Icon(Icons.chevron_right, size: 20, color: AppColors.textTertiary),
                 ],
               ),
               const SizedBox(height: 14),
@@ -69,7 +70,7 @@ class OutstandingCard extends ConsumerWidget {
                           'Every shop is settled up.',
                           style: TextStyle(
                             fontSize: 13,
-                            color: Colors.grey.shade600,
+                            color: AppColors.textSecondary,
                           ),
                         ),
                       ],
@@ -91,7 +92,7 @@ class OutstandingCard extends ConsumerWidget {
                         'owed by ${shops.length} ${shops.length == 1 ? 'shop' : 'shops'}',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade500,
+                          color: AppColors.textSecondary,
                         ),
                       ),
                     ],
@@ -102,13 +103,13 @@ class OutstandingCard extends ConsumerWidget {
                   child: Center(
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: kBrandBrown,
+                      color: AppColors.brandDeep,
                     ),
                   ),
                 ),
                 error: (e, _) => Text(
                   'Could not load receivables',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                  style: TextStyle(fontSize: 12, color: AppColors.textTertiary),
                 ),
               ),
             ],

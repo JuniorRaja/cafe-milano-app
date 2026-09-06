@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/tokens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../services/error_reporting.dart';
 import 'package:intl/intl.dart';
@@ -127,7 +128,7 @@ class _RecordPaymentSheetState extends ConsumerState<RecordPaymentSheet> {
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadius.rS,
                   border: Border.all(color: Colors.green.shade100),
                 ),
                 child: Text(
@@ -185,7 +186,7 @@ class _RecordPaymentSheetState extends ConsumerState<RecordPaymentSheet> {
               },
             ),
             const SizedBox(height: 16),
-            Text('Mode', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+            Text('Mode', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
             const SizedBox(height: 8),
             SegmentedButton<PaymentMode>(
               segments: const [

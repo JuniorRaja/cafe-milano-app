@@ -314,9 +314,9 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
     setState(() => _isConfirmed = true);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor: kBrandBrown,
+        backgroundColor: AppColors.brandDeep,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.rS),
         duration: const Duration(seconds: 2),
         content: Row(
           children: [
@@ -571,7 +571,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
                           children: [
                             Icon(Icons.calendar_today,
                                 size: 22,
-                                color: Colors.grey.shade400),
+                                color: AppColors.textTertiary),
                             const SizedBox(width: 10),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -581,7 +581,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
                                   'Order Date',
                                   style: TextStyle(
                                       fontSize: 11,
-                                      color: Colors.grey.shade500),
+                                      color: AppColors.textSecondary),
                                 ),
                                 Text(
                                   dateLabel,
@@ -610,7 +610,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
                               // the menu is opened.
                               Icon(Icons.repeat_rounded,
                                   size: 22,
-                                  color: Colors.grey.shade400),
+                                  color: AppColors.textTertiary),
                               const SizedBox(width: 10),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -620,7 +620,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
                                     'Standing Order',
                                     style: TextStyle(
                                         fontSize: 11,
-                                        color: Colors.grey.shade500),
+                                        color: AppColors.textSecondary),
                                   ),
                                   Text(
                                     _standingTotal > 0
@@ -711,7 +711,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
                   filtering
                       ? '${visible.length} of ${_products.length}'
                       : '$pricedCount items',
-                  style: const TextStyle(color: kBrandBrown, fontSize: 13),
+                  style: const TextStyle(color: AppColors.brandDeep, fontSize: 13),
                 ),
               ],
             ),
@@ -724,7 +724,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
                       _products.isEmpty
                           ? 'No active products'
                           : 'No product matches',
-                      style: const TextStyle(color: Colors.grey),
+                      style: const TextStyle(color: AppColors.textTertiary),
                     ),
                   )
                 : ListView.separated(
@@ -802,7 +802,7 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
                           Text(
                             'Order Total · ${totals.items} items',
                             style: TextStyle(
-                                fontSize: 12, color: Colors.grey[600]),
+                                fontSize: 12, color: AppColors.textSecondary),
                           ),
                         ],
                       ),
@@ -811,12 +811,12 @@ class _OrderEntryScreenState extends ConsumerState<OrderEntryScreen> {
                   ElevatedButton(
                     onPressed: _isConfirmed ? null : _confirmOrder,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: kBrandGold,
+                      backgroundColor: AppColors.brandPrimary,
                       foregroundColor: Colors.black87,
                       disabledBackgroundColor: Colors.green.shade50,
                       disabledForegroundColor: Colors.green.shade700,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: AppRadius.rS,
                       ),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 20, vertical: 12),

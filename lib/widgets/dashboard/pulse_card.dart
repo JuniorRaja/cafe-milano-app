@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../theme/tokens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../app.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../utils/money.dart';
 import '../../theme/brand_config.dart';
@@ -22,8 +22,8 @@ class PulseCard extends ConsumerWidget {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
+          borderRadius: AppRadius.rM,
+          border: Border.all(color: AppColors.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -37,7 +37,7 @@ class PulseCard extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: kBrandBrown,
+                    color: AppColors.brandDeep,
                   ),
                 ),
                 const Spacer(),
@@ -46,7 +46,7 @@ class PulseCard extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
-                    color: Colors.grey.shade500,
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ],
@@ -65,7 +65,7 @@ class PulseCard extends ConsumerWidget {
                         style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
-                          color: kBrandBrown,
+                          color: AppColors.brandDeep,
                         ),
                       ),
                       loading: () => _shimmer(),
@@ -100,7 +100,7 @@ class PulseCard extends ConsumerWidget {
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: kBrandBrown,
+                          color: AppColors.brandDeep,
                         ),
                       ),
                       loading: () => _shimmer(),
@@ -121,7 +121,7 @@ class PulseCard extends ConsumerWidget {
                           fontWeight: FontWeight.w700,
                           color: count > 0
                               ? Colors.amber.shade700
-                              : kBrandBrown,
+                              : AppColors.brandDeep,
                         ),
                       ),
                       loading: () => _shimmer(),
@@ -144,7 +144,7 @@ class PulseCard extends ConsumerWidget {
         style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w700,
-          color: Colors.grey.shade500,
+          color: AppColors.textSecondary,
         ),
       );
     }
@@ -175,8 +175,8 @@ class PulseCard extends ConsumerWidget {
       height: 20,
       width: 60,
       decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(4),
+        color: AppColors.border,
+        borderRadius: AppRadius.rS,
       ),
     );
   }
@@ -193,8 +193,8 @@ class _MetricTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: kSurface,
-        borderRadius: BorderRadius.circular(8),
+        color: AppColors.bg,
+        borderRadius: AppRadius.rS,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -204,7 +204,7 @@ class _MetricTile extends StatelessWidget {
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w500,
-              color: Colors.grey.shade600,
+              color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: 6),
