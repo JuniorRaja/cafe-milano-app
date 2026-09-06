@@ -409,3 +409,39 @@ final attentionFlagsProvider =
 
   return flags;
 });
+
+// ─── Refresh ────────────────────────────────────────────────────────────────
+
+/// Re-reads every figure the dashboard draws.
+///
+/// This lived in `dashboard_screen.dart` as a hand-written list of fourteen
+/// `ref.invalidate` calls. A provider added to *this* file and not appended to
+/// that list in *that* file silently stopped refreshing, and nothing said so.
+///
+/// It cannot be reduced to invalidating a root. Every card watches
+/// `todayProvider` or [dashboardRangeProvider], and invalidating a provider
+/// does rebuild its watchers — but invalidating [dashboardRangeProvider] would
+/// reset the period the owner picked, which is a bug, not a refresh. The
+/// shared aggregates are families keyed on the range, and a family instance
+/// keeps its cached value even when its consumers rebuild, so they need
+/// naming too.
+///
+/// So the list stays, but it lives beside the providers it lists, and
+/// `dashboard_refresh_test.dart` reads this file and fails if a provider
+/// declared here is missing from it.
+void refreshDashboard(WidgetRef ref) {
+  ref.invalidate(todayProvider);
+  ref.invalidate(categoriesProvider);
+  ref.invalidate(shopConcentrationDataProvider);
+  ref.invalidate(categoryScoresDataProvider);
+  ref.invalidate(todayRevenueProvider);
+  ref.invalidate(revenueDeltaProvider);
+  ref.invalidate(shopsServedTodayProvider);
+  ref.invalidate(pendingConfirmationsProvider);
+  ref.invalidate(categoryScorecardsProvider);
+  ref.invalidate(categoryMixProvider);
+  ref.invalidate(shopConcentrationProvider);
+  ref.invalidate(productLeaderboardProvider);
+  ref.invalidate(weekdayHeatmapProvider);
+  ref.invalidate(attentionFlagsProvider);
+}

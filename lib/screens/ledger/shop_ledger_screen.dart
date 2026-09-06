@@ -216,46 +216,35 @@ class _ShopLedgerScreenState extends ConsumerState<ShopLedgerScreen>
     final shop = ref.watch(shopByIdProvider(widget.shopId)).value;
     final statsAsync = ref.watch(shopStatsProvider(widget.shopId));
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              shop?.name ?? 'Statement',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            // `Statement`, not `Ledger`. The drawer's Ledger is the whole
-            // business; this is one shop's bills, payments and running
-            // balance. Two screens called the same word is how the owner ends
-            // up on the wrong one.
-            Text(
-              shop?.area == null ? 'Statement' : 'Statement · ${shop!.area}',
-              style: AppType.label.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.normal),
-            ),
-          ],
+    // The last screen off a bare AppBar. `Statement`, not `Ledger`: the
+    // drawer's Ledger is the whole business, this is one shop's bills,
+    // payments and running balance. Two screens called the same word is how
+    // the owner ends up on the wrong one — so the caption carries the word and
+    // the title carries the shop.
+    return AppScaffold(
+      title: shop?.name ?? 'Statement',
+      caption: shop?.area == null ? 'Statement' : 'Statement · ${shop!.area}',
+      background: AppColors.bg,
+      actions: [
+        IconButton(
+          icon: _exporting
+              ? const SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.picture_as_pdf_outlined),
+          color: AppColors.textPrimary,
+          tooltip: 'Export Statement',
+          onPressed: _exporting ? null : _exportStatement,
         ),
-        actions: [
-          IconButton(
-            icon: _exporting
-                ? const SizedBox(
-                    height: 18,
-                    width: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.picture_as_pdf_outlined),
-            tooltip: 'Export Statement',
-            onPressed: _exporting ? null : _exportStatement,
-          ),
+      ],
+      bottom: TabBar(
+        controller: _tabController,
+        tabs: const [
+          Tab(text: 'Outstanding'),
+          Tab(text: 'History'),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Outstanding'),
-            Tab(text: 'History'),
-          ],
-        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openPaymentSheet,

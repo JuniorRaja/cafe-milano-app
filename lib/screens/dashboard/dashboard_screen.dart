@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../models/dashboard_models.dart';
-import '../../providers/category_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/business_info_provider.dart';
 import '../../providers/dashboard_settings_provider.dart';
@@ -67,7 +66,7 @@ class DashboardScreen extends ConsumerWidget {
       leading: const ShellDrawerButton(),
       actions: [
         IconButton(
-          onPressed: () => _refreshDashboard(ref),
+          onPressed: () => refreshDashboard(ref),
           icon: const Icon(Icons.refresh_rounded),
           color: AppColors.textPrimary,
           tooltip: 'Refresh',
@@ -197,22 +196,6 @@ class DashboardScreen extends ConsumerWidget {
         .selectCustomRange(picked.start, picked.end);
   }
 
-  void _refreshDashboard(WidgetRef ref) {
-    ref.invalidate(todayProvider);
-    ref.invalidate(categoriesProvider);
-    ref.invalidate(shopConcentrationDataProvider);
-    ref.invalidate(categoryScoresDataProvider);
-    ref.invalidate(todayRevenueProvider);
-    ref.invalidate(revenueDeltaProvider);
-    ref.invalidate(shopsServedTodayProvider);
-    ref.invalidate(pendingConfirmationsProvider);
-    ref.invalidate(categoryScorecardsProvider);
-    ref.invalidate(categoryMixProvider);
-    ref.invalidate(shopConcentrationProvider);
-    ref.invalidate(productLeaderboardProvider);
-    ref.invalidate(weekdayHeatmapProvider);
-    ref.invalidate(attentionFlagsProvider);
-  }
 
   String _formatDateIndicator(DashboardRange range) {
     final fmt = DateFormat('d MMM');
