@@ -103,9 +103,18 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final back = showBack ?? (onBack != null || Navigator.of(context).canPop());
 
+    // An `IconButton` is a 48px target around a 24px glyph, so it carries 12px
+    // of its own inset. Paying the page gutter as well put the hamburger's
+    // glyph at 28 while everything under it sat at 16, which is what the device
+    // pass saw as "very padded to the left". The gutter is reduced by the
+    // button's own inset so the glyph lands on the grid and the target keeps
+    // its full 48px.
+    const iconInset = AppSpace.s3;
+    final leadsWithAButton = leading != null || back;
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpace.s4,
+      padding: EdgeInsets.fromLTRB(
+        leadsWithAButton ? AppSpace.s4 - iconInset : AppSpace.s4,
         AppSpace.s3,
         AppSpace.s2,
         AppSpace.s2,

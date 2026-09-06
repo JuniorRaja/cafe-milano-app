@@ -112,8 +112,23 @@ void main() {
         t.bodyLarge,
         t.labelLarge,
       ]) {
-        expect(style?.fontFamily, 'Raleway');
+        expect(style?.fontFamily, 'Bricolage Grotesque');
       }
+    });
+
+    // Structural, not a brand colour: the decorative background is painted
+    // once for the whole app in `app.dart`'s builder, and anything opaque
+    // between it and the user hides it. That is what happened before the
+    // device pass — the art reached only the five shell branches, and two
+    // screens covered it even there. See docs/features/10b-device-pass.md, A4.
+    test('nothing between the art and the user is opaque', () {
+      expect(buildAppTheme(BrandConfig.milano).scaffoldBackgroundColor,
+          Colors.transparent);
+      expect(
+        const AppScaffold(title: 't', body: SizedBox()).background,
+        Colors.transparent,
+        reason: 'AppScaffold must not default to an opaque ground',
+      );
     });
 
     testWidgets('the brand seam reaches the whole theme', (tester) async {
@@ -254,6 +269,45 @@ void main() {
       expect(selected, 1);
     });
 
+    // Regression, device pass 2026-09-05: the category chips on Products were
+    // cut in half. The whole of `padding` went to the horizontal `ListView`,
+    // and in a horizontal list the vertical half comes off the cross axis —
+    // 40 − 8 − 8 left the chip 24px, its own 8+8 left 8px for the text, and a
+    // 12px label needs 14.4. See docs/features/10b-device-pass.md, A3.
+    testWidgets('FilterChipRow leaves its label room to be drawn', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        host(
+          const FilterChipRow(
+            chips: [FilterChipData('🥐 Puffs')],
+            selectedIndex: 0,
+            onSelected: _ignore,
+          ),
+        ),
+      );
+
+      final label = find.text('🥐 Puffs');
+      final chip = find
+          .ancestor(of: label, matching: find.byType(InkWell))
+          .first;
+
+      // The chip must fit its own label plus its own vertical padding. This is
+      // the defect stated as an assertion, and it holds whatever the row height
+      // and the type step happen to be.
+      expect(
+        tester.getSize(chip).height,
+        greaterThanOrEqualTo(
+          tester.getSize(label).height + AppSpace.s2 * 2,
+        ),
+        reason: 'the chip is shorter than the text it contains',
+      );
+
+      // And the strip is the chip's box, not the chip's box minus the gutter.
+      expect(tester.getSize(find.byType(FilterChipRow)).height,
+          FilterChipRow.rowHeight + AppSpace.s2 * 2);
+    });
+
     testWidgets('SectionHeader renders its action', (tester) async {
       var tapped = false;
       await tester.pumpWidget(
@@ -301,6 +355,54 @@ void main() {
         host(const StatusBadge(label: 'Overdue', tone: AppTone.negative)),
       );
       expect(find.text('Overdue'), findsOneWidget);
+    });
+
+    // The Orders list carries eighteen of these a morning, so the word became a
+    // glyph. The word has to survive somewhere — see
+    // docs/features/10b-device-pass.md, D2.
+    testWidgets('StatusBadge.mark draws a glyph and keeps the word for a '
+        'screen reader', (tester) async {
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(
+        host(
+          const StatusBadge.mark(
+            icon: Icons.check_circle_rounded,
+            label: 'Confirmed',
+            tone: AppTone.positive,
+          ),
+        ),
+      );
+
+      expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+      expect(find.text('Confirmed'), findsNothing);
+      expect(find.bySemanticsLabel('Confirmed'), findsOneWidget);
+      handle.dispose();
+    });
+
+    testWidgets('ListRow puts a titleBadge beside the title, not past the '
+        'money', (tester) async {
+      await tester.pumpWidget(
+        host(
+          const ListRow(
+            title: 'Hotel Raj',
+            subtitle: 'Anna Nagar',
+            trailing: '\u20b9360',
+            titleBadge: StatusBadge.mark(
+              icon: Icons.check_circle_rounded,
+              label: 'Confirmed',
+              tone: AppTone.positive,
+            ),
+          ),
+        ),
+      );
+
+      // The mark sits between the title and the money, which is the whole
+      // point of the slot: money keeps a straight right-hand column.
+      final title = tester.getRect(find.text('Hotel Raj'));
+      final mark = tester.getRect(find.byIcon(Icons.check_circle_rounded));
+      final money = tester.getRect(find.text('\u20b9360'));
+      expect(mark.left, greaterThan(title.right - 1));
+      expect(money.left, greaterThan(mark.right));
     });
 
     testWidgets('DeltaPill takes its tone from the sign, not the call site', (
@@ -473,3 +575,6 @@ void main() {
     });
   });
 }
+
+/// A const-able no-op, so a `FilterChipRow` under test can stay `const`.
+void _ignore(int _) {}

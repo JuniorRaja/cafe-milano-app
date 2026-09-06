@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import '../../app.dart';
 import '../../providers/ledger_provider.dart';
+import '../../utils/money.dart';
+import '../../theme/brand_config.dart';
 
 /// Total cash owed across every shop, and a way into the list behind it.
 ///
@@ -78,7 +79,7 @@ class OutstandingCard extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '₹${NumberFormat('#,##0').format(total)}',
+                        ref.watch(brandProvider).money(total),
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.w800,

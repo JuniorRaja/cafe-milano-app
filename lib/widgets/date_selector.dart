@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../app.dart';
 import '../providers/date_provider.dart';
+import '../utils/relative_day.dart';
 
 class DateSelector extends ConsumerWidget {
   const DateSelector({super.key});
@@ -11,6 +12,9 @@ class DateSelector extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final date = ref.watch(selectedDateProvider);
     final label = DateFormat('dd MMM yyyy, EEE').format(date);
+    // Read through todayProvider, so the word re-derives at midnight along
+    // with everything else rather than saying "Today" about yesterday.
+    final relative = relativeDayLabel(date, today: ref.watch(todayProvider));
 
     return Card(
       color: kSurface,
@@ -30,10 +34,23 @@ class DateSelector extends ConsumerWidget {
               child: Center(
                 child: TextButton.icon(
                   icon: const Icon(Icons.calendar_today, size: 16),
-                  label: Text(
-                    label,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 15),
+                  // The date stays the headline. A bill dated "Next Tue" is a
+                  // bill whose real date the owner still has to read out.
+                  label: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        label,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 15),
+                      ),
+                      if (relative != null)
+                        Text(
+                          relative,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w500, fontSize: 11),
+                        ),
+                    ],
                   ),
                   onPressed: () async {
                     final picked = await showDatePicker(

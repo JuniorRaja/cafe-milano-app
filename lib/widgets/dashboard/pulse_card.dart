@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import '../../app.dart';
 import '../../providers/dashboard_provider.dart';
+import '../../utils/money.dart';
+import '../../theme/brand_config.dart';
 
 class PulseCard extends ConsumerWidget {
   const PulseCard({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final brand = ref.watch(brandProvider);
     final revenueAsync = ref.watch(todayRevenueProvider);
     final deltaAsync = ref.watch(revenueDeltaProvider);
     final shopsAsync = ref.watch(shopsServedTodayProvider);
@@ -59,7 +61,7 @@ class PulseCard extends ConsumerWidget {
                     label: "Today's Revenue",
                     child: revenueAsync.when(
                       data: (rev) => Text(
-                        '₹${_formatCurrency(rev)}',
+                        brand.moneyLakh(rev),
                         style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
@@ -179,14 +181,6 @@ class PulseCard extends ConsumerWidget {
     );
   }
 
-  static String _formatCurrency(double amount) {
-    if (amount >= 100000) {
-      return '${(amount / 100000).toStringAsFixed(1)}L';
-    } else if (amount >= 1000) {
-      return NumberFormat('#,##,###').format(amount.round());
-    }
-    return amount.toStringAsFixed(0);
-  }
 }
 
 class _MetricTile extends StatelessWidget {

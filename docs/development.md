@@ -41,14 +41,45 @@ flutter analyze
 ./tool/check_tokens.sh
 ```
 
-10 test files. They cover the code that carries money: FIFO allocation, the quantity
-wheel and its clamp, backup round-trips, DAO behavior, and the migration chain.
+15 test files, 229 tests. They cover the code that carries money — FIFO allocation, the
+quantity wheel and its clamp, backup round-trips, DAO behavior, the migration chain —
+plus the two things [10b](features/10b-navigation.md) added that break silently:
 
-The UI needs no unit tests. Money arithmetic does.
+- `routing_test.dart` — every pre-10b `/profile/*` URL still resolves. A broken deep
+  link is not noticed for a week, so it is not left to clicking.
+- `lifecycle_test.dart` — the midnight rollover, driven by advancing `package:clock`
+  rather than by waiting until midnight, and the bootstrap error screen.
+- `shell_test.dart` and `settings_test.dart` — the drawer, the shop picker, recording
+  a payment end to end, and the settings search.
+- `master_lists_test.dart` — that Shops, Products and Categories behave as one
+  screen. "Consistent" is a claim that rots silently without a test.
+- `money_test.dart` — Indian digit grouping, and that a different brand changes both
+  symbol and grouping.
 
-**One test fails today:** `v4 -> v5 upgrade` in `migration_test.dart`. Real bug, older
-than the current work. [18](features/18-foundation-guardrails.md) fixes it before CI
-becomes blocking.
+Four notes for anyone adding widget tests here. Each of these cost real time to
+diagnose once.
+
+- The default 800x600 surface is shorter than any real phone, so a lazily-built list
+  drops its lower rows and `find.text` reports them missing. `setSurfaceSize` to
+  something phone-shaped.
+- `SharedPreferences.setMockInitialValues` and `PackageInfo.setMockInitialValues` are
+  needed before anything that reads either.
+- **`pumpAndSettle` never returns while an indeterminate animation is on screen** —
+  `AppSkeleton` pulses forever and so does the `CircularProgressIndicator` inside a
+  busy button. Either stub the provider so the skeleton is skipped, or step with
+  `pump(Duration(...))` instead.
+- **A test using a real `AppDatabase` must tear its own tree down.** Disposing the
+  `ProviderScope` cancels Drift's query streams, and Drift schedules a zero-duration
+  Timer to close its stream store; the end-of-test invariant check sees it pending and
+  fails. Worse, the shutdown then deadlocks the *whole file*, so one such test makes
+  every test around it look like it hangs. `pumpWidget(SizedBox())` then
+  `pump(Duration(milliseconds: 10))` — the duration matters, a bare `pump()` renders a
+  frame without advancing the fake clock. See `drain()` in `test/shell_test.dart`.
+
+The UI needs no unit tests. Money arithmetic does, and so does anything whose failure
+is silent.
+
+The suite is green. `migration_test.dart`'s `v4 -> v5 upgrade` was fixed in `0f08741`.
 
 ## Release
 

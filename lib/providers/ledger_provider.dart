@@ -45,3 +45,19 @@ final outstandingByShopProvider = StreamProvider<List<ShopOutstanding>>((ref) {
   final db = ref.watch(databaseProvider);
   return db.ledgerDao.watchOutstandingByShop();
 });
+
+/// The all-shops receivables figure the drawer card shows. Folded from the
+/// same rows [outstandingByShopProvider] serves, so the card and the list it
+/// opens are one number.
+final outstandingSummaryProvider = StreamProvider<OutstandingSummary>((ref) {
+  final db = ref.watch(databaseProvider);
+  return db.ledgerDao.watchOutstandingSummary();
+});
+
+/// Billed and collected over a window, for the Finances quick stats.
+/// `autoDispose` because it is parameterised — 10a's rule.
+final periodMoneyProvider = StreamProvider.autoDispose
+    .family<PeriodMoney, ({DateTime from, DateTime to})>((ref, range) {
+  final db = ref.watch(databaseProvider);
+  return db.ledgerDao.watchPeriodMoney(range.from, range.to);
+});

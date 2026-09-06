@@ -6,11 +6,15 @@ import 'package:printing/printing.dart';
 import '../database/app_database.dart';
 import '../theme/brand_config.dart';
 import 'pdf_brand.dart';
+import '../utils/money.dart';
 
 final _dateFmt = DateFormat('dd MMM yyyy');
 final _shortDateFmt = DateFormat('dd MMM yy');
 
-String _money(double v) => '₹${NumberFormat('#,##0.00').format(v)}';
+// Threaded rather than global: the statement is what a shop is handed, so
+// the symbol and the digit grouping have to be the brand's, not a literal.
+// The old version hardcoded '₹' with Western grouping and printed a shop's
+// balance as 1,16,717.00 -> 116,717.00.
 
 String _modeLabel(PaymentMode mode) => switch (mode) {
       PaymentMode.upi => 'UPI',
@@ -191,7 +195,7 @@ pw.Widget _statementHeader(
   );
 }
 
-pw.Widget _entriesTable(StatementData data) {
+pw.Widget _entriesTable(BrandConfig brand, StatementData data) {
   final header = pw.TableRow(
     // repeat: the header re-draws at the top of every page the table spills
     // onto, so page 3 of a long statement still reads on its own.
@@ -212,7 +216,7 @@ pw.Widget _entriesTable(StatementData data) {
       _cell('Opening balance', bold: true),
       _cell(''),
       _cell(''),
-      _cell(_money(data.opening), bold: true, right: true),
+      _cell(brand.moneyDecimal(data.opening), bold: true, right: true),
     ],
   );
 
@@ -222,9 +226,9 @@ pw.Widget _entriesTable(StatementData data) {
       children: [
         _cell(_shortDateFmt.format(entry.date)),
         _cell(_description(entry)),
-        _cell(isBill ? _money(entry.amount) : '', right: true),
-        _cell(isBill ? '' : _money(entry.amount), right: true),
-        _cell(_money(entry.runningBalance), right: true),
+        _cell(isBill ? brand.moneyDecimal(entry.amount) : '', right: true),
+        _cell(isBill ? '' : brand.moneyDecimal(entry.amount), right: true),
+        _cell(brand.moneyDecimal(entry.runningBalance), right: true),
       ],
     );
   });
@@ -244,7 +248,7 @@ pw.Widget _entriesTable(StatementData data) {
   );
 }
 
-pw.Widget _summaryBlock(StatementData data) {
+pw.Widget _summaryBlock(BrandConfig brand, StatementData data) {
   pw.Widget line(String label, String value, {bool emphasis = false}) {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(vertical: 3),
@@ -286,11 +290,11 @@ pw.Widget _summaryBlock(StatementData data) {
           ),
           child: pw.Column(
             children: [
-              line('Opening balance', _money(data.opening)),
-              line('Total Billed', _money(data.billed)),
-              line('Total Collected', _money(data.collected)),
+              line('Opening balance', brand.moneyDecimal(data.opening)),
+              line('Total Billed', brand.moneyDecimal(data.billed)),
+              line('Total Collected', brand.moneyDecimal(data.collected)),
               pw.Divider(thickness: 0.5, color: kPdfGold),
-              line('Closing balance', _money(data.closing), emphasis: true),
+              line('Closing balance', brand.moneyDecimal(data.closing), emphasis: true),
             ],
           ),
         ),
@@ -300,6 +304,7 @@ pw.Widget _summaryBlock(StatementData data) {
 }
 
 Future<Uint8List> buildStatementPdf({
+  required BrandConfig brand,
   required Shop shop,
   required BusinessInfoData? business,
   required StatementData data,
@@ -318,7 +323,7 @@ Future<Uint8List> buildStatementPdf({
       footer: (context) => pdfPageFooter(context, business),
       build: (context) => [
         _statementHeader(shop, business, from, to),
-        _entriesTable(data),
+        _entriesTable(brand, data),
         if (data.rows.isEmpty)
           pw.Padding(
             padding: const pw.EdgeInsets.only(top: 12),
@@ -327,7 +332,7 @@ Future<Uint8List> buildStatementPdf({
               style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
             ),
           ),
-        _summaryBlock(data),
+        _summaryBlock(brand, data),
       ],
     ),
   );
@@ -337,6 +342,7 @@ Future<Uint8List> buildStatementPdf({
 
 /// Builds the statement for [from]–[to] and hands it to the share sheet.
 Future<void> shareLedgerStatement({
+  required BrandConfig brand,
   required Shop shop,
   required BusinessInfoData? business,
   required List<LedgerEntry> entries,
@@ -350,6 +356,7 @@ Future<void> shareLedgerStatement({
     shopOpeningBalance: shop.openingBalance ?? 0.0,
   );
   final bytes = await buildStatementPdf(
+    brand: brand,
     shop: shop,
     business: business,
     data: data,
