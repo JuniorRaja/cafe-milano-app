@@ -227,7 +227,6 @@ class DashboardSettings {
   final bool showShopConcentration;
   final bool showProductLeaderboard;
   final bool showHeatmap;
-  final bool showRevenueTrend;
   final bool showLedgerKpis;
 
   const DashboardSettings({
@@ -241,7 +240,6 @@ class DashboardSettings {
     this.showShopConcentration = true,
     this.showProductLeaderboard = true,
     this.showHeatmap = true,
-    this.showRevenueTrend = true,
     this.showLedgerKpis = true,
   });
 
@@ -256,7 +254,6 @@ class DashboardSettings {
     bool? showShopConcentration,
     bool? showProductLeaderboard,
     bool? showHeatmap,
-    bool? showRevenueTrend,
     bool? showLedgerKpis,
   }) {
     return DashboardSettings(
@@ -270,7 +267,6 @@ class DashboardSettings {
       showShopConcentration: showShopConcentration ?? this.showShopConcentration,
       showProductLeaderboard: showProductLeaderboard ?? this.showProductLeaderboard,
       showHeatmap: showHeatmap ?? this.showHeatmap,
-      showRevenueTrend: showRevenueTrend ?? this.showRevenueTrend,
       showLedgerKpis: showLedgerKpis ?? this.showLedgerKpis,
     );
   }
