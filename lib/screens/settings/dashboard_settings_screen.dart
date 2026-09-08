@@ -24,8 +24,9 @@ class DashboardSettingsScreen extends ConsumerWidget {
           AppSpace.s6,
         ),
         children: [
+          // ── Sales tab ──────────────────────────────────────────────────────
           const SectionHeader(
-            title: 'Sections',
+            title: 'Sales tab',
             padding: EdgeInsets.only(bottom: AppSpace.s2),
           ),
           AppCard(
@@ -34,7 +35,7 @@ class DashboardSettingsScreen extends ConsumerWidget {
               children: [
                 _ToggleTile(
                   title: 'The Pulse',
-                  subtitle: "Today's snapshot",
+                  subtitle: "Today's snapshot · only visible on Today preset",
                   value: settings.showPulse,
                   onChanged: (v) => notifier.toggle(kDashPulse, v),
                   onInfo: () =>
@@ -42,8 +43,17 @@ class DashboardSettingsScreen extends ConsumerWidget {
                 ),
                 const _TileDivider(),
                 _ToggleTile(
+                  title: 'Period Finances',
+                  subtitle: 'Billed & collected for the selected period',
+                  value: settings.showLedgerKpis,
+                  onChanged: (v) => notifier.toggle(kDashLedgerKpis, v),
+                  onInfo: () =>
+                      context.push(AppRoutes.kpiHelp, extra: 'today_revenue'),
+                ),
+                const _TileDivider(),
+                _ToggleTile(
                   title: 'Outstanding Receivables',
-                  subtitle: 'Total owed across all shops',
+                  subtitle: 'Total cash owed across all shops',
                   value: settings.showOutstanding,
                   onChanged: (v) => notifier.toggle(kDashOutstanding, v),
                   onInfo: () =>
@@ -51,8 +61,39 @@ class DashboardSettingsScreen extends ConsumerWidget {
                 ),
                 const _TileDivider(),
                 _ToggleTile(
+                  title: 'Category Revenue Mix',
+                  subtitle: 'Donut chart · requires Revenue Anatomy on',
+                  value: settings.showCategoryMix,
+                  onChanged: (v) => notifier.toggle(kDashCategoryMix, v),
+                  onInfo: () =>
+                      context.push(AppRoutes.kpiHelp, extra: 'category_mix'),
+                ),
+                const _TileDivider(),
+                _ToggleTile(
+                  title: 'Day-of-Week Heatmap',
+                  subtitle: 'Demand by weekday · requires Operational Patterns on',
+                  value: settings.showHeatmap,
+                  onChanged: (v) => notifier.toggle(kDashHeatmap, v),
+                  onInfo: () =>
+                      context.push(AppRoutes.kpiHelp, extra: 'heatmap'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpace.s5),
+
+          // ── Products tab ───────────────────────────────────────────────────
+          const SectionHeader(
+            title: 'Products tab',
+            padding: EdgeInsets.only(bottom: AppSpace.s2),
+          ),
+          AppCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                _ToggleTile(
                   title: 'Category Scorecards',
-                  subtitle: 'Per-category health cards',
+                  subtitle: 'Per-category health cards with sparklines',
                   value: settings.showCategoryCards,
                   onChanged: (v) => notifier.toggle(kDashCategoryCards, v),
                   onInfo: () => context.push(
@@ -62,8 +103,71 @@ class DashboardSettingsScreen extends ConsumerWidget {
                 ),
                 const _TileDivider(),
                 _ToggleTile(
+                  title: 'Product Leaderboard',
+                  subtitle: 'Top 10 products · requires Revenue Anatomy on',
+                  value: settings.showProductLeaderboard,
+                  onChanged: (v) => notifier.toggle(kDashProductLeaderboard, v),
+                  onInfo: () => context.push(
+                    AppRoutes.kpiHelp,
+                    extra: 'product_leaderboard',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpace.s5),
+
+          // ── Shops tab ──────────────────────────────────────────────────────
+          const SectionHeader(
+            title: 'Shops tab',
+            padding: EdgeInsets.only(bottom: AppSpace.s2),
+          ),
+          AppCard(
+            padding: EdgeInsets.zero,
+            child: _ToggleTile(
+              title: 'Shop Concentration',
+              subtitle: 'Top shops by revenue · requires Revenue Anatomy on',
+              value: settings.showShopConcentration,
+              onChanged: (v) => notifier.toggle(kDashShopConcentration, v),
+              onInfo: () => context.push(
+                AppRoutes.kpiHelp,
+                extra: 'shop_concentration',
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpace.s5),
+
+          // ── Alerts tab ─────────────────────────────────────────────────────
+          const SectionHeader(
+            title: 'Alerts tab',
+            padding: EdgeInsets.only(bottom: AppSpace.s2),
+          ),
+          AppCard(
+            padding: EdgeInsets.zero,
+            child: _ToggleTile(
+              title: 'Attention Flags',
+              subtitle: 'Smart alerts & anomalies',
+              value: settings.showAttentionFlags,
+              onChanged: (v) => notifier.toggle(kDashAttentionFlags, v),
+              onInfo: () =>
+                  context.push(AppRoutes.kpiHelp, extra: 'declining_flag'),
+            ),
+          ),
+          const SizedBox(height: AppSpace.s5),
+
+          // ── Master switches ────────────────────────────────────────────────
+          const SectionHeader(
+            title: 'Master switches',
+            padding: EdgeInsets.only(bottom: AppSpace.s2),
+          ),
+          AppCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                _ToggleTile(
                   title: 'Revenue Anatomy',
-                  subtitle: 'Mix, concentration & leaderboard',
+                  subtitle:
+                      'Enables: Category Mix, Product Leaderboard, Shop Concentration',
                   value: settings.showRevenueAnatomy,
                   onChanged: (v) => notifier.toggle(kDashRevenueAnatomy, v),
                   onInfo: () =>
@@ -72,70 +176,10 @@ class DashboardSettingsScreen extends ConsumerWidget {
                 const _TileDivider(),
                 _ToggleTile(
                   title: 'Operational Patterns',
-                  subtitle: 'Day-of-week heatmap',
+                  subtitle: 'Enables: Day-of-Week Heatmap',
                   value: settings.showOperationalPatterns,
-                  onChanged: (v) => notifier.toggle(kDashOperationalPatterns, v),
-                  onInfo: () =>
-                      context.push(AppRoutes.kpiHelp, extra: 'heatmap'),
-                ),
-                const _TileDivider(),
-                _ToggleTile(
-                  title: 'Attention Flags',
-                  subtitle: 'Smart alerts & anomalies',
-                  value: settings.showAttentionFlags,
-                  onChanged: (v) => notifier.toggle(kDashAttentionFlags, v),
-                  onInfo: () =>
-                      context.push(AppRoutes.kpiHelp, extra: 'declining_flag'),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpace.s5),
-
-          const SectionHeader(
-            title: 'Sub-sections',
-            padding: EdgeInsets.only(bottom: AppSpace.s2),
-          ),
-          AppCard(
-            padding: EdgeInsets.zero,
-            child: Column(
-              children: [
-                _ToggleTile(
-                  title: 'Category Revenue Mix',
-                  subtitle: 'Donut chart',
-                  value: settings.showCategoryMix,
-                  onChanged: (v) => notifier.toggle(kDashCategoryMix, v),
-                  onInfo: () =>
-                      context.push(AppRoutes.kpiHelp, extra: 'category_mix'),
-                ),
-                const _TileDivider(),
-                _ToggleTile(
-                  title: 'Shop Concentration',
-                  subtitle: 'Top shops by revenue',
-                  value: settings.showShopConcentration,
-                  onChanged: (v) => notifier.toggle(kDashShopConcentration, v),
-                  onInfo: () => context.push(
-                    AppRoutes.kpiHelp,
-                    extra: 'shop_concentration',
-                  ),
-                ),
-                const _TileDivider(),
-                _ToggleTile(
-                  title: 'Product Leaderboard',
-                  subtitle: 'Top 10 products',
-                  value: settings.showProductLeaderboard,
-                  onChanged: (v) => notifier.toggle(kDashProductLeaderboard, v),
-                  onInfo: () => context.push(
-                    AppRoutes.kpiHelp,
-                    extra: 'product_leaderboard',
-                  ),
-                ),
-                const _TileDivider(),
-                _ToggleTile(
-                  title: 'Day-of-Week Heatmap',
-                  subtitle: 'Demand by weekday',
-                  value: settings.showHeatmap,
-                  onChanged: (v) => notifier.toggle(kDashHeatmap, v),
+                  onChanged: (v) =>
+                      notifier.toggle(kDashOperationalPatterns, v),
                   onInfo: () =>
                       context.push(AppRoutes.kpiHelp, extra: 'heatmap'),
                 ),
@@ -154,8 +198,6 @@ class DashboardSettingsScreen extends ConsumerWidget {
                 'Learn what each metric means',
                 style: AppType.bodyS.copyWith(color: AppColors.textSecondary),
               ),
-              // No onTap here: the tap lives on the AppCard above so the ripple
-              // clips to rM. A ListTile with its own onTap would swallow it.
               trailing: const Icon(
                 Icons.chevron_right,
                 color: AppColors.textTertiary,
@@ -210,9 +252,6 @@ class _ToggleTile extends StatelessWidget {
             ),
             onPressed: onInfo,
           ),
-          // No colour override. switchTheme in app_theme.dart already gives
-          // this a brown thumb on a gold track; the override painted the track
-          // brown too, so "on" was a brown blob on brown.
           Switch.adaptive(value: value, onChanged: onChanged),
         ],
       ),

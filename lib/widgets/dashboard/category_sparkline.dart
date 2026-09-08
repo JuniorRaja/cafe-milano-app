@@ -35,10 +35,18 @@ class _SparklinePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // `data.length < 2` matters: the Today preset is a one-day range, and
-    // `size.width / (data.length - 1)` would divide by zero. A single day has
-    // no line to draw anyway.
-    if (data.length < 2 || data.every((v) => v == 0)) {
+    if (data.isEmpty) return;
+
+    // Single data point (Today preset): draw a dot — a line needs two points.
+    if (data.length == 1) {
+      final paint = Paint()
+        ..color = data[0] > 0 ? lineColor : AppColors.border
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(Offset(size.width / 2, size.height / 2), 3.5, paint);
+      return;
+    }
+
+    if (data.every((v) => v == 0)) {
       // Draw a flat line in the middle
       final paint = Paint()
         ..color = AppColors.border

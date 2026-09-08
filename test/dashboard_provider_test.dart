@@ -130,6 +130,8 @@ void main() {
     }
 
     test('renders averages per weekday from four weeks of orders', () async {
+      // Three weeks of data — switch to last90 so all are in range.
+      container.read(dashboardRangeProvider.notifier).selectPreset(DashboardPreset.last90);
       final monday = lastOn(today, DateTime.monday);
       final wednesday = lastOn(today, DateTime.wednesday);
 
@@ -153,6 +155,7 @@ void main() {
     });
 
     test('sums every shop on the same day before averaging', () async {
+      container.read(dashboardRangeProvider.notifier).selectPreset(DashboardPreset.last90);
       final other =
           await db.shopDao.upsertShop(ShopsCompanion.insert(name: 'Other'));
       final monday = lastOn(today, DateTime.monday);
@@ -170,6 +173,7 @@ void main() {
     });
 
     test('puts uncategorised products under a null key', () async {
+      container.read(dashboardRangeProvider.notifier).selectPreset(DashboardPreset.last90);
       final loose = await db.productDao
           .upsertProduct(ProductsCompanion.insert(name: 'Loose'));
       final monday = lastOn(today, DateTime.monday);

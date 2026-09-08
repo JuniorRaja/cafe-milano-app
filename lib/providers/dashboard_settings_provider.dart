@@ -15,6 +15,7 @@ const kDashShopConcentration = 'dash_sub_shop_concentration';
 const kDashProductLeaderboard = 'dash_sub_product_leaderboard';
 const kDashHeatmap = 'dash_sub_heatmap';
 const kDashRevenueTrend = 'dash_sub_revenue_trend';
+const kDashLedgerKpis = 'dash_ledger_kpis';
 
 final dashboardSettingsProvider =
     StateNotifierProvider<DashboardSettingsNotifier, DashboardSettings>((ref) {
@@ -42,6 +43,7 @@ class DashboardSettingsNotifier extends StateNotifier<DashboardSettings> {
       showProductLeaderboard: _prefs!.getBool(kDashProductLeaderboard) ?? true,
       showHeatmap: _prefs!.getBool(kDashHeatmap) ?? true,
       showRevenueTrend: _prefs!.getBool(kDashRevenueTrend) ?? true,
+      showLedgerKpis: _prefs!.getBool(kDashLedgerKpis) ?? true,
     );
   }
 
@@ -78,6 +80,8 @@ class DashboardSettingsNotifier extends StateNotifier<DashboardSettings> {
         return state.copyWith(showHeatmap: value);
       case kDashRevenueTrend:
         return state.copyWith(showRevenueTrend: value);
+      case kDashLedgerKpis:
+        return state.copyWith(showLedgerKpis: value);
       default:
         return state;
     }

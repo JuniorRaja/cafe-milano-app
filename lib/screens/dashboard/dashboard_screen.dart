@@ -14,6 +14,7 @@ import '../../widgets/dashboard/product_leaderboard_card.dart';
 import '../../widgets/dashboard/weekday_heatmap.dart';
 import '../../widgets/dashboard/attention_flags.dart';
 import '../../widgets/dashboard/outstanding_card.dart';
+import '../../widgets/dashboard/ledger_kpi_card.dart';
 import '../../widgets/shell/app_shell.dart';
 import '../../utils/greeting.dart';
 import '../../widgets/ui/ui.dart';
@@ -28,21 +29,16 @@ class DashboardScreen extends ConsumerWidget {
     DashboardPreset.thisMonth: 'This month',
     DashboardPreset.lastMonth: 'Last month',
     DashboardPreset.last90: 'Last 90 days',
-    DashboardPreset.custom: 'Custom\u2026',
+    DashboardPreset.custom: 'Custom…',
   };
+
+  static const _tabs = ['Sales', 'Products', 'Shops', 'Alerts'];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(dashboardSettingsProvider);
     final range = ref.watch(dashboardRangeProvider);
 
-    // The owner's own business, not one of the shops they supply. Falls back
-    // to the generic title when Business Info has not been filled in, so the
-    // header is never blank and no name is ever hardcoded.
-    // The one legitimate fallback in the app: a greeting with no name is a
-    // fine greeting, so loading and failure may share it. Written as
-    // `valueOrNull` rather than `maybeWhen(orElse:)` so that spelling stays
-    // absent from the codebase and a grep for it keeps meaning something.
     final trimmedName = ref
         .watch(businessInfoProvider)
         .valueOrNull
@@ -52,122 +48,67 @@ class DashboardScreen extends ConsumerWidget {
         ? null
         : trimmedName;
 
-    return AppScaffold(
-      // The greeting the owner asked to have back, and no name with it — see
-      // `greetingFor`. It is the caption rather than the title because the
-      // title answers what the screen *is*, and "Good morning" does not.
-      //
-      // The hour is read when this builds, so a phone left open across noon
-      // keeps the old greeting until something else rebuilds the screen. The
-      // deleted version did the same, and an hourly ticker for a caption is
-      // not worth a timer.
-      caption: greetingFor(),
-      title: businessName ?? 'Business Overview',
-      leading: const ShellDrawerButton(),
-      actions: [
-        IconButton(
-          onPressed: () => refreshDashboard(ref),
-          icon: const Icon(Icons.refresh_rounded),
-          color: AppColors.textPrimary,
-          tooltip: 'Refresh',
-        ),
-      ],
-      // The date on the left, the period control on the right. It was a
-      // scrolling row of seven pills above the date, which spent a whole band
-      // of the screen on a control that is touched once a week — and could not
-      // be shared with the Ledger, because it was wired into this screen's own
-      // range. Both screens use `HeaderMenu` now, each on its own state.
-      bottom: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpace.s4,
-          0,
-          AppSpace.s2,
-          AppSpace.s3,
-        ),
-        child: Row(
+    return DefaultTabController(
+      length: _tabs.length,
+      child: AppScaffold(
+        caption: greetingFor(),
+        title: businessName ?? 'Business Overview',
+        leading: const ShellDrawerButton(),
+        actions: [
+          IconButton(
+            onPressed: () => refreshDashboard(ref),
+            icon: const Icon(Icons.refresh_rounded),
+            color: AppColors.textPrimary,
+            tooltip: 'Refresh',
+          ),
+        ],
+        bottom: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              child: Text(
-                _formatDateIndicator(range),
-                style: AppType.bodyS.copyWith(color: AppColors.textSecondary),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpace.s4,
+                0,
+                AppSpace.s2,
+                AppSpace.s1,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _formatDateIndicator(range),
+                      style: AppType.bodyS.copyWith(color: AppColors.textSecondary),
+                    ),
+                  ),
+                  HeaderMenu<DashboardPreset>(
+                    label: _presetLabels[range.preset] ?? 'Period',
+                    tooltip: 'Change the period',
+                    values: DashboardPreset.values,
+                    labelOf: (preset) => _presetLabels[preset]!,
+                    selected: range.preset,
+                    onSelected: (preset) => _pickPeriod(context, ref, preset),
+                  ),
+                ],
               ),
             ),
-            HeaderMenu<DashboardPreset>(
-              label: _presetLabels[range.preset] ?? 'Period',
-              tooltip: 'Change the period',
-              values: DashboardPreset.values,
-              labelOf: (preset) => _presetLabels[preset]!,
-              selected: range.preset,
-              onSelected: (preset) => _pickPeriod(context, ref, preset),
+            TabBar(
+              tabs: _tabs.map((t) => Tab(text: t)).toList(),
+              labelColor: AppColors.brandDeep,
+              unselectedLabelColor: AppColors.textSecondary,
+              labelStyle: AppType.label.copyWith(fontWeight: FontWeight.w700),
+              unselectedLabelStyle: AppType.label,
+              indicatorColor: AppColors.brandPrimary,
+              indicatorWeight: 2.5,
+              dividerColor: AppColors.border,
             ),
           ],
         ),
-      ),
-      body: SingleChildScrollView(
-        // The nav bar floats over the body now, so the room for it is this
-        // screen's to leave. See `AppShell.bottomInset`.
-        padding: EdgeInsets.fromLTRB(
-          AppSpace.s4,
-          0,
-          AppSpace.s4,
-          AppShell.bottomInset(context),
-        ),
-        child: Column(
-          // The cards used to force their own `width: double.infinity`
-          // because a Column centres its children. Stretching here is the
-          // same result, said once.
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        body: TabBarView(
           children: [
-            // Section 1 — The Pulse, on the daily view only. It answers
-            // "how is today going" — against a quarter it is not a pulse, it
-            // is a different question the cards below already answer.
-            if (settings.showPulse &&
-                range.preset == DashboardPreset.today) ...[
-              const PulseCard(),
-              const SizedBox(height: AppSpace.s4),
-            ],
-
-            // Section 2 — Outstanding Receivables
-            if (settings.showOutstanding) ...[
-              const OutstandingCard(),
-              const SizedBox(height: AppSpace.s4),
-            ],
-
-            // Section 3 — Category Scorecards
-            if (settings.showCategoryCards) ...[
-              const CategoryScorecardsWidget(),
-              const SizedBox(height: AppSpace.s4),
-            ],
-
-            // Section 3 — Revenue Anatomy
-            if (settings.showRevenueAnatomy) ...[
-              if (settings.showCategoryMix) ...[
-                const RevenueMixCard(),
-                const SizedBox(height: AppSpace.s3),
-              ],
-              if (settings.showShopConcentration) ...[
-                const ShopConcentrationCard(),
-                const SizedBox(height: AppSpace.s3),
-              ],
-              if (settings.showProductLeaderboard) ...[
-                const ProductLeaderboardCard(),
-                const SizedBox(height: AppSpace.s4),
-              ],
-            ],
-
-            // Section 4 — Operational Patterns
-            if (settings.showOperationalPatterns) ...[
-              if (settings.showHeatmap) ...[
-                const WeekdayHeatmapWidget(),
-                const SizedBox(height: AppSpace.s4),
-              ],
-            ],
-
-            // Section 5 — Attention Flags (at the bottom)
-            if (settings.showAttentionFlags) ...[
-              const AttentionFlagsWidget(),
-              const SizedBox(height: AppSpace.s4),
-            ],
+            _SalesTab(settings: settings, range: range),
+            _ProductsTab(settings: settings),
+            _ShopsTab(settings: settings),
+            _AlertsTab(settings: settings),
           ],
         ),
       ),
@@ -200,7 +141,6 @@ class DashboardScreen extends ConsumerWidget {
         .selectCustomRange(picked.start, picked.end);
   }
 
-
   String _formatDateIndicator(DashboardRange range) {
     final fmt = DateFormat('d MMM');
     final fmtYear = DateFormat('d MMM yyyy');
@@ -216,10 +156,163 @@ class DashboardScreen extends ConsumerWidget {
       return fmtYear.format(start);
     }
 
-    // Same year as now — omit year from start
     if (start.year == end.year && start.year == now.year) {
       return '${fmt.format(start)} – ${fmt.format(end)}';
     }
     return '${fmtYear.format(start)} – ${fmtYear.format(end)}';
   }
+}
+
+// ─── Tab bodies ─────────────────────────────────────────────────────────────
+
+class _SalesTab extends StatelessWidget {
+  const _SalesTab({required this.settings, required this.range});
+  final DashboardSettings settings;
+  final DashboardRange range;
+
+  @override
+  Widget build(BuildContext context) {
+    final showPulse = settings.showPulse && range.preset == DashboardPreset.today;
+    final showLedger = settings.showLedgerKpis;
+    final showOutstanding = settings.showOutstanding;
+    final showMix = settings.showRevenueAnatomy && settings.showCategoryMix;
+    final showHeatmap = settings.showOperationalPatterns && settings.showHeatmap;
+
+    if (!showPulse && !showLedger && !showOutstanding && !showMix && !showHeatmap) {
+      return _empty();
+    }
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(
+        AppSpace.s4,
+        AppSpace.s4,
+        AppSpace.s4,
+        AppShell.bottomInset(context),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (showPulse) ...[
+            const PulseCard(),
+            const SizedBox(height: AppSpace.s4),
+          ],
+          if (showLedger) ...[
+            const LedgerKpiCard(),
+            const SizedBox(height: AppSpace.s4),
+          ],
+          if (showOutstanding) ...[
+            const OutstandingCard(),
+            const SizedBox(height: AppSpace.s4),
+          ],
+          if (showMix) ...[
+            const RevenueMixCard(),
+            const SizedBox(height: AppSpace.s4),
+          ],
+          if (showHeatmap) ...[
+            const WeekdayHeatmapWidget(),
+            const SizedBox(height: AppSpace.s4),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ProductsTab extends StatelessWidget {
+  const _ProductsTab({required this.settings});
+  final DashboardSettings settings;
+
+  @override
+  Widget build(BuildContext context) {
+    final showScores = settings.showCategoryCards;
+    final showLeader = settings.showRevenueAnatomy && settings.showProductLeaderboard;
+
+    if (!showScores && !showLeader) return _empty();
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(
+        AppSpace.s4,
+        AppSpace.s4,
+        AppSpace.s4,
+        AppShell.bottomInset(context),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (showScores) ...[
+            const CategoryScorecardsWidget(),
+            const SizedBox(height: AppSpace.s4),
+          ],
+          if (showLeader) ...[
+            const ProductLeaderboardCard(),
+            const SizedBox(height: AppSpace.s4),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ShopsTab extends StatelessWidget {
+  const _ShopsTab({required this.settings});
+  final DashboardSettings settings;
+
+  @override
+  Widget build(BuildContext context) {
+    final showConc = settings.showRevenueAnatomy && settings.showShopConcentration;
+
+    if (!showConc) return _empty();
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(
+        AppSpace.s4,
+        AppSpace.s4,
+        AppSpace.s4,
+        AppShell.bottomInset(context),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const ShopConcentrationCard(),
+          const SizedBox(height: AppSpace.s4),
+        ],
+      ),
+    );
+  }
+}
+
+class _AlertsTab extends StatelessWidget {
+  const _AlertsTab({required this.settings});
+  final DashboardSettings settings;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!settings.showAttentionFlags) return _empty();
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(
+        AppSpace.s4,
+        AppSpace.s4,
+        AppSpace.s4,
+        AppShell.bottomInset(context),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const AttentionFlagsWidget(),
+          const SizedBox(height: AppSpace.s4),
+        ],
+      ),
+    );
+  }
+}
+
+Widget _empty() {
+  return Center(
+    child: Text(
+      'All cards in this tab are hidden.\nCheck Dashboard settings to show them.',
+      textAlign: TextAlign.center,
+      style: AppType.bodyS.copyWith(color: AppColors.textTertiary),
+    ),
+  );
 }
