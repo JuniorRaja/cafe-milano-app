@@ -32,7 +32,7 @@ class DashboardScreen extends ConsumerWidget {
     DashboardPreset.custom: 'Custom…',
   };
 
-  static const _tabs = ['Sales', 'Products', 'Shops', 'Alerts'];
+  static const _tabs = [Tab(text: 'Sales'), Tab(text: 'Products'), Tab(text: 'Shops'), Tab(text: 'Alerts')];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -92,7 +92,7 @@ class DashboardScreen extends ConsumerWidget {
               ),
             ),
             TabBar(
-              tabs: _tabs.map((t) => Tab(text: t)).toList(),
+              tabs: _tabs,
               labelColor: AppColors.brandDeep,
               unselectedLabelColor: AppColors.textSecondary,
               labelStyle: AppType.label.copyWith(fontWeight: FontWeight.w700),
@@ -165,6 +165,11 @@ class DashboardScreen extends ConsumerWidget {
 
 // ─── Tab bodies ─────────────────────────────────────────────────────────────
 
+Widget _tabBody(BuildContext ctx, List<Widget> children) => SingleChildScrollView(
+  padding: EdgeInsets.fromLTRB(AppSpace.s4, AppSpace.s4, AppSpace.s4, AppShell.bottomInset(ctx)),
+  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
+);
+
 class _SalesTab extends StatelessWidget {
   const _SalesTab({required this.settings, required this.range});
   final DashboardSettings settings;
@@ -182,39 +187,13 @@ class _SalesTab extends StatelessWidget {
       return _empty();
     }
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(
-        AppSpace.s4,
-        AppSpace.s4,
-        AppSpace.s4,
-        AppShell.bottomInset(context),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (showPulse) ...[
-            const PulseCard(),
-            const SizedBox(height: AppSpace.s4),
-          ],
-          if (showLedger) ...[
-            const LedgerKpiCard(),
-            const SizedBox(height: AppSpace.s4),
-          ],
-          if (showOutstanding) ...[
-            const OutstandingCard(),
-            const SizedBox(height: AppSpace.s4),
-          ],
-          if (showMix) ...[
-            const RevenueMixCard(),
-            const SizedBox(height: AppSpace.s4),
-          ],
-          if (showHeatmap) ...[
-            const WeekdayHeatmapWidget(),
-            const SizedBox(height: AppSpace.s4),
-          ],
-        ],
-      ),
-    );
+    return _tabBody(context, [
+      if (showPulse) ...[const PulseCard(), const SizedBox(height: AppSpace.s4)],
+      if (showLedger) ...[const LedgerKpiCard(), const SizedBox(height: AppSpace.s4)],
+      if (showOutstanding) ...[const OutstandingCard(), const SizedBox(height: AppSpace.s4)],
+      if (showMix) ...[const RevenueMixCard(), const SizedBox(height: AppSpace.s4)],
+      if (showHeatmap) ...[const WeekdayHeatmapWidget(), const SizedBox(height: AppSpace.s4)],
+    ]);
   }
 }
 
@@ -229,27 +208,10 @@ class _ProductsTab extends StatelessWidget {
 
     if (!showScores && !showLeader) return _empty();
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(
-        AppSpace.s4,
-        AppSpace.s4,
-        AppSpace.s4,
-        AppShell.bottomInset(context),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (showScores) ...[
-            const CategoryScorecardsWidget(),
-            const SizedBox(height: AppSpace.s4),
-          ],
-          if (showLeader) ...[
-            const ProductLeaderboardCard(),
-            const SizedBox(height: AppSpace.s4),
-          ],
-        ],
-      ),
-    );
+    return _tabBody(context, [
+      if (showScores) ...[const CategoryScorecardsWidget(), const SizedBox(height: AppSpace.s4)],
+      if (showLeader) ...[const ProductLeaderboardCard(), const SizedBox(height: AppSpace.s4)],
+    ]);
   }
 }
 
@@ -263,21 +225,10 @@ class _ShopsTab extends StatelessWidget {
 
     if (!showConc) return _empty();
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(
-        AppSpace.s4,
-        AppSpace.s4,
-        AppSpace.s4,
-        AppShell.bottomInset(context),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const ShopConcentrationCard(),
-          const SizedBox(height: AppSpace.s4),
-        ],
-      ),
-    );
+    return _tabBody(context, [
+      const ShopConcentrationCard(),
+      const SizedBox(height: AppSpace.s4),
+    ]);
   }
 }
 
@@ -289,21 +240,10 @@ class _AlertsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!settings.showAttentionFlags) return _empty();
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(
-        AppSpace.s4,
-        AppSpace.s4,
-        AppSpace.s4,
-        AppShell.bottomInset(context),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const AttentionFlagsWidget(),
-          const SizedBox(height: AppSpace.s4),
-        ],
-      ),
-    );
+    return _tabBody(context, [
+      const AttentionFlagsWidget(),
+      const SizedBox(height: AppSpace.s4),
+    ]);
   }
 }
 
