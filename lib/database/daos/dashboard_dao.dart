@@ -276,18 +276,18 @@ class DashboardDao extends DatabaseAccessor<AppDatabase>
   /// The shape matches [getCategorySparklines] deliberately; they are the same
   /// query with a different window.
   Future<List<Map<String, dynamic>>> getWeekdayHeatmap(
-      DateTime fourWeeksAgo) async {
-    final startDay =
-        DateTime(fourWeeksAgo.year, fourWeeksAgo.month, fourWeeksAgo.day);
+      DateTime start, DateTime end) async {
+    final startDay = DateTime(start.year, start.month, start.day);
+    final endDay = DateTime(end.year, end.month, end.day);
     final query = customSelect(
       'SELECT p.category_id AS categoryId, o.order_date AS orderDate, '
       'SUM(ol.qty) AS daily_total '
       'FROM order_lines ol '
       'INNER JOIN daily_orders o ON ol.order_id = o.id '
       'INNER JOIN products p ON ol.product_id = p.id '
-      'WHERE o.order_date >= ? '
+      'WHERE o.order_date >= ? AND o.order_date <= ? '
       'GROUP BY o.order_date, p.category_id',
-      variables: [Variable.withDateTime(startDay)],
+      variables: [Variable.withDateTime(startDay), Variable.withDateTime(endDay)],
       readsFrom: {orderLines, dailyOrders, products},
     );
     final rows = await query.get();

@@ -15,7 +15,7 @@ final dashboardRangeProvider =
 
 class DashboardRangeNotifier extends StateNotifier<DashboardRange> {
   DashboardRangeNotifier()
-      : super(DashboardRange.fromPreset(DashboardPreset.thisWeek));
+      : super(DashboardRange.fromPreset(DashboardPreset.today));
 
   void selectPreset(DashboardPreset preset) {
     state = DashboardRange.fromPreset(preset);
@@ -105,16 +105,8 @@ final categoryScorecardsProvider =
   // hardwired to the last seven days while every number beside it followed
   // the period, so changing to a month or a quarter left the charts flat and
   // empty next to figures that had updated.
-  final sparkFrom = DateTime(
-    range.range.start.year,
-    range.range.start.month,
-    range.range.start.day,
-  );
-  final sparkTo = DateTime(
-    range.range.end.year,
-    range.range.end.month,
-    range.range.end.day,
-  );
+  final sparkFrom = range.range.start;
+  final sparkTo = range.range.end;
   final sparkDays = sparkTo.difference(sparkFrom).inDays + 1;
   final sparkRaw =
       await db.dashboardDao.getCategorySparklines(sparkFrom, sparkTo);
@@ -309,10 +301,12 @@ final productLeaderboardProvider =
 final weekdayHeatmapProvider =
     FutureProvider<Map<int?, Map<int, double>>>((ref) async {
   final db = ref.watch(databaseProvider);
-  final today = ref.watch(todayProvider);
-  final fourWeeksAgo = today.subtract(const Duration(days: 28));
+  final range = ref.watch(dashboardRangeProvider);
 
-  final rows = await db.dashboardDao.getWeekdayHeatmap(fourWeeksAgo);
+  final rows = await db.dashboardDao.getWeekdayHeatmap(
+    range.range.start,
+    range.range.end,
+  );
 
   // Every day's total, bucketed by category and weekday, before averaging.
   // A Monday with no orders contributes nothing rather than a zero: the card
@@ -427,6 +421,18 @@ final attentionFlagsProvider =
   return flags;
 });
 
+// ─── Ledger KPIs ────────────────────────────────────────────────────────────
+
+/// Billed and collected for the currently selected period.
+/// Mirrors `periodMoneyProvider` from ledger_provider.dart but watches
+/// `dashboardRangeProvider` directly so the card updates when the period
+/// picker changes without the caller passing a range parameter.
+final dashboardPeriodMoneyProvider = StreamProvider((ref) {
+  final db = ref.watch(databaseProvider);
+  final range = ref.watch(dashboardRangeProvider);
+  return db.ledgerDao.watchPeriodMoney(range.range.start, range.range.end);
+});
+
 // ─── Refresh ────────────────────────────────────────────────────────────────
 
 /// Re-reads every figure the dashboard draws.
@@ -461,4 +467,5 @@ void refreshDashboard(WidgetRef ref) {
   ref.invalidate(productLeaderboardProvider);
   ref.invalidate(weekdayHeatmapProvider);
   ref.invalidate(attentionFlagsProvider);
+  ref.invalidate(dashboardPeriodMoneyProvider);
 }

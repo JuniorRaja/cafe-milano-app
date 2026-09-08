@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../services/error_reporting.dart';
@@ -233,6 +235,8 @@ class CategoryListScreen extends ConsumerWidget {
   }
 }
 
+enum _CategoryAction { toggleActive, delete }
+
 class _CategoryRow extends ConsumerWidget {
   const _CategoryRow({
     super.key,
@@ -264,28 +268,34 @@ class _CategoryRow extends ConsumerWidget {
         ),
         child: Text(emojiFor(category.name), style: AppType.titleM),
       ),
-      badge: category.isActive
+      titleBadge: category.isActive
           ? null
           : const StatusBadge(label: 'Inactive', tone: AppTone.neutral),
       onTap: onEdit,
-      footer: Padding(
-        padding: const EdgeInsets.only(top: AppSpace.s2),
-        // Two actions, not three. Tapping the row already renames, and a
-        // third button overflowed the row on a 420pt screen — Rename was the
-        // one that was already reachable another way.
-        child: Row(
-          children: [
-            AppButton.text(label: 'Delete', onPressed: onDelete),
-            const Spacer(),
-            AppButton.text(
-              label: category.isActive ? 'Deactivate' : 'Activate',
-              onPressed: () => ref
+      badge: PopupMenuButton<_CategoryAction>(
+        icon: const Icon(Icons.more_vert_rounded, color: AppColors.textSecondary),
+        tooltip: 'More actions',
+        onSelected: (action) {
+          switch (action) {
+            case _CategoryAction.toggleActive:
+              unawaited(ref
                   .read(databaseProvider)
                   .categoryDao
-                  .setActive(category.id, !category.isActive),
-            ),
-          ],
-        ),
+                  .setActive(category.id, !category.isActive));
+            case _CategoryAction.delete:
+              onDelete();
+          }
+        },
+        itemBuilder: (_) => [
+          PopupMenuItem(
+            value: _CategoryAction.toggleActive,
+            child: Text(category.isActive ? 'Deactivate' : 'Activate'),
+          ),
+          const PopupMenuItem(
+            value: _CategoryAction.delete,
+            child: Text('Delete'),
+          ),
+        ],
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/dashboard_provider.dart';
+import '../../providers/category_provider.dart';
 import '../../services/category_emoji.dart';
 import '../ui/ui.dart';
 
@@ -12,7 +13,7 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final heatmapAsync = ref.watch(weekdayHeatmapProvider);
-    final scorecardsAsync = ref.watch(categoryScorecardsProvider);
+    final categoriesAsync = ref.watch(categoriesProvider);
 
     return RepaintBoundary(
       child: AppCard(padding: const EdgeInsets.all(20), border: Border.all(color: AppColors.border), child: Column(
@@ -30,16 +31,20 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Average demand per category per weekday (4 weeks)',
+              'Average pieces sold per weekday',
               style: AppType.caption.copyWith(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 16),
             heatmapAsync.when(
               data: (heatmap) {
                 if (heatmap.isEmpty) return _emptyState();
-                return scorecardsAsync.when(
-                  data: (scorecards) =>
-                      _buildHeatmap(heatmap, scorecards, context),
+                return categoriesAsync.when(
+                  data: (cats) {
+                    final catMap = <int?, String>{
+                      for (final c in cats) c.id: c.name,
+                    };
+                    return _buildHeatmap(heatmap, catMap, context);
+                  },
                   loading: () => _loading(),
                   error: (e, _) => _failedState(ref, e),
                 );
@@ -57,7 +62,7 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
 
   Widget _buildHeatmap(
     Map<int?, Map<int, double>> heatmap,
-    List scorecards,
+    Map<int?, String> catNames,
     BuildContext context,
   ) {
     // Find global max for colour intensity
@@ -76,12 +81,6 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
         final totalB = heatmap[b]!.values.fold<double>(0, (sum, v) => sum + v);
         return totalB.compareTo(totalA);
       });
-
-    // Build category name lookup from scorecards
-    final catNames = <int?, String>{};
-    for (final sc in scorecards) {
-      catNames[sc.categoryId] = sc.categoryName;
-    }
 
     return Column(
       children: [
@@ -179,7 +178,7 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
             Icon(Icons.grid_on_rounded, size: 28, color: AppColors.border),
             const SizedBox(height: 6),
             Text(
-              'Not enough data for heatmap (needs 4 weeks)',
+              'No data for the selected period',
               style: AppType.label.copyWith(color: AppColors.textTertiary),
             ),
           ],
@@ -215,10 +214,7 @@ class WeekdayHeatmapWidget extends ConsumerWidget {
               style: AppType.caption.copyWith(color: AppColors.textTertiary),
             ),
             TextButton(
-              onPressed: () {
-                ref.invalidate(weekdayHeatmapProvider);
-                ref.invalidate(categoryScorecardsProvider);
-              },
+              onPressed: () => ref.invalidate(weekdayHeatmapProvider),
               child: const Text('Try again'),
             ),
           ],

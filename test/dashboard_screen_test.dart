@@ -29,6 +29,7 @@ void main() {
 
   /// Only the Pulse. The other cards would each want the database.
   const onlyPulse = DashboardSettings(
+    showLedgerKpis: false,
     showOutstanding: false,
     showCategoryCards: false,
     showRevenueAnatomy: false,
@@ -144,6 +145,7 @@ void main() {
         preset: DashboardPreset.today,
         settings: const DashboardSettings(
           showPulse: false,
+          showLedgerKpis: false,
           showOutstanding: false,
           showCategoryCards: false,
           showRevenueAnatomy: false,

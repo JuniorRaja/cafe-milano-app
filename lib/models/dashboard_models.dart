@@ -227,7 +227,7 @@ class DashboardSettings {
   final bool showShopConcentration;
   final bool showProductLeaderboard;
   final bool showHeatmap;
-  final bool showRevenueTrend;
+  final bool showLedgerKpis;
 
   const DashboardSettings({
     this.showPulse = true,
@@ -240,7 +240,7 @@ class DashboardSettings {
     this.showShopConcentration = true,
     this.showProductLeaderboard = true,
     this.showHeatmap = true,
-    this.showRevenueTrend = true,
+    this.showLedgerKpis = true,
   });
 
   DashboardSettings copyWith({
@@ -254,7 +254,7 @@ class DashboardSettings {
     bool? showShopConcentration,
     bool? showProductLeaderboard,
     bool? showHeatmap,
-    bool? showRevenueTrend,
+    bool? showLedgerKpis,
   }) {
     return DashboardSettings(
       showPulse: showPulse ?? this.showPulse,
@@ -267,7 +267,7 @@ class DashboardSettings {
       showShopConcentration: showShopConcentration ?? this.showShopConcentration,
       showProductLeaderboard: showProductLeaderboard ?? this.showProductLeaderboard,
       showHeatmap: showHeatmap ?? this.showHeatmap,
-      showRevenueTrend: showRevenueTrend ?? this.showRevenueTrend,
+      showLedgerKpis: showLedgerKpis ?? this.showLedgerKpis,
     );
   }
 

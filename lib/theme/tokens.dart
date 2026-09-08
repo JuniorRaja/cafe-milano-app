@@ -53,8 +53,9 @@ abstract final class AppColors {
 
   static const textPrimary = Color(0xFF2B1A12);
   static const textSecondary = Color(0xFF7A6A5F);
-  static const textTertiary = Color(0xFFA89A8E);
+  static const textTertiary = Color(0xFF7C6A58);
   static const textOnDark = Color(0xFFFFF7EC);
+  static const textOnDarkMuted = Color(0xFFC9BDB2);
 
   // --- Semantic -------------------------------------------------------------
   //

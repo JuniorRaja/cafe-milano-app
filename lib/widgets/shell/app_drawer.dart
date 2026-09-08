@@ -82,7 +82,7 @@ class AppDrawer extends ConsumerWidget {
           ),
           child: Text(
             group.label.toUpperCase(),
-            style: AppType.caption.copyWith(color: Colors.white38),
+            style: AppType.caption.copyWith(color: AppColors.textOnDarkMuted),
           ),
         ),
       for (final dest in items)
@@ -129,7 +129,7 @@ class _DrawerHeader extends ConsumerWidget {
                 ),
                 Text(
                   brand.tagline,
-                  style: AppType.bodyS.copyWith(color: Colors.white54),
+                  style: AppType.bodyS.copyWith(color: AppColors.textOnDarkMuted),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -246,7 +246,7 @@ class _OutstandingCard extends ConsumerWidget {
               loading: () => _body(brand, null),
               error: (e, _) => Text(
                 'Outstanding unavailable',
-                style: AppType.bodyS.copyWith(color: Colors.white54),
+                style: AppType.bodyS.copyWith(color: AppColors.textOnDarkMuted),
               ),
               data: (summary) => _body(brand, summary),
             ),
@@ -266,13 +266,13 @@ class _OutstandingCard extends ConsumerWidget {
             Expanded(
               child: Text(
                 'OUTSTANDING',
-                style: AppType.caption.copyWith(color: Colors.white38),
+                style: AppType.caption.copyWith(color: AppColors.textOnDarkMuted),
               ),
             ),
             const Icon(
               Icons.arrow_forward_rounded,
               size: 16,
-              color: Colors.white38,
+              color: AppColors.textOnDarkMuted,
             ),
           ],
         ),
@@ -316,7 +316,7 @@ class _VersionFooterState extends State<_VersionFooter> {
       ),
       child: Text(
         info == null ? ' ' : 'v${info.version} (build ${info.buildNumber})',
-        style: AppType.label.copyWith(color: Colors.white24),
+        style: AppType.label.copyWith(color: AppColors.textOnDarkMuted),
       ),
     );
   }
