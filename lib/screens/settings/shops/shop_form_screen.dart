@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -181,6 +182,17 @@ class _ShopFormScreenState extends ConsumerState<ShopFormScreen> {
                           child: TextFormField(
                             controller: _phoneCtrl,
                             keyboardType: TextInputType.phone,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              LengthLimitingTextInputFormatter(10),
+                            ],
+                            validator: (v) {
+                              final phone = v?.trim() ?? '';
+                              if (phone.isEmpty) return null;
+                              return RegExp(r'^[6-9]\d{9}$').hasMatch(phone)
+                                  ? null
+                                  : 'Enter a valid 10-digit mobile number';
+                            },
                           ),
                         ),
                         const SizedBox(height: AppSpace.s4),

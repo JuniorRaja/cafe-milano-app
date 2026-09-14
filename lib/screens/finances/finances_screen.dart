@@ -56,37 +56,49 @@ class _FinancesScreenState extends ConsumerState<FinancesScreen> {
       caption: 'Money',
       title: 'Ledger',
       leading: const ShellDrawerButton(),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(outstandingByShopProvider);
-          ref.invalidate(outstandingSummaryProvider);
-        },
-        child: ListView(
-          // The nav bar floats over the body now. See `AppShell.bottomInset`.
-          padding: EdgeInsets.only(bottom: AppShell.bottomInset(context)),
-          children: [
-            _Hero(summary: summaryAsync, today: today, brand: brand),
-            _Window(
-              period: periodAsync,
-              brand: brand,
-              selected: _period,
-              onSelected: (value) => setState(() => _period = value),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(outstandingByShopProvider);
+                ref.invalidate(outstandingSummaryProvider);
+              },
+              child: ListView(
+                // The nav bar floats over the body now. See `AppShell.bottomInset`.
+                padding: EdgeInsets.only(bottom: AppShell.bottomInset(context)),
+                children: [
+                  _Hero(summary: summaryAsync, today: today, brand: brand),
+                  _Window(
+                    period: periodAsync,
+                    brand: brand,
+                    selected: _period,
+                    onSelected: (value) => setState(() => _period = value),
+                  ),
+                  const SizedBox(height: AppSpace.s2),
+                  _OwedList(
+                    shops: shopsAsync,
+                    today: today,
+                    brand: brand,
+                    sort: _sort,
+                    onSort: (value) => setState(() => _sort = value),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: AppSpace.s2),
-            _OwedList(
-              shops: shopsAsync,
-              today: today,
-              brand: brand,
-              sort: _sort,
-              onSort: (value) => setState(() => _sort = value),
+          ),
+          // Fixed above the floating nav bar. Only the nav bar itself hides on
+          // scroll — this button stays put.
+          Positioned(
+            right: AppSpace.s4,
+            bottom: AppShell.bottomInset(context) + AppSpace.s2,
+            child: FloatingActionButton.extended(
+              onPressed: () => _recordPayment(context, ref),
+              icon: const Icon(Icons.payments_outlined),
+              label: const Text('Record payment'),
             ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _recordPayment(context, ref),
-        icon: const Icon(Icons.payments_outlined),
-        label: const Text('Record payment'),
+          ),
+        ],
       ),
     );
   }

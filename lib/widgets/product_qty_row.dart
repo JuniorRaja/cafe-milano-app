@@ -93,11 +93,14 @@ class ProductQtyRow extends ConsumerWidget {
               ),
               SizedBox(
                 width: 40,
-                child: Text(
-                  qty.toString(),
-                  textAlign: TextAlign.center,
-                  style: AppType.displayL.copyWith(
-                    color: qty == 0 ? AppColors.textTertiary : null,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    qty.toString(),
+                    textAlign: TextAlign.center,
+                    style: AppType.displayL.copyWith(
+                      color: qty == 0 ? AppColors.textTertiary : null,
+                    ),
                   ),
                 ),
               ),

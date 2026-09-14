@@ -86,7 +86,7 @@ class ProductLeaderboardCard extends ConsumerWidget {
                 ),
               ),
               SizedBox(
-                width: 36,
+                width: 46,
                 child: Text(
                   'Shops',
                   style: AppType.caption.copyWith(fontWeight: FontWeight.w600, color: AppColors.textSecondary),
@@ -197,7 +197,7 @@ class _ProductRow extends ConsumerWidget {
           ),
           // Shop count
           SizedBox(
-            width: 36,
+            width: 46,
             child: Text(
               '${row.shopCount}',
               style: AppType.caption.copyWith(color: AppColors.textSecondary),
