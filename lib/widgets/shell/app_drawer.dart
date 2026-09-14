@@ -157,9 +157,9 @@ class _DrawerRow extends StatelessWidget {
       ),
       child: Material(
         color: active ? AppColors.bg : Colors.transparent,
-        borderRadius: AppRadius.rFull,
+        borderRadius: AppRadius.rM,
         child: InkWell(
-          borderRadius: AppRadius.rFull,
+          borderRadius: AppRadius.rM,
           onTap: () => _go(context),
           child: Padding(
             padding: const EdgeInsets.symmetric(

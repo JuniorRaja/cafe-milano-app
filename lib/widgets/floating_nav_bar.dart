@@ -94,14 +94,51 @@ class _FloatingNavBarState extends State<FloatingNavBar>
       padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
       child: SizedBox(
         height: FloatingNavBar.height,
-        child: Row(
+        child: Stack(
           children: [
-            for (var i = 0; i < _slots.length; i++)
-              Expanded(child: _Slot(
-                destination: _slots[i],
-                selected: widget.selectedIndex == i,
-                onTap: () => widget.onDestinationSelected(i),
-              )),
+            // The selection pill. One indicator that slides to the selected
+            // slot, rather than each slot drawing its own static highlight —
+            // that is what makes switching read as movement instead of five
+            // icons independently blinking color.
+            AnimatedAlign(
+              duration: _reducedMotion
+                  ? Duration.zero
+                  : const Duration(milliseconds: 250),
+              curve: Curves.easeOut,
+              alignment: Alignment(
+                _slots.length > 1
+                    ? -1 + 2 * widget.selectedIndex / (_slots.length - 1)
+                    : 0,
+                0,
+              ),
+              child: FractionallySizedBox(
+                widthFactor: 1 / _slots.length,
+                heightFactor: 1,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 8,
+                  ),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: AppColors.brandPrimary.withValues(alpha: 0.22),
+                      borderRadius: AppRadius.rL,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                for (var i = 0; i < _slots.length; i++)
+                  Expanded(child: _Slot(
+                    destination: _slots[i],
+                    selected: widget.selectedIndex == i,
+                    reducedMotion: _reducedMotion,
+                    onTap: () => widget.onDestinationSelected(i),
+                  )),
+              ],
+            ),
           ],
         ),
       ),
@@ -125,16 +162,21 @@ class _Slot extends StatelessWidget {
   const _Slot({
     required this.destination,
     required this.selected,
+    required this.reducedMotion,
     required this.onTap,
   });
 
   final AppDestination destination;
   final bool selected;
+  final bool reducedMotion;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final color = selected ? AppColors.brandDeep : AppColors.textTertiary;
+    final duration = reducedMotion
+        ? Duration.zero
+        : const Duration(milliseconds: 200);
 
     return Semantics(
       selected: selected,
@@ -144,21 +186,40 @@ class _Slot extends StatelessWidget {
         type: MaterialType.transparency,
         child: InkWell(
           onTap: onTap,
+          // The sliding pill is the only tap feedback this bar wants — the
+          // default grey splash/highlight on top of it read as a mistake.
+          splashFactory: NoSplash.splashFactory,
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                selected ? destination.selectedIcon : destination.icon,
-                size: 22,
-                color: color,
+              AnimatedScale(
+                scale: selected ? 1.1 : 1.0,
+                duration: duration,
+                curve: Curves.easeOut,
+                child: AnimatedSwitcher(
+                  duration: duration,
+                  transitionBuilder: (child, anim) =>
+                      ScaleTransition(scale: anim, child: child),
+                  child: Icon(
+                    selected ? destination.selectedIcon : destination.icon,
+                    key: ValueKey(selected),
+                    size: 22,
+                    color: color,
+                  ),
+                ),
               ),
               const SizedBox(height: 2),
-              Text(
-                destination.label,
+              AnimatedDefaultTextStyle(
+                duration: duration,
                 style: AppType.caption.copyWith(color: color),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
+                child: Text(
+                  destination.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                ),
               ),
             ],
           ),
