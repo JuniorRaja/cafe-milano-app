@@ -364,7 +364,7 @@ breakpoint layouts, no desktop build — now or later.
 
 Three things are already committed and change what "good structure" means:
 
-- **[Doc 14](features/14-supabase-auth.md) — Supabase, auth, three roles.** Owner /
+- **[Doc 14](archive/14-supabase-auth.md) — Supabase, auth, three roles.** Owner /
   manager / staff. A staff member sees counter stock and the kitchen list and nothing
   else. **Navigation is where a role becomes visible**, so the drawer has to be built
   role-aware from the start even though the role is hardcoded to `owner` until 14
@@ -403,5 +403,5 @@ Three things are already committed and change what "good structure" means:
 
 Nothing in this table is in the database layer. That is the useful conclusion: the
 data model, the DAOs and the tests are sound, and **the entire cost of this overhaul
-sits above the provider line**, which is also the layer [doc 14](features/14-supabase-auth.md)
+sits above the provider line**, which is also the layer [doc 14](archive/14-supabase-auth.md)
 promises not to touch. The two pieces of work do not collide.

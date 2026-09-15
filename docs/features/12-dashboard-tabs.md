@@ -7,7 +7,7 @@
 | **Schema** | No change |
 | **Requires** | [07](07-ledger-statements.md) for its data, [10c](10c-screen-restyle.md) for migrated screens |
 | **Absorbs** | Lifecycle audit **Phase 4** — Riverpod modernisation |
-| **Status** | **Outline** — expand action items before starting |
+| **Status** | **Code merged into `master`, release not cut** — `pubspec.yaml` is still `1.12.0+16` |
 
 ## Why
 

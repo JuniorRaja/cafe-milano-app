@@ -2,13 +2,13 @@
 
 | | |
 |---|---|
-| **Target version** | `2.1.0+20` |
+| **Target version** | **unassigned** — parked |
 | **Type** | Feature |
 | **Schema** | No change |
-| **Requires** | [14 — Supabase, auth & roles](14-supabase-auth.md) |
+| **Requires** | Nothing. Works on the local SQLite database |
 | **Builds on** | [10a — Design system & UI foundation](10a-design-system.md) — this screen is what its component kit was designed against |
 | **Followed by** | [16 — Weekly AI report](16-weekly-ai-report.md) |
-| **Status** | **Outline** — expand action items before starting |
+| **Status** | **Parked 2026-09-14** — not in the release sequence. No decision on when |
 
 ## Why
 
@@ -214,7 +214,7 @@ owner already has and the feature has failed.
 - [ ] `lib/database/daos/suggestion_dao.dart` — new. **One** query returning 8 weeks
       of `order_lines` joined to `daily_orders` for all active shops, plus one for
       standing orders and one for prices. Three round trips total, never per-shop.
-      *(After [doc 14](14-supabase-auth.md) this is a Supabase query module rather
+      *(After [doc 14](../archive/14-supabase-auth.md) this is a Supabase query module rather
       than a Drift DAO; it belongs wherever that port put the others and keeps the
       same DAO-shaped interface, per doc 14's rule that provider signatures do not
       change.)*

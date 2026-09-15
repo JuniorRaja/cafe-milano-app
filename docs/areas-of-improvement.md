@@ -32,9 +32,10 @@ violates the layering rule in AGENTS.md and blocks testability.
 - `backup_restore_screen.dart`
 - And 8+ more screens
 
-**Action:** Implement doc 14a (`docs/features/14a-repository-seam.md`). Move all
-write operations to providers. Screens should only call provider methods, never
-access the database directly.
+**Action:** Doc 14a is **dropped** (`docs/archive/14a-repository-seam.md`) — it
+existed to make the Supabase port safe, and there is no port. The cleanup is still
+worth doing when a screen is open for other reasons: move write operations to
+providers, so screens call provider methods instead of the database.
 
 **Example refactor:**
 

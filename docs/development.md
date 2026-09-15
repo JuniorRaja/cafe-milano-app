@@ -123,7 +123,7 @@ Step 7 gets skipped and step 7 corrupts real data. Do it.
 |---|---|
 | Anything the user can see or feel | minor |
 | Invisible fix, refactor, or tooling | patch |
-| The Supabase port | major |
+| The app can be rebuilt for another business | major |
 
 The build number `+N` goes up by one every release. It never resets and never skips. A
 release with both a feature and a fix takes the minor bump.

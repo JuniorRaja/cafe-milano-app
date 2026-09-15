@@ -1,331 +1,197 @@
 # Milano Orders — Roadmap
 
-> Last updated: 2026-08-29
-> Current shipped version: **1.10.0+14** · schema v6
-> **Scope revised 2026-08-28.** See *What changed and why* below before reading anything else.
+> Last updated: 2026-09-15
+> Shipped version: **1.12.0+16** · schema v6 (frozen)
 
-This is the index. Every feature has its own self-contained plan in `docs/features/`,
-sized to ship as **one release**. Build one, bump `pubspec.yaml`, push to `master`,
-let CI cut the release, move to the next.
+This is the index. Each feature has its own plan in `docs/features/`, sized to ship as
+one release. Build it, bump `pubspec.yaml`, push to `master`, let CI cut the release,
+move to the next.
 
-Superseded plans (v1–v5 roadmaps, the original PRD, the release planner) live in
-`docs/archive/`. They are history — read them for rationale, never for current scope.
+Three files carry the working knowledge: [`AGENTS.md`](../AGENTS.md) (rules — read first),
+[`docs/architecture.md`](architecture.md) (facts), [`docs/development.md`](development.md)
+(procedures). Update them in the same commit as any change they describe.
 
-Two current-state records feed this plan:
-
-- [`docs/app-audit.md`](app-audit.md) — structure, visual design, perceived performance.
-  The [10](features/10-ui-overhaul.md) block is built from it.
-- [`docs/flutter-lifecycle-audit.md`](flutter-lifecycle-audit.md) — framework-level
-  correctness: app lifecycle, widget lifecycle, async safety, Riverpod architecture.
-  Its six phases are distributed across the releases below rather than shipping as a
-  block of their own.
-
-Three files carry the working knowledge. [`AGENTS.md`](../AGENTS.md) holds the rules and
-is the file to read first. [`docs/architecture.md`](architecture.md) holds the facts — the
-stack, the data model, the routes and the design system.
-[`docs/development.md`](development.md) holds the procedures — setup, tests and release.
-All three are updated in the same commit as any change they describe.
+Old plans live in `docs/archive/`. History only.
 
 ---
 
-## What changed and why — 2026-08-28
+## What changed — 2026-09-14
 
-Four decisions, taken by the owner, that reshape everything below.
+The owner cut the cloud from the plan. Four decisions:
 
 | Decision | Effect |
 |---|---|
-| **No stock counting.** This app is production, supply, billing and collection. It does not count inventory | [11 — Counter stock](features/11-counter-stock.md) is **dropped**. The Drift schema chain freezes at **v6** — no v7, no v8, ever. [12](features/12-dashboard-tabs.md), [16](features/16-weekly-ai-report.md) and [17](features/17-white-label.md) lose their stock sections |
-| **The UI revamp goes in before any feature work**, and the performance fixes inside it get finished rather than left half-measured | [10a](features/10a-design-system.md) ships as built; the four device-measured criteria it left unticked become a named release, not a footnote |
-| **The lifecycle and performance audit moves up**, and the project gets written down so later work is structured | New release [18](features/18-foundation-guardrails.md) lands the lint guardrails now, plus three agent docs: `AGENTS.md` (rules), [`architecture.md`](architecture.md) (facts), [`development.md`](development.md) (procedures). The remaining audit phases fold into the releases that already touch the same files |
-| **Supabase for data and storage. Supabase Auth, with public signup disabled. One user, no roles. Biometric unlock on top** | [14](features/14-supabase-auth.md) loses the three-tier role matrix and the per-role RLS table entirely. [16](features/16-weekly-ai-report.md) and [17](features/17-white-label.md) lose their role gating |
+| **No backend. No login.** The app stays local-first on SQLite (Drift) with one user and no auth | [14 — Supabase](archive/14-supabase-auth.md) is **dropped** and archived. [14a — repository seam](archive/14a-repository-seam.md) is **dropped** with it — it existed only to make that port safe |
+| **White-label is next after the dashboard tabs**, and it works without a server | [17](features/17-white-label.md) rewritten: config comes from a per-business file compiled into the build, plus a settings screen for the words and the currency. No config table, no tenant database |
+| **The weekly AI report runs on the phone**, with the owner's own Anthropic API key pasted into Settings | [16](features/16-weekly-ai-report.md) rewritten: no Edge Function, no cron, no email. The owner taps a button and gets the report |
+| **Update flow finished right after white-label**, because both touch the same release pipeline | [13](features/13-distribution-docs.md) rewritten: per-business builds, per-business update check, one download page |
+| **Code goes private; downloads move to a public downloads-only repo** (2026-09-15) | [13](features/13-distribution-docs.md): CI publishes to `orderflow-releases` with a token scoped to that repo. APKs are named by a random `DOWNLOAD_ID`, never a business name. **No second business is onboarded until this is done** |
 
-Also settled: **white-label comes after Supabase**, unchanged from before.
+**Parked:** [15 — auto order suggestions](features/15-auto-order-suggestions.md). Works
+fine locally, no decision taken on when. Not in the sequence below.
 
 ### What was dropped
 
-| Doc | Status | Why |
-|---|---|---|
-| [06 — Ledger manual allocation](features/06-ledger-manual-allocation.md) | Deferred | FIFO auto-allocation covers the real cases. Reopen if it bites |
-| [09 — Exclude shops from grand total](features/09-shop-exclusion.md) | Dropped | Owner's call, 2026-08-27. Not wanted |
-| [11 — Counter stock](features/11-counter-stock.md) | **Dropped** | Owner's call, 2026-08-28. Out of scope for this product |
+| Doc | Why |
+|---|---|
+| [06 — Ledger manual allocation](features/06-ledger-manual-allocation.md) | FIFO auto-allocation covers the real cases |
+| [09 — Exclude shops from grand total](features/09-shop-exclusion.md) | Owner's call, 2026-08-27 |
+| [11 — Counter stock](features/11-counter-stock.md) | Owner's call, 2026-08-28. This app does not count stock |
+| [14 — Supabase, auth](archive/14-supabase-auth.md) | Owner's call, 2026-09-14. Local-first, single user |
+| [14a — Repository seam](archive/14a-repository-seam.md) | Dropped with 14. Work with no reader |
 
-Their docs stay in place as the record of what was considered and declined. Do not
-resurrect one without a fresh decision written into this table.
-
----
-
-## Branching
-
-**`master` is production.** It only receives finished, verified releases.
-
-- Never commit to `master` directly.
-- One branch per release: `release/1.10.0-design-system`, `release/1.11.0-navigation`.
-- Merge to `master` only when the readiness gate below passes.
-- The merge **is** the release — CI reacts to the version change on `master`.
-
-Do not open a single long-lived branch for the whole plan. It accumulates into one
-unreviewable merge, which is the thing this policy exists to avoid.
-
-Commits are cheap. Releases are the meaningful unit. Commit to the branch as often as you
-like; bump the version once, at the end.
-
-## What a release must be
-
-**Every release leaves the app fully usable.** No release ships a half-migrated state —
-half the screens restyled, half the routes moved, half the providers ported. If the work
-cannot land whole, it is not one release.
-
-**Every release can be described in one sentence the owner cares about.** If the only
-honest sentence is "internal cleanup", the release is too thin — merge it into the one
-before or after. Two of the nine releases below are grouped for exactly this reason.
-
-## The readiness gate
-
-Run this before every merge to `master`. All eight, no exceptions.
-
-1. Every **Success criterion** in the feature doc is ticked.
-2. `flutter test` — green. Zero failures, zero skips.
-3. `flutter analyze` — clean.
-4. `./tool/check_tokens.sh` — passes.
-5. The APK is installed on the real phone.
-6. The smoke pass is done on that phone: order entry → kitchen → billing → ledger →
-   record a payment → export a statement.
-7. A backup exported from the **previous** version restores into this one.
-8. `version:` in `pubspec.yaml` is bumped.
-
-Step 7 is the one that gets skipped and the one that corrupts real data. Do it.
-
-## Versioning rules
-
-| Change | Bump | Example |
-|---|---|---|
-| Anything the user can see or feel | **minor** | `1.9.2` → `1.10.0` |
-| Invisible fix, refactor, or tooling | **patch** | `1.13.0` → `1.13.1` |
-| Supabase / auth | **major** | `1.x` → `2.0.0` |
-
-- **A restyle is a minor bump.** The old rule called it a patch, because it adds no new
-  capability. That was wrong from the phone: the owner opens a different-looking app, and
-  the version number should say so. Revised 2026-08-28.
-- Build number (`+N`) increments by **one on every release**, without exception.
-  It never resets and never skips.
-- A release containing both a feature and fixes takes the **minor** bump — the
-  highest-order change in the release decides.
-- `2.0.0` is reserved. Nothing reaches it before the Supabase migration.
-- `3.0.0` is reserved for [17](features/17-white-label.md), which changes the Android
-  `applicationId` — a build that cannot upgrade over an existing install, and the end of
-  the single `releases/latest` feed [01](features/01-in-app-update.md) and
-  [13](features/13-distribution-docs.md) both depend on.
-
-## Status legend
-
-`Ready` — spec is complete, can be built as written.
-`Outline` — substance captured, expand the action items before starting.
-`Built` — code is on its release branch and green, but the readiness gate is not
-finished. Not shipped, and not to be treated as shipped.
-`Done` — shipped; doc kept as the record of what was built.
-`Dropped` — decided against; doc kept as the record of the decision.
+Docs stay as the record of the decision. Do not resurrect one without adding a row here.
 
 ---
 
 ## Release sequence
 
-| # | Feature | Version | Type | Schema | Status |
-|---|---|---|---|---|---|
-| [01](features/01-in-app-update.md) | In-app update check | `1.6.0+6` | feature | — | Done |
-| [02](features/02-shipped-data-fix.md) | Shipped-data cleanup | `1.6.0+6` | fix | — | Done |
-| [03](features/03-db-integrity.md) | FK enforcement + indexes | `1.6.1+7` | fix | v4→v5 | Done |
-| [04](features/04-dashboard-performance.md) | Dashboard query cleanup | `1.6.2+8` | fix | — | Done |
-| [05](features/05-ledger-foundation.md) | Ledger — payments & balances | `1.7.0+9` | feature | v5→v6 | Done |
-| [07](features/07-ledger-statements.md) | Ledger — statements & outstanding | `1.8.0+10` | feature | — | Done |
-| [08](features/08-order-entry-swipe.md) | Digit-wheel quantity entry | `1.9.0+11` | feature | — | Done |
-| — | Backup/import schema compatibility | `1.9.1+12` | fix | — | Done |
-| — | Stop seeding default categories | `1.9.2+13` | fix | — | Done |
-| [10a](features/10a-design-system.md) + [18](features/18-foundation-guardrails.md) | New look, faster, quantities never lost | `1.10.0+14` | feature | — | Done |
-| [10b](features/10b-navigation.md) + [10b device pass](features/10b-device-pass.md) | Everything reachable in 2 taps, and the phone's list of what was wrong with it | `1.11.0+15` | feature | — | **Built, device pass planned** — on `release/1.11.0-navigation` |
-| [10c](features/10c-screen-restyle.md) | Every screen rebuilt, real error messages | `1.12.0+16` | feature | — | **Shipped 2026-09-06** — token ratchet at 0 and blocking |
-| [12](features/12-dashboard-tabs.md) | Dashboard in tabs, updating live | `1.13.0+17` | feature | — | Outline |
-| [13](features/13-distribution-docs.md) + [14a](features/14a-repository-seam.md) | Download page, and the cleanup 2.0 needs | `1.13.1+18` | fix | — | 13 Outline, 14a Ready |
-| [14](features/14-supabase-auth.md) | Cloud data, login, second device | `2.0.0+19` | major | port v6 | Outline |
-| [15](features/15-auto-order-suggestions.md) | Suggested orders from history | `2.1.0+20` | feature | — | Outline |
-| [16](features/16-weekly-ai-report.md) | Weekly business report | `2.2.0+21` | feature | pg: `weekly_reports` | Outline |
-| [17](features/17-white-label.md) | White-label | `3.0.0+22` | major | pg: `tenant_config` | Outline |
+| # | Feature | Version | Type | Status |
+|---|---|---|---|---|
+| [01](features/01-in-app-update.md) | In-app update check | `1.6.0+6` | feature | Done |
+| [02](features/02-shipped-data-fix.md) | Shipped-data cleanup | `1.6.0+6` | fix | Done |
+| [03](features/03-db-integrity.md) | FK enforcement + indexes | `1.6.1+7` | fix | Done |
+| [04](features/04-dashboard-performance.md) | Dashboard query cleanup | `1.6.2+8` | fix | Done |
+| [05](features/05-ledger-foundation.md) | Ledger — payments & balances | `1.7.0+9` | feature | Done |
+| [07](features/07-ledger-statements.md) | Ledger — statements & outstanding | `1.8.0+10` | feature | Done |
+| [08](features/08-order-entry-swipe.md) | Digit-wheel quantity entry | `1.9.0+11` | feature | Done |
+| — | Backup/import schema compatibility | `1.9.1+12` | fix | Done |
+| — | Stop seeding default categories | `1.9.2+13` | fix | Done |
+| [10a](features/10a-design-system.md) + [18](features/18-foundation-guardrails.md) | New look, faster, quantities never lost | `1.10.0+14` | feature | Done |
+| [10b](features/10b-navigation.md) + [device pass](features/10b-device-pass.md) | Everything reachable in 2 taps | `1.11.0+15` | feature | Done |
+| [10c](features/10c-screen-restyle.md) | Every screen rebuilt, real error messages | `1.12.0+16` | feature | Done |
+| [12](features/12-dashboard-tabs.md) | Dashboard in tabs, updating live | `1.13.0+17` | feature | **Code on `master`, release not cut** |
+| [17](features/17-white-label.md) | Rebuild the app for another business | `2.0.0+18` | major | Ready |
+| [13](features/13-distribution-docs.md) | Private code, public downloads, updates that pick the right build | `2.1.0+19` | feature | Ready |
+| [16](features/16-weekly-ai-report.md) | Weekly report written by Claude, on the phone | `2.2.0+20` | feature | Ready |
 
-**Two rows carry two docs each.** The *Feature* column is the sentence the owner would be
-told, not the doc title. That is the test a release has to pass.
+### The three releases left, in one sentence each
 
-- **`1.10.0+14` = 10a + 18.** 10a alone is a look-and-speed change with a red test and no
-  guardrails. 18 alone is lint config and a bug fix. Together they are one release that
-  can be described, and the first in the new sequence to go out fully green.
-- **`1.13.1+18` = 13 + 14a.** Neither is visible in the app. Grouped so there is one
-  housekeeping release before `2.0.0`, not two.
-
-**01 and 02 shipped together as `1.6.0+6`** — the same precedent.
-
-`1.9.1+12` and `1.9.2+13` were unplanned fixes taken ahead of the queue. They are
-listed so the build-number chain reads continuously; neither has a feature doc.
+- **`2.0.0+18` — white-label.** The product becomes **OrderFlow**, with neutral words —
+  "customer" instead of "shop", "production" instead of "kitchen". One config file per
+  business sets its own name, logo, colour, words and currency.
+  `flutter build apk --flavor acme` produces that business's app. Milano becomes
+  `businesses/milano.json`, keeps its package id, and looks exactly as it does today.
+  **Ships with only `milano.json` and the fake `example.json`** — the code repo is still
+  public at this point.
+- **`2.1.0+19` — private code, public downloads.** The code repo goes private. CI
+  publishes every business's APK to one release in the public `orderflow-releases` repo,
+  named `OrderFlow-<DOWNLOAD_ID>-<tag>.apk`. All businesses share one version number. The
+  update check reads the public repo and matches its own ID. The download page lives there
+  too, filtered by `?b=<id>`. Migration order: ship to both repos → confirm on Milano's
+  phone → only then make the code repo private.
+- **`2.2.0+20` — weekly AI report.** The owner pastes their own Anthropic API key into
+  Settings and taps *Generate*. The app sends last week's totals and gets back a short
+  written report. Saved on the device, shareable as text.
 
 ---
 
-## Why this order
+## Branching
 
-**The UI foundation goes in before the remaining feature work**, and the framework-level
-work goes in with it rather than after it.
+**`master` is production.** It only receives finished releases.
 
-**[10a](features/10a-design-system.md) shipped in `1.10.0+14`.** Tokens, `BrandConfig`,
-a 15-component kit, the `autoDispose` sweep, the pre-blurred background and the splash
-rework. It did not go out alone, for the reasons in
-[18](features/18-foundation-guardrails.md), and the release also carried the swap from
-Quicksand to **Raleway** — the owner's call, made during the device pass.
+- Never commit to `master` directly.
+- One branch per release: `release/2.0.0-white-label`.
+- Merge only when the readiness gate passes. The merge **is** the release — CI reacts to
+  the version change on `master`.
+- Commit as often as you like. Bump the version once, at the end.
 
-**[18](features/18-foundation-guardrails.md) ships in the same release as 10a** and it
-exists for three reasons the owner named directly:
+## What a release must be
 
-1. 10a's performance work is **half-measured**. Four of its success criteria need a
-   physical device and were left unticked — cold start, list paint, frame rate, and
-   subscription leaks. Code that is written but never measured is not finished, and the
-   next release builds on top of it either way.
-2. The lifecycle audit's **Phase 0 guardrails** cost half a day and make every later
-   phase enforceable. Landing them after the refactors they govern is backwards.
-3. `AGENTS.md` is five lines of style rules. It needs to be the architecture map before
-   twenty screens get rebuilt, not after.
+Every release leaves the app fully usable. No half-migrated state. If the work cannot
+land whole, it is not one release.
 
-It also pulls one defect forward out of Phase 2: **order quantities typed in the last
-500 ms before leaving order entry are silently discarded.** That is live data loss on the
-app's busiest screen. It does not wait for the restyle.
+Every release can be described in one sentence the owner cares about. "Internal cleanup"
+is too thin — merge it into the release before or after.
 
-And it fixes the red `migration_test.dart`. **The first release of the new sequence must
-go out fully green** — that is what makes a push to `master` a non-event rather than
-something to be nervous about.
+## The readiness gate
 
-**[10b](features/10b-navigation.md) then [10c](features/10c-screen-restyle.md)**, in that
-order, unchanged. 10b rearranges where screens live; 10c rebuilds what is inside them.
-Docs 12 onward then build onto already-migrated screens and no screen is built twice.
+Run all eight before every merge to `master`.
 
-**[14a](features/14a-repository-seam.md) is not optional.** [14](features/14-supabase-auth.md)
-promises that no screen file changes during the DAO port. Today 13 screen files reach
-`databaseProvider` directly, 23 times. Without the seam that promise is impossible and
-the Supabase port becomes a rewrite of every screen. Half a day of insurance against the
-riskiest release in the plan. It rides with [13](features/13-distribution-docs.md) because
-alone it is invisible — and `1.13.1+18` is then the **last stable local-only build**, the
-one to fall back to if the Supabase port stalls.
+1. Every **Success criterion** in the feature doc is ticked.
+2. `flutter test` — green.
+3. `flutter analyze` — clean.
+4. `./tool/check_tokens.sh` — passes.
+5. The APK is installed on the real phone.
+6. Smoke pass on that phone: order entry → kitchen → billing → ledger → record a payment
+   → export a statement.
+7. A backup exported from the **previous** version restores into this one.
+8. `version:` in `pubspec.yaml` is bumped.
 
-The original reasoning for the first four releases, kept because it still explains the
-shape of what shipped:
+Step 7 is the one that gets skipped and the one that corrupts real data. Do it.
 
-- **01 + 02 first** because the update channel is what makes every later release
-  reach the phone without a manual WhatsApp hand-off, and because the shipped-data
-  problem was live on a public repo.
-- **03 before 05** because the ledger introduces `payment_allocations`, whose rows
-  are meaningless if their parent payment or order can vanish.
-- **05–07 next** because the shop ledger is the actual business need driving this
-  round of work.
+## Versioning
 
-## Where the lifecycle audit phases went
+| Change | Bump |
+|---|---|
+| Anything the user can see or feel | minor |
+| Invisible fix, refactor or tooling | patch |
+| The app can be rebuilt for another business | major (`2.0.0`) |
 
-[`docs/flutter-lifecycle-audit.md`](flutter-lifecycle-audit.md) proposed six phases as a
-standalone ~9-day block. They ship distributed instead, each phase folded into the
-release that already opens the same files. Nothing is dropped.
+- Build number `+N` increments by one on every release. Never resets, never skips.
+- A release with a feature and fixes takes the minor bump.
+- `2.0.0` is white-label. `2.0.0` was reserved for Supabase; that is dropped, so
+  white-label takes it.
 
-| Phase | Ships in | Why there |
-|---|---|---|
-| **0** — Guardrails (lints, CI) | [18](features/18-foundation-guardrails.md) | Must precede the refactors it governs |
-| **1** — App lifecycle (container, seeding, splash route, `AppLifecycleListener`, self-correcting `todayProvider`, error observability) | [10b](features/10b-navigation.md) | 10b already rewrites `app.dart`'s router and shell. Same files, one diff |
-| **2** — The three defects | Split: the debounce flush → [18](features/18-foundation-guardrails.md) (live data loss, does not wait); the rest → [10c](features/10c-screen-restyle.md) | Order entry and the payment sheet are screens 10c rebuilds anyway |
-| **3** — `AsyncValue` discipline, `AppErrorView` | [10c](features/10c-screen-restyle.md), with the widget itself added to the kit in [18](features/18-foundation-guardrails.md) | Twelve error-swallowing `orElse` sites and sixteen raw `Text('Error: $e')` sites are all in screens |
-| **4** — Riverpod modernisation, dashboard `StreamProvider`s | [12](features/12-dashboard-tabs.md) | 12 needs lazy per-tab providers regardless. `_refreshDashboard` dies there |
-| **5** — Repository seam, `didUpdateWidget`, `StatefulWidget` → `ConsumerWidget` | [14a](features/14a-repository-seam.md) | It is the precondition for the Supabase port, not general cleanup |
-| **6** — Theme and router from the tree | Mostly landed in [10a](features/10a-design-system.md); the remainder — `routerProvider` and the 96 global colour reads — in [10c](features/10c-screen-restyle.md) | 10c drives the deprecated-alias count to zero, and those aliases *are* the 96 colour reads |
+## Status legend
+
+`Ready` — can be built as written.
+`Outline` — substance captured, expand before starting.
+`Built` — code is green on its branch, gate not finished. Not shipped.
+`Done` — shipped.
+`Dropped` — decided against.
+
+---
 
 ## Schema
 
-**The Drift chain is frozen at v6.** With counter stock dropped and shop exclusion
-dropped, there is no v7 and no v8. This is the single largest simplification in the
-revised plan and it has a specific consequence worth stating:
+**The Drift chain is frozen at v6.** No v7. Nothing in the three remaining releases adds
+a table:
 
-> **`lib/services/backup_service.dart` stops being a recurring trap.** It was the
-> standing risk in every schema doc. With the chain frozen, it needs to round-trip
-> exactly what exists today — and that makes it a stable, trustworthy source for
-> [14](features/14-supabase-auth.md)'s one-time import.
+- White-label settings (words, currency) go in `shared_preferences`, not the database.
+- Weekly reports are written as JSON files in the app documents directory.
 
-| Version | Introduced by | Change |
-|---|---|---|
-| v6 | *shipped* | current, and final for Drift — payments, allocations, shop opening balance |
-| pg | [16](features/16-weekly-ai-report.md) | `weekly_reports` — post-port, Postgres only, server-written |
-| pg | [17](features/17-white-label.md) | `tenant_config` — post-port, one row per tenant project |
+That keeps `lib/services/backup_service.dart` stable — it round-trips exactly what exists
+today and nothing more.
 
-Neither `pg` row is a `backup_service.dart` obligation — by then Drift and the JSON
-backup path are gone.
+If a schema change ever becomes necessary again, the old rule returns: extend
+`backup_service.dart` in the same commit, and run the full upgrade chain against a real
+v4 install before shipping.
 
-If a schema change ever does become necessary again, the old rule returns in full:
-**extend `backup_service.dart` in the same commit**, and run the full upgrade chain
-against a real v4 install before shipping.
+## Lifecycle audit
+
+[`docs/flutter-lifecycle-audit.md`](flutter-lifecycle-audit.md) proposed six phases.
+Phases 0–3 and 6 shipped inside releases `1.10.0`–`1.12.0`. Phase 4 (Riverpod
+modernisation, dashboard streams) ships with [12](features/12-dashboard-tabs.md).
+**Phase 5 is dropped** with doc 14a — it was the Supabase precondition.
 
 ---
 
 ## Standing risks
 
-- ~~**10a is uncommitted.**~~ Closed 2026-08-29 — shipped in `1.10.0+14`.
-- **There is no CI gate.** Deferred by the owner on 2026-08-28, so `flutter analyze` and
-  `flutter test` are run by hand. Steps 2 and 3 of the readiness gate are therefore only
-  as reliable as the person running them.
-- **The 10a performance work has no baseline.** All four criteria were verified on the
-  owner's device on 2026-08-29 and all four passed, but the figures were not written
-  down. There is a pass, not a number to regress against. Capture them the next time
-  the phone is out — [10b](features/10b-navigation.md) rewrote the router and **deleted
-  the splash route entirely**, which is exactly the work cold start would notice. That
-  measurement is now overdue rather than merely nice to have.
-- **10b is built but ungated, and the owner revised it on 2026-08-30.** Five slots
-  instead of four, no centre FAB, a Finances tab, and the app opens on the Overview.
-  See that doc's *Revised by the owner* table. Its remaining criteria need the phone
-  and are listed in *Build notes*. `pubspec.yaml` is deliberately still `1.10.0+14`,
-  so merging the branch as it stands would not cut a release — bump to `1.11.0+15`
-  as the last commit once the device pass is done.
-- **Some of 10c landed early.** The 1.11 branch rebuilt the three master lists on
-  the kit and routed every currency site through `money.dart`, because the owner hit
-  both as live defects. `check_tokens.sh` is at **354**, from 396. 10c's scope
-  shrinks accordingly; it is still the release that sets `SCREENS_BLOCKING=1`.
-- **The face changed twice, and the sizes have not been re-read since.** Quicksand →
-  Raleway (2026-08-29), then Raleway → **Bricolage Grotesque**
-  ([10b device pass](features/10b-device-pass.md), 2026-09-05). Raleway has a smaller
-  x-height than Quicksand and Bricolage Grotesque has a larger one than either, so the
-  same `fontSize:` has read light and now reads heavy.
-  [10c](features/10c-screen-restyle.md) touches all 198 of them and is the place to
-  settle it — once, against the face the app is actually shipping.
-- **Money arithmetic is thinly tested.** Two things carry real money: FIFO allocation
-  (05) and the quantity wheel with its clamp (08). Both have tests. Nothing else in the
-  UI needs them.
-- **`migration_test.dart` `v4 -> v5 upgrade` fails**, and failed before 10a started. It
-  is a genuine schema-migration bug in an area 10a does not touch. With the chain frozen
-  at v6 it will not get worse, but it should be fixed in
-  [18](features/18-foundation-guardrails.md) before the guardrails make CI blocking —
-  a red test that CI is taught to tolerate is a red test forever.
-  **Fixed in `0f08741`.** The chain now runs through v6 and the suite is green.
-- **APK is ~60 MB universal.** Split-per-ABI was rejected deliberately (archived
-  release planner, Q4) so users never have to pick a file. Doc 02 removed ~1.7 MB and
-  10a a further 145 KB. Beyond that, a real `--analyze-size` pass is needed before
-  claiming any further reduction — no size work on guesswork.
-- **Design-system drift.** [10a](features/10a-design-system.md) added tokens and
-  `tool/check_tokens.sh`; [10c](features/10c-screen-restyle.md) makes it blocking in CI.
-  Until 10c ships, that script reports but does not fail, and the app contains both
-  idioms. If 10c is deferred, the ratchet is what stops the codebase sliding back —
-  do not disable it to land something quickly.
-- **Doc 14 touches every DAO.** What makes it survivable is
-  [14a](features/14a-repository-seam.md) landing first. If a screen has to change during
-  the port, the port is being done wrong.
-- **Online-only is an accepted cost.** Order entry at 5 a.m. with no signal fails
-  outright after 14. The mitigation is written down in that doc and deliberately not
-  built until it hurts.
-
-
-Nine releases now, each with a sentence you'd actually say:
-
-Version	What the user gets
-1.10.0+14	New look, faster, quantities never lost
-1.11.0+15	Everything reachable in 2 taps
-1.12.0+16	Every screen rebuilt, real error messages
-1.13.0+17	Dashboard in tabs, updating live
-1.13.1+18	Download page, and the cleanup 2.0 needs
-2.0.0+19	Cloud data, login, second device
-2.1.0+20	Suggested orders from history
-2.2.0+21	Weekly business report
-3.0.0+22	White-label
+- **`1.13.0` was never cut.** The dashboard-tabs code is merged into `master` but
+  `pubspec.yaml` still says `1.12.0+16`, so no release was published. Either cut it or
+  fold the bump into `2.0.0`.
+- **There is no CI gate.** `flutter analyze` and `flutter test` are run by hand, so
+  steps 2 and 3 of the readiness gate are only as reliable as the person running them.
+- **No performance baseline.** The `1.10.0` criteria passed on the owner's device but the
+  numbers were never written down. Capture them next time the phone is out.
+- **The font changed twice** — Quicksand → Raleway → Bricolage Grotesque — and the sizes
+  were re-read once, in `1.12.0`. Watch for text that reads heavy.
+- **Money arithmetic is thinly tested.** FIFO allocation (05) and the quantity wheel (08)
+  have tests. Nothing else needs them.
+- **APK is ~60 MB universal.** Split-per-ABI was rejected on purpose so nobody has to pick
+  a file. No size work on guesswork — run `--analyze-size` first.
+- **Design-system drift.** `tool/check_tokens.sh` is blocking as of `1.12.0`. Do not
+  disable it to land something quickly.
+- **The code repo is public until `2.1.0`'s migration finishes.** Until then, do not commit
+  any real second business's config — anything committed while public may already be
+  cloned, and making the repo private later does not undo that. After the migration, the
+  public repo shows how many businesses there are, and anyone can download an APK and see
+  whose it is. Names are hidden from the repo, not from the APKs. See
+  [13](features/13-distribution-docs.md).
+- **`RELEASES_REPO_TOKEN` expires.** When it does, releases fail in CI; phones are fine.
+  The expiry date lives in `docs/development.md`.
+- **The API key for the weekly report is the owner's own**, typed into the app and stored
+  in app-private storage. It is never in the APK and never in the repo. See
+  [16](features/16-weekly-ai-report.md).

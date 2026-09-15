@@ -156,7 +156,7 @@ it is no longer preventive, it is a fix for something already shipped.
 - [ ] The screen currently bypasses the provider layer entirely
       (`ref.read(databaseProvider)` plus `.first` on four streams). Leave that as is.
       Converting it to providers is a real change to a screen that carries orders, and
-      it belongs in [doc 14](14-supabase-auth.md)'s port, not in a restyle.
+      it belongs in [doc 14](../archive/14-supabase-auth.md)'s port, not in a restyle.
 - [ ] Sticky total bar at the bottom: item count and running ₹ total, live as you type.
 - [ ] `AppScaffold` header showing shop name and the order's date.
 

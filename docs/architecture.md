@@ -32,7 +32,7 @@ lib/
     tables/  daos/  seed_data.dart  dev_seed.dart
   models/            dashboard_models.dart
   providers/         ~35 providers
-  repositories/      does not exist yet — doc 14a
+  repositories/      does not exist. Doc 14a is dropped
   screens/           dashboard finances home kitchen ledger order_entry orders settings
   services/          backup catalog_share category_emoji ledger_statement pdf_brand update
   theme/             tokens.dart brand_config.dart app_theme.dart

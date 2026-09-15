@@ -72,7 +72,7 @@ already-migrated screens, and no screen is built twice.
 
 - **No schema change in any of the three parts.** Not one column.
 - **Almost no DAO change.** Every finding in the audit sits above the provider line —
-  the same line [doc 14](14-supabase-auth.md) promises not to cross — so the two pieces
+  the same line [doc 14](../archive/14-supabase-auth.md) promises not to cross — so the two pieces
   of work do not collide. The single exception is named in
   [10b](10b-navigation.md): two additive, read-only outstanding queries on
   `ledger_dao.dart`, over tables that already exist, so the drawer can carry the

@@ -54,7 +54,7 @@ taken 2026-08-19 and is binding. These decisions sit inside it.
 | Centre FAB | **Quick-action sheet** — New order · Record payment · Add shop | Owner's call, 2026-08-26. Frees the single most prominent control from being a shortcut to one screen |
 | Dashboard | **Becomes the 4th bottom-bar slot**, a real shell branch | It has to go somewhere once the FAB stops opening it, and the owner uses it daily. As a branch it keeps its bottom bar, keeps its own back stack, and the dead `_topLevelPaths` entry becomes live |
 | Counter stock ([11](11-counter-stock.md)) | **Not built.** No drawer entry, no quick action, no slot | Dropped 2026-08-28 with the whole feature — this app does not count inventory |
-| Roles | **None.** One bar, no role badge, no `currentRoleProvider` | Decision 2026-08-28: [14](14-supabase-auth.md) ships a single account with full access. Gating nobody from anything is code with no reader |
+| Roles | **None.** One bar, no role badge, no `currentRoleProvider` | Decision 2026-08-28: [14](../archive/14-supabase-auth.md) ships a single account with full access. Gating nobody from anything is code with no reader |
 | Unshipped destinations | **Hidden, never shown-disabled** | Doc 10 left this open. A disabled row the user can never enable is noise — there is no unlock path, so it teaches nothing |
 | Notification bell (reference image 4) | **Not built** | No notification system exists. A bell that opens nothing is worse than no bell |
 
@@ -301,7 +301,7 @@ left open overnight reports yesterday as today, on every screen, forever.**
       down before the first frame is rasterised.
 - [x] **One `AppLifecycleListener`** at the root. On `resumed`: invalidate `todayProvider`
       and, if the date rolled over, `selectedDateProvider`. On `paused`: flush the pending
-      order-entry write. [Doc 14](14-supabase-auth.md)'s biometric gate hangs off this same
+      order-entry write. [Doc 14](../archive/14-supabase-auth.md)'s biometric gate hangs off this same
       listener later, which is a second reason to put it in properly now.
 - [x] **Make "today" self-correcting.** `todayProvider` becomes a `Notifier` that
       invalidates itself on a timer scheduled for the next local midnight, *in addition* to
@@ -312,7 +312,7 @@ left open overnight reports yesterday as today, on every screen, forever.**
       `providerDidFail`. Local logging is enough to start — the seam is the point, and
       [10c](10c-screen-restyle.md)'s error views report into it.
 
-**No auth, no roles, no session provider.** [14](14-supabase-auth.md) brings a single
+**No auth, no roles, no session provider.** [14](../archive/14-supabase-auth.md) brings a single
 account with full access. There is nothing to gate, and a fake gate built here is thrown
 away there.
 
@@ -368,7 +368,7 @@ away there.
   list. Four more destinations arrive in docs 12, 15 and 16. If they each still cost
   three edits, this release did not fix anything.
 - **Doc 14's "no screen file changed as part of the DAO port" criterion** is carried by
-  [14a](14a-repository-seam.md)'s repository seam, not by role gating written here.
+  [14a](../archive/14a-repository-seam.md)'s repository seam, not by role gating written here.
   Nothing in this release needs to anticipate auth.
 - **Phase 1 roughly doubles this release.** It is still the right place for it: both
   halves rewrite `app.dart` and `main.dart`, and splitting them means writing the shell

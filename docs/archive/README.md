@@ -14,7 +14,9 @@ decisions already taken — read it for *why*, never for *what next*.
 | `v3-UI-IMPLEMENTATION-PLAN.md` | Home/nav/splash/background restyle, Poppins fonts | Shipped — Poppins later replaced by Quicksand (`d9e6799`) |
 | `dashboard_plan.md` | Dashboard detail spec | Shipped as v1.5 |
 | `v4-implementation-plan.md` | v1.2–v1.7 roadmap | Phases 1–4 shipped. Phases 5–6 (ledger) never built — carried forward into features [05](../features/05-ledger-foundation.md), [06](../features/06-ledger-manual-allocation.md) and [07](../features/07-ledger-statements.md) |
-| `v5-revamp-plan.md` | UX + modules + cloud roadmap | Never started — broken up into features [08](../features/08-order-entry-swipe.md)–[14](../features/14-supabase-auth.md) |
+| `v5-revamp-plan.md` | UX + modules + cloud roadmap | Never started — broken up into features [08](../features/08-order-entry-swipe.md)–[17](../features/17-white-label.md) |
+| `14-supabase-auth.md` | Cloud data, login, second device | **Dropped 2026-09-14** — owner's call. The app stays local-first on SQLite with no login |
+| `14a-repository-seam.md` | DAO seam before the Supabase port | **Dropped 2026-09-14** — it existed only to make that port safe. No port, no seam |
 | `release-planner.md` | Signing, APK size, GitHub Release CI | Shipped — `.github/workflows/release.yml`. Still the reference for keystore setup and how to cut a release |
 
 ## Two things that carry forward
