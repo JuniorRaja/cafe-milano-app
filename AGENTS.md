@@ -39,8 +39,10 @@ The app does five jobs, in the order of the day:
 waste figures. The owner dropped this feature on 2026-08-28. See
 [`docs/features/11-counter-stock.md`](docs/features/11-counter-stock.md).
 
-**The app has one user.** It has no roles and no permissions. After the Supabase port it
-has one account with full access. No code must anticipate roles.
+**The app has one user.** It has no roles, no permissions and no login. It is local-first
+on SQLite and stays that way — the Supabase plan was dropped on 2026-09-14
+([`docs/archive/14-supabase-auth.md`](docs/archive/14-supabase-auth.md)). No code must
+anticipate roles or a server.
 
 ---
 
@@ -62,9 +64,9 @@ lib/widgets/
 A screen must not reach past a provider.
 
 24 screen calls break this rule today, across 12 files. They all call
-`ref.read(databaseProvider)` directly. This is a known defect.
-[`docs/features/14a-repository-seam.md`](docs/features/14a-repository-seam.md) closes it.
-That doc also decides whether the Supabase port is safe.
+`ref.read(databaseProvider)` directly. This is a known defect. The doc that was going to
+close it is dropped ([`docs/archive/14a-repository-seam.md`](docs/archive/14a-repository-seam.md)) —
+fix these when you are already in the file for another reason, and do not add new ones.
 
 The read path is already correct. Providers wrap the DAO `watch*` queries. Screens read
 `AsyncValue`. Only the writes break the rule.
@@ -82,7 +84,7 @@ The read path is already correct. Providers wrap the DAO `watch*` queries. Scree
 7. Format all money with `lib/utils/money.dart`. Never write `₹` or a
    `NumberFormat` pattern — the grouping is Indian and comes from `BrandConfig`.
 8. Do not change a provider signature. This is a decision, not a refactor.
-9. Do not add roles, permissions, or auth code before doc 14.
+9. Do not add roles, permissions, auth or server code. There is no plan for any of it.
 10. Use the `AppRoutes` constants, and its builders for anything with a `:param`.
     Never write a route string.
 11. No bare `// ignore:`. Every one names the reason and the doc that removes it.
